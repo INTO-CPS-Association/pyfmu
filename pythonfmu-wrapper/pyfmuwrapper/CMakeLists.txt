@@ -17,8 +17,10 @@ target_compile_features(pyfmuwrapper PUBLIC "cxx_std_17")
 
 
 target_link_libraries(pyfmuwrapper
-        PRIVATE
+        PUBLIC
         Python3::Python
         )
+
+target_include_directories(${PROJECT_NAME} INTERFACE include)
 
 set_target_properties(pyfmuwrapper PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
