@@ -43,3 +43,4 @@ add_executable(dummy dummy.cpp)
 
 add_subdirectory(pyfmuwrapper)
 add_subdirectory(tests)
+add_subdirectory(foo)
