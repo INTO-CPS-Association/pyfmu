@@ -1,6 +1,5 @@
 
 #include <pythonfmu/thread_worker.hpp>
-
 #include <utility>
 
 namespace pythonfmu
@@ -32,14 +31,16 @@ void thread_worker::work(std::function<void()> f)
 
 void thread_worker::listen()
 {
-    while (!stop_) {
+    while (!stop_)
+    {
 
         std::unique_lock<std::mutex> lk(m_);
         cv_.wait(lk, [this] {
             return ready_;
         });
 
-        if (stop_) break;
+        if (stop_)
+            break;
 
         f_();
 
@@ -50,7 +51,6 @@ void thread_worker::listen()
         cv_.notify_one();
     }
 }
-
 
 thread_worker::~thread_worker()
 {
