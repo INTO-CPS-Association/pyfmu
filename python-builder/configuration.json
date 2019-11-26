@@ -1,0 +1,11 @@
+{
+    "export": {
+        "archive_name": "fmuslave",
+        "outdir": "export"
+    },
+    "sources": {
+        "script": "pythonslave.py",
+        "class_name": "PythonSlave",
+        "dependencies": []
+    }
+}
