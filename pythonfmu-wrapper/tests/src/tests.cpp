@@ -1,11 +1,12 @@
 #include <string>
 #include <iostream>
-#include "pythonfmu/PyObjectWrapper.hpp"
-#include "pythonfmu/PyState.hpp"
+// #include "pythonfmu/PyObjectWrapper.hpp"
+// #include "pythonfmu/PyState.hpp"
 #include <string>
 #include "Python.h"
+#include "foo.hpp"
 
-using namespace pythonfmu;
+// using namespace pythonfmu;
 using namespace std;
 
 int main(int argc, char **argv)
@@ -17,8 +18,8 @@ int main(int argc, char **argv)
     Py_Initialize();
 
     std::string path = "resources/adder/";
-    PyObjectWrapper wrapper(path);
-
+    // PyObjectWrapper wrapper(path);
+    foo();
     // if (!Py_IsInitialized)
     //     auto test = 0;
 
