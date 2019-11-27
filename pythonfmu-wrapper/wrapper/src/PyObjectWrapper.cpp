@@ -55,8 +55,8 @@ PyObjectWrapper::PyObjectWrapper()
 
 PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
 {
-
-    if (Py_IsInitialized() == false)
+    
+   /*  if (Py_IsInitialized() == false)
     {
         throw runtime_error("The Python object cannot be instantiated due to the python intrepeter not being instantiated. Ensure that Py_Initialize() is called prior to the invoking the constructor.");
     }
@@ -96,6 +96,7 @@ PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
     {
         handle_py_exception();
     }
+     */
 }
 
 void PyObjectWrapper::setupExperiment(double startTime)
