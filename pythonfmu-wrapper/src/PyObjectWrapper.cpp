@@ -9,9 +9,19 @@
 #include <utility>
 #include <pythonfmu/PyException.hpp>
 
-void test()
-{
-}
+using namespace std;
+
+// void append_resources_folder_to_python_interpreter(std::string const &resource_path)
+// {
+//     ostringstream oss;
+//     oss << "import sys\n";
+//     oss << "sys.path.append(r'" << resource_path << "')\n";
+
+//     string path_str = oss.str();
+//     const char *path_cstr = path_str.c_str();
+
+//     PyRun_SimpleString(path_cstr);
+// }
 
 namespace
 {
@@ -43,14 +53,28 @@ PyObjectWrapper::PyObjectWrapper()
 {
 }
 
-PyObjectWrapper::PyObjectWrapper(const std::string &resources)
+PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
 {
-    auto moduleName = getline(resources + "/slavemodule.txt");
 
-    std::ostringstream oss;
-    oss << "import sys\n";
-    oss << "sys.path.append(r'" << resources << "')\n";
-    PyRun_SimpleString(oss.str().c_str());
+    if (Py_IsInitialized() == false)
+    {
+        throw runtime_error("The Python object cannot be instantiated due to the python intrepeter not being instantiated. Ensure that Py_Initialize() is called prior to the invoking the constructor.");
+    }
+
+    string script_path = resource_path + "/script_config.txt";
+    ifstream config(script_path);
+
+    if (!config)
+    {
+        ostringstream oss;
+        oss << "Could not locate configuration file pointing to the main Python class. The file following file does not exist:\n " << script_path << "std::endl";
+        throw runtime_error(oss.str().c_str());
+    }
+
+    string moduleName;
+    getline(config, moduleName, '/');
+
+    // append_resources_folder_to_python_interpreter(resource_path);
 
     pModule_ = PyImport_ImportModule(moduleName.c_str());
     if (pModule_ == nullptr)

@@ -13,7 +13,11 @@ class PyState
 public:
     PyState()
     {
+
         Py_Initialize();
+
+        if (!Py_IsInitialized)
+            throw std::runtime_error("Failed to initialize Python interpreter");
     }
 
     ~PyState()
