@@ -4,6 +4,7 @@ project(pyfmuwrapper VERSION 0.0.1 LANGUAGES CXX)
 set(BUILD_SHARED_LIBS OFF)
 
 
+
 # Ensure only standard C and CXX is used
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_EXTENSIONS OFF)

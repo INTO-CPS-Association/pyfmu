@@ -3,24 +3,35 @@
 #define PYTHONFMU_PYTHONSTATE_HPP
 
 #include <Python.h>
+#include <filesystem>
 #include <iostream>
+
 
 namespace pythonfmu
 {
 
-class PyState
+
+
+
+class PyInitializer
 {
 public:
-    PyState()
+    PyInitializer(std::wstring module_path = L"")
     {
+        
+
+        if(!module_path.empty())
+        {
+            Py_SetPath(module_path.c_str());
+        }
 
         Py_Initialize();
 
-        if (!Py_IsInitialized)
+        if (!Py_IsInitialized())
             throw std::runtime_error("Failed to initialize Python interpreter");
     }
 
-    ~PyState()
+    ~PyInitializer()
     {
         Py_Finalize();
     }

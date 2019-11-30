@@ -1,5 +1,5 @@
 
-#include <pythonfmu/PyState.hpp>
+#include <pythonfmu/PyInitializer.hpp>
 #include <pythonfmu/SlaveInstance.hpp>
 
 #include <cppfmu/cppfmu_cs.hpp>
@@ -88,7 +88,7 @@ SlaveInstance::~SlaveInstance() = default;
 
 } // namespace pythonfmu
 
-std::unique_ptr<pythonfmu::PyState> pyState = nullptr;
+std::unique_ptr<pythonfmu::PyInitializer> pyState = nullptr;
 
 cppfmu::UniquePtr<cppfmu::SlaveInstance> CppfmuInstantiateSlave(
     cppfmu::FMIString,
@@ -109,7 +109,7 @@ cppfmu::UniquePtr<cppfmu::SlaveInstance> CppfmuInstantiateSlave(
     }
 
     if (pyState == nullptr) {
-        pyState = std::make_unique<pythonfmu::PyState>();
+        pyState = std::make_unique<pythonfmu::PyInitializer>();
     }
 
     return cppfmu::AllocateUnique<pythonfmu::SlaveInstance>(

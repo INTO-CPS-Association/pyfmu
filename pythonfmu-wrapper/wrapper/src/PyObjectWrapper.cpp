@@ -3,6 +3,7 @@
 
 #include <cppfmu/cppfmu_common.hpp>
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -10,18 +11,19 @@
 #include <pythonfmu/PyException.hpp>
 
 using namespace std;
+using namespace filesystem;
 
-// void append_resources_folder_to_python_interpreter(std::string const &resource_path)
-// {
-//     ostringstream oss;
-//     oss << "import sys\n";
-//     oss << "sys.path.append(r'" << resource_path << "')\n";
+void append_resources_folder_to_python_interpreter(std::string const &resource_path)
+{
+    ostringstream oss;
+    oss << "import sys\n";
+    oss << "sys.path.append(r'" << resource_path << "')\n";
 
-//     string path_str = oss.str();
-//     const char *path_cstr = path_str.c_str();
+    string path_str = oss.str();
+    const char *path_cstr = path_str.c_str();
 
-//     PyRun_SimpleString(path_cstr);
-// }
+    PyRun_SimpleString(path_cstr);
+}
 
 namespace
 {
@@ -49,32 +51,32 @@ inline const char *get_class_name(PyObject *pModule)
 namespace pythonfmu
 {
 
-PyObjectWrapper::PyObjectWrapper()
-{
-}
 
 PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
 {
     
-   /*  if (Py_IsInitialized() == false)
+    if (!Py_IsInitialized())
     {
         throw runtime_error("The Python object cannot be instantiated due to the python intrepeter not being instantiated. Ensure that Py_Initialize() is called prior to the invoking the constructor.");
     }
 
-    string script_path = resource_path + "/script_config.txt";
+    path script_path = path(resource_path) / "script_config.txt"; 
+
+
     ifstream config(script_path);
 
     if (!config)
     {
         ostringstream oss;
-        oss << "Could not locate configuration file pointing to the main Python class. The file following file does not exist:\n " << script_path << "std::endl";
+        oss << "Could not locate configuration file pointing to the main Python class. \nThe file following file does not exist: " 
+        << script_path << ", in the current path: " << current_path();
         throw runtime_error(oss.str().c_str());
     }
 
     string moduleName;
     getline(config, moduleName, '/');
 
-    // append_resources_folder_to_python_interpreter(resource_path);
+    append_resources_folder_to_python_interpreter(resource_path);
 
     pModule_ = PyImport_ImportModule(moduleName.c_str());
     if (pModule_ == nullptr)
@@ -96,7 +98,7 @@ PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
     {
         handle_py_exception();
     }
-     */
+    
 }
 
 void PyObjectWrapper::setupExperiment(double startTime)

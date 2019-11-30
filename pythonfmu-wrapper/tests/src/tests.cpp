@@ -2,29 +2,32 @@
 #include <iostream>
 
 #include "pythonfmu/PyObjectWrapper.hpp"
-#include "pythonfmu/PyState.hpp"
+#include "pythonfmu/PyInitializer.hpp"
 #include "foo.hpp"
 
 #include <string>
+#include <filesystem>
 
 using namespace pythonfmu;
 using namespace std;
+using namespace filesystem;
 
 int main(int argc, char **argv)
 {
 
-    const wchar_t *python_path = L"C:\\ProgramData\\Miniconda3\\Lib";
-    // Py_SetPath(python_path);
-    // auto test = Py_GetPath();
-    // Py_Initialize();
+    // const wchar_t *python_path = L"C:\\ProgramData\\Miniconda3\\Lib";
+    
+    
 
-    // PyState state();
-    const std::string path = "resources/adder/";
-    // PyObjectWrapper wrapper("test");
-    // if (!Py_IsInitialized)
-    //     auto test = 0;
+    
+    path fmu_resource_path("resources/adder/");
+    
+    auto state = PyInitializer();
+    
+        
+    PyObjectWrapper(fmu_resource_path.string());
 
-    foo();
+    
 
     printf("Foo executed");
 

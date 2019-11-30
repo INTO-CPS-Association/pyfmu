@@ -17,7 +17,6 @@ class PyObjectWrapper
 {
 
 public:
-    PyObjectWrapper();
 
     explicit PyObjectWrapper(const std::string &resources);
 

@@ -8,6 +8,7 @@ add_library(${PROJECT_NAME}
         src/PyObjectWrapper.cpp
         src/SlaveInstance.cpp
         src/thread_worker.cpp
+        include/pythonfmu/PyInitializer.hpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC include)
