@@ -17,4 +17,3 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 add_subdirectory(wrapper)
 add_subdirectory(tests)
-add_subdirectory(mylib)
