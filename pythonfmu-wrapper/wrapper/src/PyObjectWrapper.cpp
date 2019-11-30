@@ -22,8 +22,9 @@ void append_resources_folder_to_python_interpreter(std::string const &resource_p
     string path_str = oss.str();
     const char *path_cstr = path_str.c_str();
 
-    PyRun_SimpleString(path_cstr);
+    int err = PyRun_SimpleString(path_cstr);
 }
+
 
 namespace
 {
@@ -51,15 +52,8 @@ inline const char *get_class_name(PyObject *pModule)
 namespace pythonfmu
 {
 
-
-PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
+string get_python_module_name(string resource_path)
 {
-    
-    if (!Py_IsInitialized())
-    {
-        throw runtime_error("The Python object cannot be instantiated due to the python intrepeter not being instantiated. Ensure that Py_Initialize() is called prior to the invoking the constructor.");
-    }
-
     path script_path = path(resource_path) / "script_config.txt"; 
 
 
@@ -76,29 +70,92 @@ PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
     string moduleName;
     getline(config, moduleName, '/');
 
-    append_resources_folder_to_python_interpreter(resource_path);
+    return moduleName;
+}
 
-    pModule_ = PyImport_ImportModule(moduleName.c_str());
+PyObject* load_python_module(std::string const& module_name) 
+{
+    auto pModule_ = PyImport_ImportModule(module_name.c_str());
+
     if (pModule_ == nullptr)
     {
-        handle_py_exception();
+        auto err = get_py_exception();
+        ostringstream oss;
+        oss << "Python module defining containing main Python class could not be loaded. Ensure that a file named script_config.txt exists in the resource folder."
+        << "\nThis file must contain a single line defining the name of the module containing this class. For example if the given module is named adder.py the file should contain the line adder\n"
+        << "Error message from Python is:\n" << err;
+
+        throw runtime_error(oss.str());
     }
-    auto className = get_class_name(pModule_);
-    if (className == nullptr)
+
+    return pModule_;
+}
+
+PyObject* get_main_class(PyObject* pModule)
+{
+    PyObject* attr = PyObject_GetAttrString(pModule, "slave_class");
+
+    if(attr == nullptr)
     {
-        handle_py_exception();
+        auto err = get_py_exception();
+        ostringstream oss;
+        oss << "Failed to extract the name of the main Python class from the module. Ensure that the module defines a property named 'slave_class' which is equal to the name of the main Python class, such as 'slave_class = 'Adder'\n"
+            << "Error message from Python is:\n" << err;
+
+        throw runtime_error(oss.str());
     }
-    pClass_ = PyObject_GetAttrString(pModule_, className);
-    if (pClass_ == nullptr)
-    {
-        handle_py_exception();
-    }
-    pInstance_ = PyObject_CallFunctionObjArgs(pClass_, nullptr);
-    if (pInstance_ == nullptr)
-    {
-        handle_py_exception();
-    }
+
     
+    const char* class_name = PyUnicode_AsUTF8(attr);
+    PyObject* pClass = PyObject_GetAttrString(pModule, class_name);
+
+    if(pClass == nullptr)
+    {
+        auto err = get_py_exception();
+        ostringstream oss;
+        oss << "Main Python class name, " << class_name << ", does not match any class exported by the module. Ensure that the 'slave_class' property is set to a class defined in that module."
+            << "Error message from Python is:\n" << err;
+
+        throw runtime_error(oss.str());
+    }
+
+    return pClass;
+}
+
+PyObject* instantiate_main_class(PyObject* pClass)
+{
+    PyObject* pInstance = PyObject_CallFunctionObjArgs(pClass, nullptr);
+
+    if(pInstance == nullptr)
+    {
+        auto err = get_py_exception();
+        ostringstream oss;
+        oss << "Failed to instantiate main Python class. Ensure that the class defines a constructor which accepts no parameters\n."
+            << "Error message from python is:\n" << err;
+        throw runtime_error(oss.str());
+    }
+
+    return pInstance;
+}
+
+PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
+{
+    
+    if (!Py_IsInitialized())
+    {
+        throw runtime_error("The Python object cannot be instantiated due to the python intrepeter not being instantiated. Ensure that Py_Initialize() is invoked successfully prior to the invoking the constructor.");
+    }
+
+
+    string moduleName = get_python_module_name(resource_path);
+    
+    append_resources_folder_to_python_interpreter(resource_path);
+
+    pModule_ = load_python_module(moduleName);
+
+    pClass_ = get_main_class(pModule_);
+
+    pInstance_ = instantiate_main_class(pClass_);
 }
 
 void PyObjectWrapper::setupExperiment(double startTime)
@@ -281,10 +338,12 @@ void PyObjectWrapper::setInteger(const cppfmu::FMIValueReference *vr, std::size_
     auto f = PyObject_CallMethod(pInstance_, "__set_integer__", "(OO)", vrs, refs);
     Py_DECREF(vrs);
     Py_DECREF(refs);
+
     if (f == nullptr)
     {
         handle_py_exception();
     }
+
     Py_DECREF(f);
 }
 
@@ -301,10 +360,16 @@ void PyObjectWrapper::setReal(const cppfmu::FMIValueReference *vr, std::size_t n
     auto f = PyObject_CallMethod(pInstance_, "__set_real__", "(OO)", vrs, refs);
     Py_DECREF(vrs);
     Py_DECREF(refs);
+
     if (f == nullptr)
     {
-        handle_py_exception();
+        auto err = get_py_exception();
+        ostringstream oss;
+        oss << "Failed to set real values of the python instance. Ensure that the script implements the '__set__real__' method correctly, for example by inheriting from 'FMI2Slave'.\n"
+            << "Python error is:\n" << err;
+        throw runtime_error(oss.str());
     }
+
     Py_DECREF(f);
 }
 

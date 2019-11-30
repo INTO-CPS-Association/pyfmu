@@ -41,6 +41,41 @@ inline void handle_py_exception()
     }
 }
 
+inline std::string get_py_exception()
+{
+    auto err = PyErr_Occurred();
+
+    if (err != nullptr) {
+
+        PyObject *pExcType, *pExcValue, *pExcTraceback;
+        PyErr_Fetch(&pExcType, &pExcValue, &pExcTraceback);
+
+        std::ostringstream oss;
+        oss << "Fatal py exception encountered: ";
+        if (pExcValue != nullptr) {
+            PyObject* pRepr = PyObject_Repr(pExcValue);
+            oss << PyUnicode_AsUTF8(pRepr);
+            Py_DECREF(pRepr);
+        } else {
+            oss << "unknown error";
+        }
+
+        PyErr_Clear();
+
+        Py_XDECREF(pExcType);
+        Py_XDECREF(pExcValue);
+        Py_XDECREF(pExcTraceback);
+
+        auto msg = oss.str();
+
+        return msg;
+    }
+    else 
+    {
+        return "";
+    }
+}
+
 } // namespace pythonfmu
 
 #endif

@@ -23,13 +23,28 @@ int main(int argc, char **argv)
     path fmu_resource_path("resources/adder/");
     
     auto state = PyInitializer();
-    
+
         
-    PyObjectWrapper(fmu_resource_path.string());
+    auto wrapped = PyObjectWrapper(fmu_resource_path.string());
+
+    
+    
+
+    unsigned int set_refs[] = {0,1};
+    double set_vals[] = {5,10};
+
+    wrapped.setReal(set_refs,2,set_vals);
+
+    unsigned int get_refs[] = {2};
+    double get_vals[] = {0};
+
+    wrapped.doStep(0,1);
+    
+    wrapped.getReal(get_refs,1,get_vals);
 
     
 
-    printf("Foo executed");
+    cout << "Values are: " << get_vals[0] << std::endl;
 
     return 0;
 }
