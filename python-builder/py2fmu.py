@@ -1,5 +1,5 @@
 import argparse
-
+from libs.generate import create_project
 
 def config_generate_subprogram(subparser: argparse.ArgumentParser) -> None:
     parser_gen = subparsers.add_parser(
@@ -44,7 +44,7 @@ def config_export_subprogram(parser: argparse.ArgumentParser) -> None:
 
 def handle_generate(args):
 
-    from generate import create_project
+    
     from os.path import join, curdir, dirname, basename, normpath
 
     if(args.file is not None):

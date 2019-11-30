@@ -19,7 +19,6 @@ def _create_dirs(project_path: str, exist_ok: bool = True):
     except Exception as e:
         raise Exception("Failed to create directories for the Python project")
 
-
 def _generate_fmu_template(project_path: str, source_path: str, template_path: str, main_class_name: str):
 
     r = None
@@ -46,10 +45,6 @@ def _copy_python_library_to_sources(python_lib_path : str, source_path: str):
     python_script_path = join(python_lib_path, "fmi2slave.py")
 
     copy(python_script_path,source_path)
-
-    
-
-
 
 def create_project(project_path: str, main_class_name: str):
 
