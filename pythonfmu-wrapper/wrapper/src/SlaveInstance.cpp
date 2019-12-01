@@ -114,6 +114,9 @@ cppfmu::UniquePtr<cppfmu::SlaveInstance> CppfmuInstantiateSlave(
         pyState = std::make_unique<pythonfmu::PyInitializer>();
     }
 
-    return cppfmu::AllocateUnique<pythonfmu::SlaveInstance>(
+
+    auto slave = cppfmu::AllocateUnique<pythonfmu::SlaveInstance>(
         memory, memory, resources);
+
+    return slave;
 }

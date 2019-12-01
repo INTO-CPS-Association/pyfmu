@@ -46,7 +46,7 @@ TEST_CASE("PyObjectWrapper") {
   SECTION("fmi") {
 
 
-    const char* resources_path = (path("resources") / "adder").c_str();
+    const char* resources_path = (path("resources/") / "adder").c_str();
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -63,20 +63,27 @@ TEST_CASE("PyObjectWrapper") {
     fmi2Real end_time = 10;
     fmi2Real step_size = 0.1;
 
-    fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True, end_time);
+    fmi2Status s;
+
+    s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True, end_time);
+    REQUIRE(s == fmi2OK);
 
     unsigned int set_refs[] = {0, 1};
     double set_vals[] = {5, 10};
-
-    fmi2SetReal(c, set_refs, 2, set_vals);
+    s = fmi2SetReal(c, set_refs, 2, set_vals);
+    REQUIRE(s == fmi2OK);
 
     unsigned int get_refs[] = {2};
     double get_vals[] = {0};
-
-    fmi2GetReal(c, get_refs, 1, get_vals);
-
+    s = fmi2GetReal(c, get_refs, 1, get_vals);
+    REQUIRE(s == fmi2OK);
     REQUIRE(get_vals[0] == 0);
 
-    fmi2DoStep(c, 0, 1, false);
+    s = fmi2DoStep(c, 0, 1, false);
+    REQUIRE(s == fmi2OK);
+
+    s = fmi2GetReal(c, get_refs, 1, get_vals);
+    REQUIRE(s == fmi2OK);
+    REQUIRE(get_vals[0] == 15);
   }
 }
