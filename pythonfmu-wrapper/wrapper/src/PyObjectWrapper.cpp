@@ -1,56 +1,33 @@
 
 #include <pythonfmu/PyObjectWrapper.hpp>
 
-#include <cppfmu/cppfmu_common.hpp>
-
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <utility>
 #include <pythonfmu/PyException.hpp>
+#include "fmi/fmi2TypesPlatform.h"
 
 using namespace std;
 using namespace filesystem;
 
-void append_resources_folder_to_python_interpreter(std::string const &resource_path)
+
+namespace pythonfmu
+{
+
+void append_resources_folder_to_python_interpreter(string &resource_path)
 {
     ostringstream oss;
     oss << "import sys\n";
     oss << "sys.path.append(r'" << resource_path << "')\n";
 
-    string path_str = oss.str();
-    const char *path_cstr = path_str.c_str();
+    string str = oss.str();
+    const char* cstr = str.c_str();
+    
 
-    int err = PyRun_SimpleString(path_cstr);
+    int err = PyRun_SimpleString(cstr);
 }
-
-
-namespace
-{
-
-inline std::string getline(const std::string &fileName)
-{
-    std::string line;
-    std::ifstream infile(fileName);
-    std::getline(infile, line);
-    return line;
-}
-
-inline const char *get_class_name(PyObject *pModule)
-{
-    auto f = PyObject_GetAttrString(pModule, "slave_class");
-    if (f != nullptr)
-    {
-        return PyUnicode_AsUTF8(f);
-    }
-    return nullptr;
-}
-
-} // namespace
-
-namespace pythonfmu
-{
 
 string get_python_module_name(string resource_path)
 {
@@ -138,7 +115,7 @@ PyObject* instantiate_main_class(PyObject* pClass)
     return pInstance;
 }
 
-PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
+PyObjectWrapper::PyObjectWrapper(fmi2String resource_path)
 {
     
     if (!Py_IsInitialized())
@@ -146,10 +123,11 @@ PyObjectWrapper::PyObjectWrapper(const std::string &resource_path)
         throw runtime_error("The Python object cannot be instantiated due to the python intrepeter not being instantiated. Ensure that Py_Initialize() is invoked successfully prior to the invoking the constructor.");
     }
 
+    string resource_path_str = resource_path;
 
-    string moduleName = get_python_module_name(resource_path);
+    string moduleName = get_python_module_name(resource_path_str);
     
-    append_resources_folder_to_python_interpreter(resource_path);
+    append_resources_folder_to_python_interpreter(resource_path_str);
 
     pModule_ = load_python_module(moduleName);
 
@@ -220,7 +198,7 @@ void PyObjectWrapper::terminate()
     Py_DECREF(f);
 }
 
-void PyObjectWrapper::getInteger(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIInteger *values) const
+void PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t nvr, fmi2Integer *values) const
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);
@@ -246,7 +224,7 @@ void PyObjectWrapper::getInteger(const cppfmu::FMIValueReference *vr, std::size_
     Py_DECREF(refs);
 }
 
-void PyObjectWrapper::getReal(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIReal *values) const
+void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr, fmi2Real *values) const
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);
@@ -273,7 +251,7 @@ void PyObjectWrapper::getReal(const cppfmu::FMIValueReference *vr, std::size_t n
     Py_DECREF(refs);
 }
 
-void PyObjectWrapper::getBoolean(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIBoolean *values) const
+void PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t nvr, fmi2Boolean *values) const
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);
@@ -299,7 +277,7 @@ void PyObjectWrapper::getBoolean(const cppfmu::FMIValueReference *vr, std::size_
     Py_DECREF(refs);
 }
 
-void PyObjectWrapper::getString(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIString *values) const
+void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr, fmi2String *values) const
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);
@@ -325,7 +303,7 @@ void PyObjectWrapper::getString(const cppfmu::FMIValueReference *vr, std::size_t
     Py_DECREF(refs);
 }
 
-void PyObjectWrapper::setInteger(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIInteger *values)
+void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Integer *values)
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);
@@ -347,7 +325,7 @@ void PyObjectWrapper::setInteger(const cppfmu::FMIValueReference *vr, std::size_
     Py_DECREF(f);
 }
 
-void PyObjectWrapper::setReal(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIReal *values)
+void PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Real *values)
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);
@@ -373,7 +351,7 @@ void PyObjectWrapper::setReal(const cppfmu::FMIValueReference *vr, std::size_t n
     Py_DECREF(f);
 }
 
-void PyObjectWrapper::setBoolean(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIBoolean *values)
+void PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Boolean *values)
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);
@@ -393,7 +371,7 @@ void PyObjectWrapper::setBoolean(const cppfmu::FMIValueReference *vr, std::size_
     Py_DECREF(f);
 }
 
-void PyObjectWrapper::setString(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIString *value)
+void PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr, const fmi2String *value)
 {
     PyObject *vrs = PyList_New(nvr);
     PyObject *refs = PyList_New(nvr);

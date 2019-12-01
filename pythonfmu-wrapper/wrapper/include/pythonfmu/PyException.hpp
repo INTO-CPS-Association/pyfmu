@@ -2,7 +2,6 @@
 #ifndef PYTHONFMU_EXPORT_PYEXCEPTION_HPP
 #define PYTHONFMU_EXPORT_PYEXCEPTION_HPP
 
-#include <cppfmu/cppfmu_common.hpp>
 
 #include <Python.h>
 #include <iostream>
@@ -37,7 +36,7 @@ inline void handle_py_exception()
 
         auto msg = oss.str();
         std::cout << msg << std::endl;
-        throw cppfmu::FatalError(msg.c_str());
+        throw std::runtime_error(msg.c_str());
     }
 }
 

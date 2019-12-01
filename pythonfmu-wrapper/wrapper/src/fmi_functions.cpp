@@ -28,6 +28,28 @@ using namespace std;
 PyObjectWrapper *component = nullptr;
 PyInitializer *pyInitializer = nullptr;
 
+
+bool loggingOn_ = false;
+fmi2CallbackLogger logger = nullptr;
+
+void fmi2Log(fmi2ComponentEnvironment env, fmi2String instanceName, fmi2Status status, fmi2String category, fmi2String message, ...) {
+
+  if(logger == nullptr)
+  {
+    return;
+  }
+
+  if(!loggingOn_)
+  {
+    return;
+  }
+
+  // TODO find way to support pass variable amount of arguments
+  logger(env,instanceName,status,category,message, message, nullptr);
+
+
+}
+
 fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                               fmi2String fmuGUID,
                               fmi2String fmuResourceLocation,
@@ -46,6 +68,9 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   catch (exception &e){
     return nullptr;
   }
+
+  logger = functions->logger;
+  loggingOn_ = loggingOn;
 
   return component;
 }

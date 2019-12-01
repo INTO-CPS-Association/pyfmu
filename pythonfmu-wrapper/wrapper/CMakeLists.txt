@@ -3,10 +3,8 @@ project(pyfmuwrapper)
 
 
 add_library(${PROJECT_NAME}
-        src/cppfmu_cs.cpp
         src/fmi_functions.cpp
         src/PyObjectWrapper.cpp
-        src/SlaveInstance.cpp
         include/pythonfmu/PyInitializer.hpp
 )
 

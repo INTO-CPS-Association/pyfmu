@@ -2,8 +2,7 @@
 #ifndef PYTHONFMU_PYOBJECTWRAPPER_HPP
 #define PYTHONFMU_PYOBJECTWRAPPER_HPP
 
-#include <cppfmu/cppfmu_common.hpp>
-
+#include "fmi/fmi2TypesPlatform.h"
 #include <Python.h>
 
 namespace pythonfmu
@@ -14,7 +13,7 @@ class PyObjectWrapper
 
 public:
 
-    explicit PyObjectWrapper(const std::string &resources);
+    explicit PyObjectWrapper(const fmi2String resources);
 
     void setupExperiment(double startTime);
 
@@ -28,21 +27,21 @@ public:
 
     void terminate();
 
-    void getInteger(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIInteger *value) const;
+    void getInteger(const fmi2ValueReference *vr, std::size_t nvr, fmi2Integer *value) const;
 
-    void getReal(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIReal *value) const;
+    void getReal(const fmi2ValueReference *vr, std::size_t nvr, fmi2Real *value) const;
 
-    void getString(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIString *value) const;
+    void getString(const fmi2ValueReference *vr, std::size_t nvr, fmi2String *value) const;
 
-    void getBoolean(const cppfmu::FMIValueReference *vr, std::size_t nvr, cppfmu::FMIBoolean *value) const;
+    void getBoolean(const fmi2ValueReference *vr, std::size_t nvr, fmi2Boolean *value) const;
 
-    void setReal(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIReal *value);
+    void setReal(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Real *value);
 
-    void setInteger(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIInteger *value);
+    void setInteger(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Integer *value);
 
-    void setBoolean(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIBoolean *value);
+    void setBoolean(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Boolean *value);
 
-    void setString(const cppfmu::FMIValueReference *vr, std::size_t nvr, const cppfmu::FMIString *value);
+    void setString(const fmi2ValueReference *vr, std::size_t nvr, const fmi2String *value);
 
     ~PyObjectWrapper();
 
