@@ -45,8 +45,8 @@ TEST_CASE("PyObjectWrapper") {
 
   SECTION("fmi") {
 
-
-    const char* resources_path = (path("resources/") / "adder").c_str();
+    auto p = path("examples") / "adder" / "resources";
+    const char* resources_path = p.c_str();
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,

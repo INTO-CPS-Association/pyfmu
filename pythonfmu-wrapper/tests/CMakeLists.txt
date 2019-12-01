@@ -12,5 +12,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC "cxx_std_17")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE pyfmuwrapper)
 
+
+
 # Copy test files to output folder
-file(COPY resources DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
+file(COPY examples DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME})

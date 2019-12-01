@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(pyfmuwrapper VERSION 0.0.1 LANGUAGES CXX)
 
-set(BUILD_SHARED_LIBS OFF)
+set(BUILD_SHARED_LIBS ON)
 
 
 

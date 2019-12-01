@@ -16,8 +16,10 @@ using namespace filesystem;
 namespace pythonfmu
 {
 
-void append_resources_folder_to_python_interpreter(string &resource_path)
+void append_resources_folder_to_python_path(string &resource_path)
 {
+
+
     ostringstream oss;
     oss << "import sys\n";
     oss << "sys.path.append(r'" << resource_path << "')\n";
@@ -127,7 +129,7 @@ PyObjectWrapper::PyObjectWrapper(fmi2String resource_path)
 
     string moduleName = get_python_module_name(resource_path_str);
     
-    append_resources_folder_to_python_interpreter(resource_path_str);
+    append_resources_folder_to_python_path(resource_path_str);
 
     pModule_ = load_python_module(moduleName);
 
