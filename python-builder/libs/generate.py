@@ -6,6 +6,7 @@ from os.path import join, curdir, realpath, dirname
 from shutil import copy
 from jinja2 import Template
 
+from .configure import _create_config
 
 def _create_dirs(project_path: str, exist_ok: bool = True):
     source_path = join(project_path, "source")
@@ -48,7 +49,9 @@ def _copy_python_library_to_sources(python_lib_path : str, source_path: str):
 
 def create_project(project_path: str, main_class_name: str):
 
-    cur_dir = dirname(realpath(__file__))
+    cur_dir = curdir
+
+    config_path = join(project_path,"config.json")
 
     template_path = join(cur_dir, "resources",
                          "templates", "fmu.py.j2")
@@ -65,3 +68,6 @@ def create_project(project_path: str, main_class_name: str):
 
 
     _copy_python_library_to_sources(python_lib_path, source_path)
+
+    _create_config(config_path, main_class_name)
+

@@ -57,6 +57,11 @@ def handle_generate(args):
     create_project(project_path, main_class_name)
 
 
+def handle_export(args):
+    
+    
+    pass
+
 if __name__ == "__main__":
 
     description_text = """Utility program to facility the development of Functional Mock-up Units (FMUs) using Python code.

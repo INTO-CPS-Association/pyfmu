@@ -13,7 +13,9 @@
             "args": [
                 "generate",
                 "-p",
-                "generated/multiplier"
+                "generated/multiplier",
+                "-n",
+                "Multiplier"
             ]
         }
     ]

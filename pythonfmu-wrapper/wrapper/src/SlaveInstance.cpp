@@ -4,6 +4,8 @@
 
 #include <cppfmu/cppfmu_cs.hpp>
 
+using namespace cppfmu;
+
 namespace pythonfmu
 {
 

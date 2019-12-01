@@ -75,6 +75,7 @@ fmi2Component fmi2Instantiate(
             instanceName,
             *functions,
             loggingOn);
+
         component->slave = CppfmuInstantiateSlave(
             instanceName,
             fmuGUID,
@@ -85,6 +86,7 @@ fmi2Component fmi2Instantiate(
             cppfmu::FMIFalse,
             component->memory,
             component->logger);
+            
         return component.release();
     } catch (const cppfmu::FatalError& e) {
         functions->logger(nullptr, instanceName, fmi2Fatal, "", e.what());

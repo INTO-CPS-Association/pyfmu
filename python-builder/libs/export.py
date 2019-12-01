@@ -114,61 +114,19 @@ def zip_archive(pd: PathDefintions) -> None:
     move(outOld, outNew)
 
 
-if __name__ == "__main__":
 
-    base_dir = dirname(__file__)
+create_export_folders(pd)
 
-    config_path = join(base_dir, "configuration.json")
+write_model_description_to_archive(pd, model_description)
 
-    info("Running Python2FMU\n")
+copy_binaries_to_archive(pd)
 
-    debug(f"Looking for configuration at: {config_path}\n")
+copy_resources_to_archive(pd)
 
-    try:
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-    except:
-        raise RuntimeError(
-            f"Failed to locate a configuration file, expected location is: {config_path}\n")
+copy_sources_to_archive(pd)
 
-    info(f"Configuration Loaded\n")
+generate_classname_hint_for_library(pd)
 
-    try:
-        class_name = config['sources']["class_name"]
-        outdir = config['export']['outdir']
-        script_name = config['sources']["script"]
-        archive_name = config['export']['archive_name']
-        class_name = config['sources']['class_name']
-    except:
-        raise RuntimeError(
-            "Configuration file does not declare the necessary values, ensure that configuration file is well formed.\n")
+zip_archive(pd)
 
-    pd = PathDefintions(base_dir, outdir, archive_name,
-                        script_name, class_name)
-
-    model_description = extract_model_description_from_script(pd)
-    try:
-        model_description = extract_model_description_from_script(pd)
-    except:
-        raise RuntimeError(
-            f"Model description could not be extracted from python script. Ensure that script is valid and class name supplied in the configuration matches the one declared in the python script.\n")
-
-    print("Model description extracted!\n")
-
-    print(model_description)
-
-    create_export_folders(pd)
-
-    write_model_description_to_archive(pd, model_description)
-
-    copy_binaries_to_archive(pd)
-
-    copy_resources_to_archive(pd)
-
-    copy_sources_to_archive(pd)
-
-    generate_classname_hint_for_library(pd)
-
-    zip_archive(pd)
-
-    #delete_nonZipped_archive(outdir, archive_name)
+#delete_nonZipped_archive(outdir, archive_name)

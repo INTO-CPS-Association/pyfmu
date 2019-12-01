@@ -7,7 +7,6 @@ add_library(${PROJECT_NAME}
         src/fmi_functions.cpp
         src/PyObjectWrapper.cpp
         src/SlaveInstance.cpp
-        src/thread_worker.cpp
         include/pythonfmu/PyInitializer.hpp
 )
 
