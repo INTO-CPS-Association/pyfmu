@@ -32,6 +32,19 @@
                 "generated/multiplier_export",
                 "--overwrite"
             ]
-        }
+        },
+        {
+            "name": "py2fmu validate",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/py2fmu.py",
+            "console": "integratedTerminal",
+            "args": [
+                "validate",
+                "generated/multiplier_export",
+                "--fmpy"
+            ]
+        },
+
     ]
 }

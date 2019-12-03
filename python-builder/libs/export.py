@@ -166,7 +166,7 @@ def _compress(archive_path: str):
     rename(f"{archive_path}.{extension}", f"{archive_path}.fmu")
 
 
-def _generate_model_description(main_script_path: str, main_class: str) -> str:
+def _generate_model_description(main_script_path: str, main_class: str, model_description_path: str) -> None:
     
 
     module = import_by_source(main_script_path)
@@ -181,17 +181,17 @@ def _generate_model_description(main_script_path: str, main_class: str) -> str:
     except:
         raise RuntimeError("Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor")
     
-
-    if(hasattr(main_class_instance,'__define__')):
+    if(not hasattr(main_class_instance,'__define__')):
         raise RuntimeError(f"Failed generating model description. The main class {main_class} does not define a method named property __define__()")
     
     try:
         md = main_class_instance.__define__()
-    except:
+    except Exception as e:
         raise RuntimeError(f"Failed generating model description. The call to __define__() of the main class raised an exception")
     
 
-    return md
+    with open(model_description_path,'w') as f:
+        f.write(md)
 
 
 def _validate_model_description(md: str) -> bool:
@@ -205,6 +205,7 @@ def export_project(working_dir: str, project_path: str, archive_path: str, compr
             "Failed to export project. The a file or directory with a path identical to the output already exists. If you wish to overwrite this file or folder please specifiy the --overwrite flag")
     
     
+    archive_model_description_path = join(archive_path,'modelDescription.xml')
     project_config_path = join(project_path,'project.json')
     project_config = read_configuration(project_config_path)
     main_class = project_config['main_class']
@@ -221,7 +222,7 @@ def export_project(working_dir: str, project_path: str, archive_path: str, compr
     _copy_source_files_to_archive(
         project_path, builder_resources_path, archive_path)
 
-    md = _generate_model_description(project_main_script_path, main_class)
+    _generate_model_description(project_main_script_path, main_class, archive_model_description_path)
 
 
     if(store_compressed):

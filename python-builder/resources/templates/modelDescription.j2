@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<fmiModelDescription fmiVersion="{{fmi_version}}" modelName="{{model_name}}" guid="{{guid}}" description="{{description}}" author="{{author}}" generationTool="PythonFMU" generationDateAndTime="{{generation_time}}" variableNamingConvention="structured">
+    <CoSimulation modelIdentifier="Multiplier" needsExecutionTool="true" canHandleVariableCommunicationStepSize="true" canInterpolateInputs="false" canBeInstantiatedOnlyOncePerProcess="false" canGetAndSetFMUstate="false" canSerializeFMUstate="false" canNotUseMemoryManagementFunctions="true"/>
+    <ModelVariables>
+        {%for s in scalar_variables%}
+        <ScalarVariable valueReference="{{s.value_reference}}" name="{{s.name}}" causality="{{s.causality}}">
+			<{{s.type}} {{s.default_value}} />
+		</ScalarVariable>
+        {% endfor %}}
+    </ModelVariables>
+    <ModelStructure>
+		<Outputs>
+			<Unknown index="1" />
+		</Outputs>
+    </ModelStructure>
+</fmiModelDescription>

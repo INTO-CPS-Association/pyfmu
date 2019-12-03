@@ -1,6 +1,7 @@
 import argparse
 from libs.generate import create_project
 from libs.export import export_project
+from libs.validate import validate
 
 from os.path import join, dirname, realpath, normpath
 
@@ -53,6 +54,12 @@ def config_export_subprogram(parser: argparse.ArgumentParser) -> None:
     group_bundle.add_argument(
         "-bp", type=bool, default=False, help=help_prune_libs)
 
+def config_validate_subprogram(subparser: argparse.ArgumentParser) -> None:
+    
+    parser_validate = subparser.add_parser('validate',help="Static and functional verification of fmu archives")
+    parser_validate.add_argument('fmu',help='Path to the FMU. This may either be an zip archive or an uncompressed version of the archive')
+    parser_validate.add_argument('--fmpy',action='store_true', help='validate the fmu using fmpy')
+    parser_validate.add_argument('--vdmcheck',action='store_true',help='validate the fmu using vdmcheck')
 
 def handle_generate(args):
 
@@ -68,7 +75,6 @@ def handle_generate(args):
 
     create_project(working_dir, project_path, main_class_name)
 
-
 def handle_export(args):
     
     project_path = args.project
@@ -76,7 +82,11 @@ def handle_export(args):
     archive_path = args.output
 
     export_project(working_dir, project_path,archive_path)
+
+def handle_validate(args):
     
+    fmu = args.fmu
+    validate(fmu)
 
 if __name__ == "__main__":
 
@@ -98,6 +108,8 @@ exporting a Python project as an FMU
     python py2fmu export -p engine
     python py2fmu export -p engine -c MyEngineClass
 
+validating an fmu
+    python py2fmu validate engine.fmu --fmpy --vdmcheck --fmicheck
 
 re-configuring an existing project
     python py2fmu configure -p engine --bundle-interpreter
@@ -110,6 +122,7 @@ re-configuring an existing project
 
     config_generate_subprogram(subparsers)
     config_export_subprogram(subparsers)
+    config_validate_subprogram(subparsers)
 
     args = parser.parse_args()
 
@@ -117,5 +130,7 @@ re-configuring an existing project
         handle_generate(args)
     elif(args.subprogram == "export"):
         handle_export(args)
+    elif(args.subprogram == 'validate'):
+        handle_validate(args)
     else:
         raise Exception("Not implemented")
