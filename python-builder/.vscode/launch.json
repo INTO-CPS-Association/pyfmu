@@ -45,6 +45,15 @@
                 "--fmpy"
             ]
         },
+        {
+            "name": "current file",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+            ]
+        }
 
     ]
 }

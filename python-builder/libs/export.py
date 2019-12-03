@@ -14,6 +14,8 @@ import logging
 
 from .configure import read_configuration
 
+from .modelDescription import extract_model_description_from
+
 _log = logging.getLogger(__name__)
 
 
@@ -58,21 +60,6 @@ def import_by_source(path: str):
     sys.path.pop()
 
     return module
-
-
-def extract_model_description_from_script(pd: PathDefintions):
-
-    module_name = splitext(pd.script_name)[0]
-
-    module = import_by_source(module_name, pd.script_path)
-
-    fmu_ctor = getattr(module, pd.class_name)
-
-    fmu = fmu_ctor()
-
-    model_description = fmu.__define__()
-
-    return model_description
 
 
 def create_export_folders(pd: PathDefintions) -> None:
@@ -169,17 +156,7 @@ def _compress(archive_path: str):
 def _generate_model_description(main_script_path: str, main_class: str, model_description_path: str) -> None:
     
 
-    module = import_by_source(main_script_path)
-
-    main_class_ctor = getattr(module, main_class)
-    
-    if(main_class_ctor is None or not callable(main_class_ctor)):
-        raise RuntimeError(f"Failed to generate model description. The specified file {main_script_path} does not define any callable attribute named {main_class}.")
-
-    try:
-        main_class_instance = main_class_ctor()
-    except:
-        raise RuntimeError("Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor")
+    main_class_instance = _instantiate_main_class(main_script_path, main_class)
     
     if(not hasattr(main_class_instance,'__define__')):
         raise RuntimeError(f"Failed generating model description. The main class {main_class} does not define a method named property __define__()")
@@ -193,6 +170,22 @@ def _generate_model_description(main_script_path: str, main_class: str, model_de
     with open(model_description_path,'w') as f:
         f.write(md)
 
+
+def _instantiate_main_class(main_script_path: str, main_class : str):
+    module = import_by_source(main_script_path)
+
+    main_class_ctor = getattr(module, main_class)
+    
+    if(main_class_ctor is None or not callable(main_class_ctor)):
+        raise RuntimeError(f"Failed to generate model description. The specified file {main_script_path} does not define any callable attribute named {main_class}.")
+
+    try:
+        main_class_instance = main_class_ctor()
+    except:
+        raise RuntimeError("Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor")
+
+    return main_class_instance
+    
 
 def _validate_model_description(md: str) -> bool:
     return True
@@ -222,7 +215,9 @@ def export_project(working_dir: str, project_path: str, archive_path: str, compr
     _copy_source_files_to_archive(
         project_path, builder_resources_path, archive_path)
 
-    _generate_model_description(project_main_script_path, main_class, archive_model_description_path)
+    #_generate_model_description(project_main_script_path, main_class, archive_model_description_path)
+    instance = _instantiate_main_class(project_main_script_path,main_class)
+    extract_model_description_from(working_dir,instance)
 
 
     if(store_compressed):

@@ -1,16 +1,9 @@
 from abc import ABC, abstractmethod
 from uuid import uuid1
-from enum import Enum
-import datetime
-
-from fmi2types import Fmi2Causality, Fmi2Initial, Fmi2Variability
-
-from fmi2types import ScalarVariable
+from fmi2types import Variable, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability
 
 
-
-
-class Fmi2Slave(ABC):
+class Fmi2Slave:
 
     guid = uuid1()
     author = None
@@ -25,42 +18,9 @@ class Fmi2Slave(ABC):
         if Fmi2Slave.modelName is None:
             raise Exception("No modelName has been specified!")
 
-    def __define__(self):
-        var_str = "\n".join(list(map(lambda v: v.__xml_repr__(), self.vars)))
-        outputs = list(filter(lambda v: v.causality == Fmi2Causality.output, self.vars))
-        structure_str = ""
-        if len(outputs) > 0:
-            structure_str += "\t\t<Outputs>\n"
-            for i in range(len(outputs)):
-                structure_str += f"\t\t\t<Unknown index=\"{i+1}\" />\n"
-            structure_str += "\t\t</Outputs>"
-
-        desc_str = f" description=\"{Fmi2Slave.description}\"" if Fmi2Slave.description is not None else ""
-        auth_str = f" author=\"{Fmi2Slave.author}\"" if Fmi2Slave.author is not None else ""
-        lic_str = f" license=\"{Fmi2Slave.license}\"" if Fmi2Slave.license is not None else ""
-        ver_str = f" version=\"{Fmi2Slave.version}\"" if Fmi2Slave.version is not None else ""
-        cop_str = f" copyright=\"{Fmi2Slave.copyright}\"" if Fmi2Slave.copyright is not None else ""
-
-        #t = datetime.datetime.now()
-        #date_str = f"{t.year}-{t.month}-{t.day}T{t.hour}:{t.day}:{t.second}Z"
-
-        data_time_str = datetime.datetime.now()
-        date_str = datetime.datetime.strftime(data_time_str, '%Y-%m-%dT%H:%M:%SZ')
-
-
-        return f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<fmiModelDescription fmiVersion="2.0" modelName="{Fmi2Slave.modelName}" guid="{Fmi2Slave.guid}"{desc_str}{auth_str}{lic_str}{ver_str}{cop_str} generationTool="PythonFMU" generationDateAndTime="{date_str}" variableNamingConvention="structured">
-    <CoSimulation modelIdentifier="{Fmi2Slave.modelName}" needsExecutionTool="true" canHandleVariableCommunicationStepSize="true" canInterpolateInputs="false" canBeInstantiatedOnlyOncePerProcess="false" canGetAndSetFMUstate="false" canSerializeFMUstate="false" canNotUseMemoryManagementFunctions="true"/>
-    <ModelVariables>
-{var_str}
-    </ModelVariables>
-    <ModelStructure>
-{structure_str}
-    </ModelStructure>
-</fmiModelDescription>
-"""
-
-    def register_variable(self, var):
+    def register_variable(self, name: str,  data_type: Fmi2DataTypes, initial : Fmi2Initial, causality : Fmi2Causality, variability : Fmi2Variability, description : str = ""):
+        
+        var = Variable(name, initial,causality, variability,description)
         self.vars.append(var)
 
     def setup_experiment(self, start_time: float):
