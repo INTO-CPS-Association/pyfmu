@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "py2fmu generate",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "${workspaceFolder}/py2fmu.py",
             "console": "integratedTerminal",
             "args": [
                 "generate",
@@ -16,6 +16,21 @@
                 "generated/multiplier",
                 "-n",
                 "Multiplier"
+            ]
+        },
+        {
+            "name": "py2fmu export",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/py2fmu.py",
+            "console": "integratedTerminal",
+            "args": [
+                "export",
+                "-p",
+                "generated/multiplier",
+                "-o",
+                "generated/multiplier_export",
+                "--overwrite"
             ]
         }
     ]

@@ -1,5 +1,11 @@
 import argparse
 from libs.generate import create_project
+from libs.export import export_project
+
+from os.path import join, dirname, realpath, normpath
+
+
+working_dir = normpath(dirname(realpath(__file__)))
 
 def config_generate_subprogram(subparser: argparse.ArgumentParser) -> None:
     parser_gen = subparsers.add_parser(
@@ -20,6 +26,12 @@ def config_export_subprogram(parser: argparse.ArgumentParser) -> None:
         'export',
         help="Export Python projects as FMUs",
     )
+
+    parser_export.add_argument("--project","-p", required=True, help="path to Python project")
+
+    parser_export.add_argument("--output",'-o', required=True, help="output path of the exported archive")
+
+    parser_export.add_argument('--overwrite','-ow',action='store_true', help='allow overwriting of existing files')
 
     group_bundle = parser_export.add_argument_group('bundle')
 
@@ -54,13 +66,17 @@ def handle_generate(args):
 
     main_class_name = args.name if args.name is not None else basename(normpath(project_path))
 
-    create_project(project_path, main_class_name)
+    create_project(working_dir, project_path, main_class_name)
 
 
 def handle_export(args):
     
+    project_path = args.project
+
+    archive_path = args.output
+
+    export_project(working_dir, project_path,archive_path)
     
-    pass
 
 if __name__ == "__main__":
 
@@ -80,6 +96,8 @@ generating a new Python project based on a model description file or reference F
 
 exporting a Python project as an FMU
     python py2fmu export -p engine
+    python py2fmu export -p engine -c MyEngineClass
+
 
 re-configuring an existing project
     python py2fmu configure -p engine --bundle-interpreter
@@ -98,6 +116,6 @@ re-configuring an existing project
     if(args.subprogram == "generate"):
         handle_generate(args)
     elif(args.subprogram == "export"):
-        raise Exception("Not implemented")
+        handle_export(args)
     else:
         raise Exception("Not implemented")
