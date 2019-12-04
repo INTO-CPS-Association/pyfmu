@@ -1,6 +1,7 @@
 
 from collections import defaultdict
-from fmi2types import Fmi2Variability, Fmi2Causality, Fmi2Initial
+from fmi.fmi2types import Fmi2Variability, Fmi2Causality, Fmi2Initial
+from typing import Union, Any
 
 # dictionaries defining valid combinations of variability and causality, see fmi2 p.49
 _vc_combinations = defaultdict(dict)
@@ -28,48 +29,138 @@ calculatedParameter. For simplicity, only fixed and tunable calculatedParameters
 defined.
 """
 
-_A_initial = {"default" : Fmi2Initial.exact, "possible" : {Fmi2Initial.exact}}
-_B_initial = {"default" : Fmi2Initial.calculated, "possible" : {Fmi2Initial.approx, Fmi2Initial.calculated}}
-_C_initial = {"default" : Fmi2Initial.calculated, "possible" : {Fmi2Initial.exact, Fmi2Initial.approx, Fmi2Initial.calculated}}
-
-_vc_combinations[Fmi2Variability.constant][Fmi2Causality.parameter]             = {"err" : _a_error}
-_vc_combinations[Fmi2Variability.constant][Fmi2Causality.calculatedParameter]   = {"err" : _a_error}
-_vc_combinations[Fmi2Variability.constant][Fmi2Causality.input]                 = {"err" : _a_error}
-_vc_combinations[Fmi2Variability.constant][Fmi2Causality.output]                = {"err" : None, "initial" : _A_initial}
-_vc_combinations[Fmi2Variability.constant][Fmi2Causality.local]                 = {"err" : None, "initial" : _A_initial}
-_vc_combinations[Fmi2Variability.constant][Fmi2Causality.independent]           = {"err": _c_error}
+_A_initial = {"default": Fmi2Initial.exact, "possible": {Fmi2Initial.exact}}
+_B_initial = {"default": Fmi2Initial.calculated,
+    "possible": {Fmi2Initial.approx, Fmi2Initial.calculated}}
+_C_initial = {"default": Fmi2Initial.calculated, "possible": {
+    Fmi2Initial.exact, Fmi2Initial.approx, Fmi2Initial.calculated}}
 
 
-_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.parameter]                = {"err" : None, "initial" : _A_initial}
-_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.calculatedParameter]      = {"err" : None, "initial" : _B_initial}
-_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.input]                    = {"err" : _d_error}
-_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.output]                   = {"err" : _e_error}
-_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.local]                    = {"err" : None, "initial": _B_initial}
-_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.independent]              = {"err":_c_error}
+_D_initial = {"default": None, "possible": {None}}
+_E_initial = {"default": None, "possible": {None}}
 
-_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.parameter]             = {"err" : None, "initial" : _A_initial}
-_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.calculatedParameter]   = {"err" : None, "initial" : _B_initial}
-_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.input]                 = {"err" : _d_error}
-_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.output]                = {"err" : _e_error}
-_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.local]                 = {"err" : None, "initial": _B_initial}
-_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.independent]           = {"err" : _c_error}
+_vc_combinations[Fmi2Variability.constant][Fmi2Causality.parameter] = {
+    "err": _a_error}
+_vc_combinations[Fmi2Variability.constant][Fmi2Causality.calculatedParameter] = {
+    "err": _a_error}
+_vc_combinations[Fmi2Variability.constant][Fmi2Causality.input] = {
+    "err": _a_error}
+_vc_combinations[Fmi2Variability.constant][Fmi2Causality.output] = {
+    "err": None, "initial": _A_initial}
+_vc_combinations[Fmi2Variability.constant][Fmi2Causality.local] = {
+    "err": None, "initial": _A_initial}
+_vc_combinations[Fmi2Variability.constant][Fmi2Causality.independent] = {
+    "err": _c_error}
 
+
+_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.parameter] = {
+    "err": None, "initial": _A_initial}
+_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.calculatedParameter] = {
+    "err": None, "initial": _B_initial}
+_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.input] = {
+    "err": _d_error}
+_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.output] = {
+    "err": _e_error}
+_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.local] = {
+    "err": None, "initial": _B_initial}
+_vc_combinations[Fmi2Variability.fixed][Fmi2Causality.independent] = {
+    "err": _c_error}
+
+_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.parameter] = {
+    "err": None, "initial": _A_initial}
+_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.calculatedParameter] = {
+    "err": None, "initial": _B_initial}
+_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.input] = {
+    "err": _d_error}
+_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.output] = {
+    "err": _e_error}
+_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.local] = {
+    "err": None, "initial": _B_initial}
+_vc_combinations[Fmi2Variability.tunable][Fmi2Causality.independent] = {
+    "err": _c_error}
+
+
+_vc_combinations[Fmi2Variability.discrete][Fmi2Causality.parameter] = {
+    "err": _b_error}
+_vc_combinations[Fmi2Variability.discrete][Fmi2Causality.calculatedParameter] = {
+    "err": _b_error}
+_vc_combinations[Fmi2Variability.discrete][Fmi2Causality.input] = {
+    "err": None, "initial": _D_initial}
+_vc_combinations[Fmi2Variability.discrete][Fmi2Causality.output] = {
+    "err": None, "initial": _C_initial}
+_vc_combinations[Fmi2Variability.discrete][Fmi2Causality.local] = {
+    "err": None, "initial": _C_initial}
+_vc_combinations[Fmi2Variability.discrete][Fmi2Causality.independent] = {
+    "err": _c_error}
+
+_vc_combinations[Fmi2Variability.continuous][Fmi2Causality.parameter] = {
+    "err": _b_error}
+_vc_combinations[Fmi2Variability.continuous][Fmi2Causality.calculatedParameter] = {
+    "err": _b_error}
+_vc_combinations[Fmi2Variability.continuous][Fmi2Causality.input] = {
+    "err": None, "initial": _D_initial}
+_vc_combinations[Fmi2Variability.continuous][Fmi2Causality.output] = {
+    "err": None, "initial": _C_initial}
+_vc_combinations[Fmi2Variability.continuous][Fmi2Causality.local] = {
+    "err": None, "initial": _C_initial}
+_vc_combinations[Fmi2Variability.continuous][Fmi2Causality.independent] = {
+    "err": None, "initial": _D_initial}
+
+
+def get_default_initial_for(variability: Fmi2Variability, causality: Fmi2Causality):
+
+    if(validate_vc(variability, causality) is not None):
+        raise Exception(
+            f"Combinations of variability: {variability} and causality: {causality} is not allowed!")
+
+    return _vc_combinations[variability][causality]["initial"]["default"]
+
+
+def get_possible_initial_for(variability: Fmi2Variability, causality: Fmi2Causality):
+
+    if(validate_vc(variability, causality) is not None):
+        raise Exception(
+            f"Combinations of variability: {variability} and causality: {causaility} is not allowed!")
+
+    return _vc_combinations[variability][causality]["initial"]["possible"]
+
+def should_define_start(variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial) -> bool:
+    """Returns true if the combination requires that a start value is defined, otherwise false.
+
+    For reference check the FMI2 specification p.54 for a description of which combination are allowed.
+    """
+    # see fmi2 spec p.54
+    must_define_start = (initial in {Fmi2Initial.exact, Fmi2Initial.approx}
+                        or causality in {Fmi2Causality.parameter, Fmi2Causality.input}
+                        or variability in {Fmi2Variability.constant})
+
+    can_not_define_start = (initial == Fmi2Initial.calculated or causality == Fmi2Causality.independent)
+
+    assert(must_define_start != can_not_define_start) # should be mutually exclusive
+
+    return must_define_start
+
+def validate_start_value(variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial, start : Any) -> Union[str, None]:
+    is_defined = start != None
+    must_be_defined = should_define_start(variability,causality,initial)
+
+    if(must_be_defined ^ is_defined):
+        s = "must be defined" if not is_defined else "may not be defined"
+        return f"Start values {s} for this combination of variability: {variability}, causality: {causality} and intial: {initial}"
+
+    return None
+
+def validate_vc(variability: Fmi2Variability, causality: Fmi2Causality):
+    """Validate combinations of variablity and causality
     
-def get_default_initial_for(variability : Fmi2Variability, causality : Fmi2Causality):
+    Arguments:
+        variability {Fmi2Variability} -- [description]
+        causality {Fmi2Causality} -- [description]
     
-    if(validate_combination_variability_causality(variability,causality) is not None):
-        raise Exception(f"Combinations of variability: {variability} and causality: {causaility} is not allowed!")
-
-    return _vc_combinations[variability,causality]["initial"]["default"]
-
-def get_possible_initial_for(variability : Fmi2Variability, causality : Fmi2Causality):
-
-    if(validate_combination_variability_causality(variability,causality) is not None):
-        raise Exception(f"Combinations of variability: {variability} and causality: {causaility} is not allowed!")
-
-    return _vc_combinations[variability,causality]["initial"]["possible"]
-
-def validate_combination_variability_causality(variability : Fmi2Variability, causality : Fmi2Causality):
+    Returns:
+        [type] -- [description]
+    """
     return _vc_combinations[variability][causality]["err"]
+
 
 

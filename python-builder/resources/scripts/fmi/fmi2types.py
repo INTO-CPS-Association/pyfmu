@@ -28,4 +28,4 @@ class Fmi2Variability(Enum):
     fixed = "fixed",
     tunable = "tunable",
     discrete = "discrete",
-    continuous = "continous"
+    continuous = "continuous"
