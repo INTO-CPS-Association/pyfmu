@@ -1,6 +1,6 @@
 from abc import ABC
 
-from fmi2validation import validate_vc, get_default_initial_for, get_possible_initial_for
+from fmi2validation import validate_vc, get_default_initial_for, get_possible_initial
 import fmi2validation
 from fmi2types import Fmi2DataTypes, Fmi2Initial, Fmi2Causality, Fmi2Variability
 
@@ -21,7 +21,7 @@ class ScalarVariable(ABC):
         initial = initial if initial is not None else get_default_initial_for(
             variability, causality)
 
-        allowed_initial = get_possible_initial_for(variability, causality)
+        allowed_initial = get_possible_initial(variability, causality)
 
         is_valid_initial = initial in allowed_initial
 

@@ -107,7 +107,7 @@ _vc_combinations[Fmi2Variability.continuous][Fmi2Causality.independent] = {
     "err": None, "initial": _D_initial}
 
 
-def get_default_initial_for(variability: Fmi2Variability, causality: Fmi2Causality):
+def get_default_initial(variability: Fmi2Variability, causality: Fmi2Causality):
 
     if(validate_vc(variability, causality) is not None):
         raise Exception(
@@ -116,7 +116,7 @@ def get_default_initial_for(variability: Fmi2Variability, causality: Fmi2Causali
     return _vc_combinations[variability][causality]["initial"]["default"]
 
 
-def get_possible_initial_for(variability: Fmi2Variability, causality: Fmi2Causality):
+def get_possible_initial(variability: Fmi2Variability, causality: Fmi2Causality):
 
     if(validate_vc(variability, causality) is not None):
         raise Exception(
