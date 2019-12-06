@@ -1,6 +1,9 @@
-from fmi import fmi2validation
-from fmi.fmi2validation import get_default_initial
-from fmi.fmi2types import Fmi2Causality, Fmi2Initial, Fmi2Variability
+
+
+
+from libs.pyfmu.fmi2validation import get_default_initial, validate_vc
+from libs.pyfmu.fmi2types import Fmi2Causality, Fmi2Initial, Fmi2Variability
+
 
 from pytest import raises
 
@@ -56,7 +59,7 @@ def test_validate_vc():
         va = c['v']
         ca = c['c']
         is_valid_expect = c['valid']
-        ret = fmi2validation.validate_vc(va,ca)
+        ret = validate_vc(va,ca)
 
         if(is_valid_expect):
             assert(ret is None)
@@ -75,15 +78,7 @@ def test_get_default_initial():
         is_valid = c['valid']
 
         if(is_valid):
-            default_actual = fmi2validation.get_default_initial(va,ca)
+            default_actual = get_default_initial(va,ca)
             default_expect = c['initial']['default']
             
             assert(default_expect == default_actual)
-        
-
-    
-
-    
-        
-
-
