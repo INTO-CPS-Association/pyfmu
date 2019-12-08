@@ -1,7 +1,7 @@
 import argparse
-from libs.generate import create_project
-from libs.export import export_project
-from libs.validate import validate
+from libs.builder.generate import create_project
+from libs.builder.export import export_project
+from libs.builder.validate import validate
 
 from os.path import join, dirname, realpath, normpath
 

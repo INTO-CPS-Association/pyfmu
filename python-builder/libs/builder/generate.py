@@ -53,8 +53,10 @@ def _copy_python_library_to_sources(python_lib_path : str, project_resources_pat
 
     try:
         copytree(python_lib_path, project_lib_path)
-    except FileExistsError as e:
-        test = 10
+    except Exception as e:
+        raise RuntimeError("pyfmu library exists but could not be copied the generated project.") from e
+
+
 
 
 def create_project(working_dir: str, project_path: str, main_class_name: str, overwrite = True):

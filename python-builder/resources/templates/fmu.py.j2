@@ -1,19 +1,23 @@
 from pyfmu.fmi2slave import Fmi2Slave
 from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability
 
-slave_class = "{{class_name}}"
-
 class {{class_name}}(Fmi2Slave):
 
-    Fmi2Slave.author = "{{author}}"
-    Fmi2Slave.modelName = "{{model_name}}"
-    Fmi2Slave.description = "{{description}}"
-
     def __init__(self):
-        super().__init__()
+        
+        author = "{{author}}"
+        modelName = "{{model_name}}"
+        description = "{{description}}"    
+        
+        super().__init__(modelName,author,description)
 
-        # Additional initialization code
-        pass
+        """
+        Inputs, outputs and parameters may be defined using the 'register_variable' function:
+
+        self.register_variable("my_input", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.input, start=0)
+        self.register_variable("my_output", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.output)
+        self.register_variable("my_parameter", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.parameter, start=0)
+        """
 
     def setup_experiment(self, start_time: float):
         pass

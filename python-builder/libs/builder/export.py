@@ -1,4 +1,4 @@
-from os.path import join, curdir, dirname, splitext, basename, isdir, realpath, normpath, exists, splitext
+from os.path import join, curdir, dirname, splitext, basename, isdir, realpath, normpath, exists, splitext, relpath
 from os import makedirs, listdir, rename
 import importlib
 import json
@@ -14,29 +14,10 @@ import logging
 
 from .configure import read_configuration
 
-from .modelDescription import extract_model_description_from
+from .modelDescription import extract_model_description_v2
 
 _log = logging.getLogger(__name__)
 
-
-class PathDefintions:
-    def __init__(self, base_dir: str, outdir: str, archive_name: str, script_name: str, class_name: str):
-        self.base_dir = base_dir
-        self.archieve_name = archive_name
-        self.archive_path = join(base_dir, outdir, archive_name)
-        self.archive_zipped_path = self.archive_path
-        self.binaries_src = join(base_dir, "resources", "wrapper", "binaries")
-        self.binaries_dst = join(self.archive_path, "binaries")
-        self.modelDescription_path = join(
-            self.archive_path, 'modelDescription.xml')
-
-        self.resources_dst = join(self.archive_path, "resources")
-        self.sources_dst = join(self.archive_path, "source")
-        self.sources_src = join(base_dir, "source")
-
-        self.script_name = script_name
-        self.script_path = join(self.sources_src, script_name)
-        self.class_name = class_name
 
 
 def import_by_source(path: str):
@@ -61,51 +42,6 @@ def import_by_source(path: str):
 
     return module
 
-
-def create_export_folders(pd: PathDefintions) -> None:
-
-    makedirs(pd.binaries_dst, exist_ok=True)
-    makedirs(pd.resources_dst, exist_ok=True)
-    makedirs(pd.sources_dst, exist_ok=True)
-
-
-def copy_binaries_to_archive(pd: PathDefintions) -> None:
-
-    copy_tree(pd.binaries_src, pd.binaries_dst)
-
-
-def copy_resources_to_archive(pd: PathDefintions) -> None:
-
-    pass
-
-
-def copy_sources_to_archive(pd: PathDefintions) -> None:
-    copy_tree(pd.sources_src, pd.sources_dst)
-
-
-def generate_classname_hint_for_library(pd: PathDefintions) -> None:
-    """Generates a small configuration file in which defines what python class will be instantiated by the shared library.
-    """
-    txtPath = join(pd.sources_dst, "slavemodule.txt")
-
-    with open(txtPath, 'w') as f:
-        f.write(pd.class_name)
-
-
-def write_model_description_to_archive(pd: PathDefintions, model_description: str) -> None:
-
-    with open(pd.modelDescription_path, 'w') as f:
-        f.write(model_description)
-
-
-def zip_archive(pd: PathDefintions) -> None:
-
-    make_archive(pd.archive_zipped_path, 'zip', pd.archive_path)
-
-    outOld = pd.archive_path + ".zip"
-    outNew = pd.archive_path + ".fmu"
-
-    move(outOld, outNew)
 
 
 _exists_ok = True
@@ -146,30 +82,40 @@ def _copy_source_files_to_archive(project_dir, builder_resources_dir, archive_di
     archive_resources_dir = join(archive_dir, "resources")
     copytree(project_resources_dir, archive_resources_dir)
 
-
 def _compress(archive_path: str):
     extension = "zip"
     make_archive(archive_path, 'zip', archive_path)
     rename(f"{archive_path}.{extension}", f"{archive_path}.fmu")
 
-
 def _generate_model_description(main_script_path: str, main_class: str, model_description_path: str) -> None:
     
 
-    main_class_instance = _instantiate_main_class(main_script_path, main_class)
-    
-    if(not hasattr(main_class_instance,'__define__')):
-        raise RuntimeError(f"Failed generating model description. The main class {main_class} does not define a method named property __define__()")
-    
-    try:
-        md = main_class_instance.__define__()
-    except Exception as e:
-        raise RuntimeError(f"Failed generating model description. The call to __define__() of the main class raised an exception")
-    
+    instance = _instantiate_main_class(main_script_path,main_class)
+    md = extract_model_description_v2(instance)
 
     with open(model_description_path,'w') as f:
         f.write(md)
 
+def _generate_slave_config(archive_path: str, main_script_path : str, main_class : str):
+    """Generates a configuration file which is used by the FMU to locate the specific Python script and class which it must instantiate.
+    
+    Arguments:
+        archive_path {str} -- Path to the root of the archive
+        main_script_path {str} -- Path to the main script defined relative to the 'resources' folder.
+        main_class {str} -- Name of the main class
+
+    Examples:
+        >>_generate_slave_config('somedir/adder','adder.py','Adder')
+    """
+    
+
+    config_path = join(archive_path,'resources','slave_configuration.json')
+
+    with open(config_path,'w') as f:
+        json.dump({
+            "main_script" : main_script_path,
+            "main_class" : main_class
+        },f,indent=4)
 
 def _instantiate_main_class(main_script_path: str, main_class : str):
     module = import_by_source(main_script_path)
@@ -181,8 +127,8 @@ def _instantiate_main_class(main_script_path: str, main_class : str):
 
     try:
         main_class_instance = main_class_ctor()
-    except:
-        raise RuntimeError("Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor")
+    except Exception as e:
+        raise RuntimeError(f"Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor. Error message was: {repr(e)}") from e
 
     return main_class_instance
     
@@ -201,8 +147,10 @@ def export_project(working_dir: str, project_path: str, archive_path: str, compr
     archive_model_description_path = join(archive_path,'modelDescription.xml')
     project_config_path = join(project_path,'project.json')
     project_config = read_configuration(project_config_path)
+    
     main_class = project_config['main_class']
     main_script = project_config['main_script']
+
 
 
     builder_resources_path = join(working_dir, "resources")
@@ -215,15 +163,16 @@ def export_project(working_dir: str, project_path: str, archive_path: str, compr
     _copy_source_files_to_archive(
         project_path, builder_resources_path, archive_path)
 
-    #_generate_model_description(project_main_script_path, main_class, archive_model_description_path)
-    instance = _instantiate_main_class(project_main_script_path,main_class)
-    extract_model_description_from(working_dir,instance)
+    _generate_model_description(project_main_script_path, main_class, archive_model_description_path)
 
+    
 
     if(store_compressed):
         pass
 
     if(not store_compressed):
         rmtree(archive_path, ignore_errors=True)
+
+    _generate_slave_config(archive_path, main_script, main_class)
 
     _log.info(f"Successfully exported {basename(archive_path)}")
