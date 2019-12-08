@@ -5,8 +5,6 @@ from libs.builder.modelDescription import extract_model_description_v2
 
 class Adder(Fmi2Slave):
     
-    
-
     def __init__(self):
         super().__init__("Adder")
 
@@ -15,6 +13,15 @@ class Adder(Fmi2Slave):
         self.register_variable("c", data_type=Fmi2DataTypes.real,causality = Fmi2Causality.output)
 
         
+
+class SineGenerator(Fmi2Slave):
+
+    def __init__(self):
+        super().__init__('SineGenerator')
+        self.register_variable('amplitude',data_type = Fmi2DataTypes.real, causality= Fmi2Causality.parameter, start=1)
+        self.register_variable('frequency', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.parameter, start=1)
+        self.register_variable('phase', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.parameter, start=0)
+        self.register_variable('y', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.output)
 
 
 def test_extract_model_description_v2():
