@@ -14,5 +14,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE pyfmuwrapper)
 
 
 
-# Copy test files to output folder
+# Copy test resource files to output folder
 file(COPY examples DESTINATION ${CMAKE_BINARY_DIR}/${PROJECT_NAME})

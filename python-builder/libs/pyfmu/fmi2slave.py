@@ -5,7 +5,7 @@ from .fmi2variables import ScalarVariable
 
 
 class Fmi2Slave:
-
+    
     guid = uuid1()
     author = None
     license = None
@@ -31,6 +31,7 @@ class Fmi2Slave:
                           initial : Fmi2Initial = None,
                           start = None,
                           description: str = ""):
+                          
 
         var = ScalarVariable(name=name, data_type=Fmi2DataTypes.real, initial=initial, causality=causality,
                              variability=variability, description=description, start = start)

@@ -2,7 +2,7 @@
 #ifndef PYTHONFMU_PYTHONSTATE_HPP
 #define PYTHONFMU_PYTHONSTATE_HPP
 
-#include <Python.h>
+#include "Python.h"
 #include <filesystem>
 #include <iostream>
 

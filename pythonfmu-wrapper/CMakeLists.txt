@@ -4,6 +4,11 @@ project(pyfmuwrapper VERSION 0.0.1 LANGUAGES CXX)
 set(BUILD_SHARED_LIBS ON)
 
 
+# Typically you don't care so much for a third party library's tests to be
+# run from your own project's code.
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(external/json)
+
 
 # Ensure only standard C and CXX is used
 set(CMAKE_C_EXTENSIONS OFF)

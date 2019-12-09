@@ -8,17 +8,22 @@
 #include <utility>
 #include <pythonfmu/PyException.hpp>
 #include "fmi/fmi2TypesPlatform.h"
+#include "pythonfmu/PyConfiguration.hpp"
 
 using namespace std;
 using namespace filesystem;
-
+using namespace pyconfiguration;
 
 namespace pythonfmu
 {
 
+/**
+ * @brief Appends path of resources folder to the Python interpreter path. This allows the interpreter to locate and load the main script. 
+ * 
+ * @param resource_path path to the resources dir supplied when FMU is initialized
+ */
 void append_resources_folder_to_python_path(string &resource_path)
 {
-
 
     ostringstream oss;
     oss << "import sys\n";
