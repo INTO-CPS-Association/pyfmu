@@ -1,10 +1,12 @@
 #include <fstream>
 #include <exception>
 #include "pythonfmu/PyConfiguration.hpp"
+#include <filesystem>
 
 using namespace std;
 using namespace nlohmann;
 using namespace pyconfiguration;
+using namespace filesystem;
 
 namespace pyconfiguration 
 {
@@ -22,6 +24,8 @@ namespace pyconfiguration
 
 PyConfiguration read_configuration(const string &config_path)
 {
+
+
     PyConfiguration config;
 
     ifstream is(config_path);

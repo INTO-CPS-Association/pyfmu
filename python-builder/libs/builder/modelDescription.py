@@ -6,8 +6,7 @@ import io
 
 from xml.dom import minidom
 
-from ..pyfmu.fmi2types import Fmi2Causality
-
+from libs.pyfmu.fmi2types import Fmi2Causality
 
 import datetime
 
@@ -25,7 +24,7 @@ def extract_model_description_v2(fmu_instance) -> str:
     fmd.set('variableNamingConvention', 'structured')
     
     me = ET.SubElement(fmd,'ModelExchange')
-    me.set("modelIdentifier", fmu_instance.modelName)
+    me.set("modelIdentifier", 'libpyfmu')
 
     mvs = ET.SubElement(fmd,'ModelVariables')
     
@@ -34,7 +33,7 @@ def extract_model_description_v2(fmu_instance) -> str:
     for var in fmu_instance.vars:
 
         vref = str(var.value_reference)
-        v = var.variability.value[0]
+        v = var.variability.value
         c = var.causality.value[0]
         t = var.data_type.value[0]
 
@@ -43,13 +42,13 @@ def extract_model_description_v2(fmu_instance) -> str:
         sv = ET.SubElement(mvs, "ScalarVariable")
         sv.set("name",var.name)
         sv.set("valueReference",vref)
-        sv.set("variablity", v)
+        sv.set("variability", v)
         sv.set("causality", c)
 
         
 
         if(var.initial):
-            i = var.initial.value[0]
+            i = var.initial.value
             sv.set('initial', i)
         
         
@@ -62,9 +61,9 @@ def extract_model_description_v2(fmu_instance) -> str:
         variable_index += 1
 
 
-    ms = ET.SubElement(mvs,'ModelStructure')
+    ms = ET.SubElement(fmd,'ModelStructure')
     
-    outputs = [(idx+1,o) for idx,o in enumerate(fmu_instance.vars) if o.causality == Fmi2Causality.output]
+    outputs = [(idx+1,o) for idx,o in enumerate(fmu_instance.vars) if o.causality.name == Fmi2Causality.output.name]
 
     if(outputs):
         os = ET.SubElement(ms,'Outputs')

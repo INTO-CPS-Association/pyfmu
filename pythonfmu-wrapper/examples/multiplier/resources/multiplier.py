@@ -1,26 +1,23 @@
 from pyfmu.fmi2slave import Fmi2Slave
 from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes
 
-class {{class_name}}(Fmi2Slave):
+class Multiplier(Fmi2Slave):
 
     def __init__(self):
         
-        author = "{{author}}"
-        modelName = "{{model_name}}"
-        description = "{{description}}"    
+        author = ""
+        modelName = "Multiplier"
+        description = ""    
         
         super().__init__(
             modelName=modelName,
             author=author,
             description=description)
 
-        """
-        Inputs, outputs and parameters may be defined using the 'register_variable' function:
+        self.register_variable("a", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.input, start=0)
+        self.register_variable("b", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.input, start=0)
+        self.register_variable("c", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.output, start=0)
 
-        self.register_variable("my_input", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.input, start=0)
-        self.register_variable("my_output", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.output)
-        self.register_variable("my_parameter", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.parameter, start=0)
-        """
 
     def setup_experiment(self, start_time: float):
         pass
@@ -32,6 +29,9 @@ class {{class_name}}(Fmi2Slave):
         pass
 
     def do_step(self, current_time: float, step_size: float) -> bool:
+        
+        self.c = self.a * self.b
+
         return True
 
     def reset(self):

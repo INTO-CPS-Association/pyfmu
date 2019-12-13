@@ -3,7 +3,16 @@
 #define PYTHONFMU_PYOBJECTWRAPPER_HPP
 
 #include "fmi/fmi2TypesPlatform.h"
-#include <Python.h>
+#include "Python.h"
+#include "Logger.hpp"
+#include <string>
+#include <memory>
+
+extern "C"
+{
+    int foo();
+}
+
 
 namespace pythonfmu
 {
@@ -13,7 +22,7 @@ class PyObjectWrapper
 
 public:
 
-    explicit PyObjectWrapper(const fmi2String resources);
+    explicit PyObjectWrapper(const fmi2String resources, std::unique_ptr<Logger> logger);
 
     void setupExperiment(double startTime);
 
@@ -21,7 +30,7 @@ public:
 
     void exitInitializationMode();
 
-    bool doStep(double currentTime, double steSize);
+    bool doStep(double currentTime, double stepSize);
 
     void reset();
 
@@ -49,6 +58,24 @@ private:
     PyObject *pModule_;
     PyObject *pClass_;
     PyObject *pInstance_;
+
+    std::unique_ptr<Logger> logger;
+
+    /**
+     * @brief Import and instantiate main class in the current Python interpreter.
+     * 
+     * Note that the module containing the main class must be in the interpreters path. This can be calling sys.path.append('some_path') on the interpreter.
+     * 
+     * @param module_name 
+     * @param main_class 
+     * @return PyObject* 
+     * 
+     * Examples:
+     * 
+     * >> auto instance = instantiate_main_class('adder', 'Adder')
+     */
+    void instantiate_main_class(std::string module_name, std::string main_class);
+
 };
 
 } // namespace pythonfmu

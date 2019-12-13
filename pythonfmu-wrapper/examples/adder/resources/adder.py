@@ -4,16 +4,12 @@ slave_class = "Adder"
 
 class Adder(Fmi2Slave):
 
-    Fmi2Slave.author = "Christian Legaard"
-    Fmi2Slave.modelName = "Adder"
-    Fmi2Slave.description = "Adds two real numbers"
-
-
     def __init__(self):
         
-        
-
-        super().__init__()
+        author = ""
+        modelName = "Adder"
+        description = "Adds two real numbers"
+        super().__init__(author = author, modelName = modelName, )
 
         
         

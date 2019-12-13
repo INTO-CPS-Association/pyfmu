@@ -16,7 +16,7 @@ namespace pyconfiguration
     void to_json(nlohmann::json& j, const pyconfiguration::PyConfiguration& p);
 
     void from_json(const nlohmann::json& j, pyconfiguration::PyConfiguration& p);
-};
+}
 
 /**
  * @brief read and parse configuration file and return a object containing the results

@@ -4,9 +4,12 @@ from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variabilit
 from .fmi2variables import ScalarVariable
 
 import logging
-
-
-log = logging.getLogger('fmu')
+import sys
+log = logging.getLogger(__file__)
+log.setLevel(logging.DEBUG)
+stream = logging.StreamHandler(sys.stdout)
+stream.setLevel(logging.DEBUG)
+log.addHandler(stream)
 
 class Fmi2Slave:
     
@@ -26,6 +29,16 @@ class Fmi2Slave:
         self.modelName = modelName
         self.vars = []
         self.version = version
+
+        msg = f"""\n
+     Instantiated Fmi2Slave class with the following values:
+-----------------------------------------------------------------
+modelName : {self.modelName}
+description : {self.description}
+author : {self.author}
+-----------------------------------------------------------------
+"""
+        log.debug(msg)
 
     def register_variable(self,
                           name: str,
@@ -164,8 +177,7 @@ class Fmi2Slave:
         
         
         if(not hasattr(self,sv.name)):
-            log.debug(f'adding')
-             
+            log.debug(f'adding the variable {sv.name} to the model, because it was implicitly declared by "register_variable".')
             setattr(self,sv.name,sv.start)
 
             
@@ -174,5 +186,5 @@ class Fmi2Slave:
             new = sv.start
 
             if(old != new):
-                log.warning("start value variable defined using the 'register_variable' function does not match initial value")
+                log.debug("start value variable defined using the 'register_variable' function does not match initial value")
                 setattr(self,sv.name,new)

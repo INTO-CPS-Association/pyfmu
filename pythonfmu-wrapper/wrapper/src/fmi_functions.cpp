@@ -4,12 +4,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#include "Python.h"
 #include "fmi/fmi2Functions.h"
+#include "pythonfmu/Logger.hpp"
 #include "pythonfmu/PyInitializer.hpp"
 #include "pythonfmu/PyObjectWrapper.hpp"
-
 #include <exception>
 #include <limits>
+#include <memory>
 
 // FMI functions
 extern "C" {
@@ -25,30 +27,10 @@ const char *fmi2GetVersion() { return "2.0"; }
 using namespace pythonfmu;
 using namespace std;
 
-PyObjectWrapper *component = nullptr;
+PyObjectWrapper *component = NULL;
 PyInitializer *pyInitializer = nullptr;
 
-
 bool loggingOn_ = false;
-fmi2CallbackLogger logger = nullptr;
-
-void fmi2Log(fmi2ComponentEnvironment env, fmi2String instanceName, fmi2Status status, fmi2String category, fmi2String message, ...) {
-
-  if(logger == nullptr)
-  {
-    return;
-  }
-
-  if(!loggingOn_)
-  {
-    return;
-  }
-
-  // TODO find way to support pass variable amount of arguments
-  logger(env,instanceName,status,category,message, message, nullptr);
-
-
-}
 
 fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                               fmi2String fmuGUID,
@@ -56,34 +38,75 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                               const fmi2CallbackFunctions *functions,
                               fmi2Boolean visible, fmi2Boolean loggingOn) {
 
-  if (component != nullptr) {
-    throw runtime_error(
-        "Failed FMU may only be instantiated once per process!");
+  if (functions == NULL) {
+    printf("fmi2 callback functions were not passed to fmi2Instantiate\n");
+    return NULL;
   }
+
+  if (functions->logger == NULL) {
+    printf("logger callback function was not present in fmi2callbackfunctions "
+           "argument\n");
+    return NULL;
+  }
+
+  auto logger = make_unique<Logger>(functions->logger, instanceName);
+
+  if (functions->allocateMemory == NULL) {
+    logger->log(
+        NULL, fmi2Status::fmi2Fatal, "Error",
+        "fmi callback structure did not provide a function pointer to a "
+        "memory allocation function, this value was NULL.\n");
+
+    return NULL;
+  }
+
+  logger->log(NULL,fmi2Status::fmi2OK,"Info","Instantiating FMU");
+
+  return NULL;
+
+  if (component != nullptr) {
+    functions->logger(nullptr, "", fmi2Status::fmi2Fatal, "error",
+                      "Failed FMU may only be instantiated once per process!");
+  }
+
+  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
+                    "Initializing Python interpreter\n");
 
   try {
     pyInitializer = new PyInitializer();
-    component = new PyObjectWrapper(fmuResourceLocation);
-  }
-  catch (exception &e){
-    return nullptr;
+  } catch (exception &e) {
+    functions->logger(nullptr, "", fmi2Status::fmi2Fatal, "error",
+                      "failed to initialize embedded Python interpreter\n");
+    return NULL;
   }
 
-  logger = functions->logger;
-  loggingOn_ = loggingOn;
+  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
+                    "Successfully initialized Python interpreter\n");
+
+  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
+                    "Initializing Python FMU wrapper\n");
+
+  try {
+
+    component = new PyObjectWrapper(fmuResourceLocation, move(logger));
+  } catch (exception &e) {
+    functions->logger(nullptr, "", fmi2Status::fmi2Fatal, "error",
+                      "failed to load main script\n");
+    return NULL;
+  }
+
+  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
+                    "Successfully initialized Python FMU wrapper\n");
 
   return component;
 }
 
-void fmi2FreeInstance(fmi2Component c) 
-{
-  if(component != nullptr)
-  {
+void fmi2FreeInstance(fmi2Component c) {
+  if (component != nullptr) {
     delete component;
   }
 
-  if(pyInitializer != nullptr)
-  {
+  if (pyInitializer != nullptr) {
     delete pyInitializer;
   }
 }
@@ -98,17 +121,15 @@ fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,
 fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
                                fmi2Real tolerance, fmi2Real startTime,
                                fmi2Boolean stopTimeDefined, fmi2Real stopTime) {
-  
+
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
   try {
     cc->setupExperiment(startTime);
-  }
-  catch (exception &e)
-  {
+  } catch (exception &e) {
     return fmi2Error;
   }
-  
+
   return fmi2OK;
 }
 
@@ -122,13 +143,12 @@ fmi2Status fmi2Reset(fmi2Component c) { return fmi2OK; }
 
 fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[],
                        size_t nvr, fmi2Real value[]) {
-  
+
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
-  
-  try{
-    cc->getReal(vr,nvr,value);
-  }
-  catch (exception &e){
+
+  try {
+    cc->getReal(vr, nvr, value);
+  } catch (exception &e) {
     return fmi2Error;
   }
 
@@ -140,13 +160,11 @@ fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[],
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
   try {
-    cc->getInteger(vr,nvr,value);
-  }
-  catch (exception &e)
-  {
+    cc->getInteger(vr, nvr, value);
+  } catch (exception &e) {
     return fmi2Error;
   }
-  
+
   return fmi2OK;
 }
 
@@ -155,13 +173,11 @@ fmi2Status fmi2GetBoolean(fmi2Component c, const fmi2ValueReference vr[],
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
   try {
-    cc->getBoolean(vr,nvr,value);
-  }
-  catch (exception &e)
-  {
+    cc->getBoolean(vr, nvr, value);
+  } catch (exception &e) {
     return fmi2Error;
   }
-  
+
   return fmi2OK;
 }
 
@@ -170,13 +186,11 @@ fmi2Status fmi2GetString(fmi2Component c, const fmi2ValueReference vr[],
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
   try {
-    cc->getString(vr,nvr,value);
-  }
-  catch (exception &e)
-  {
+    cc->getString(vr, nvr, value);
+  } catch (exception &e) {
     return fmi2Error;
   }
-  
+
   return fmi2OK;
 }
 
@@ -199,13 +213,11 @@ fmi2Status fmi2SetInteger(fmi2Component c, const fmi2ValueReference vr[],
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
   try {
-    cc->setInteger(vr,nvr,value);
-  }
-  catch (exception &e)
-  {
+    cc->setInteger(vr, nvr, value);
+  } catch (exception &e) {
     return fmi2Error;
   }
-  
+
   return fmi2OK;
 }
 
@@ -214,13 +226,11 @@ fmi2Status fmi2SetBoolean(fmi2Component c, const fmi2ValueReference vr[],
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
   try {
-    cc->setBoolean(vr,nvr,value);
-  }
-  catch (exception &e)
-  {
+    cc->setBoolean(vr, nvr, value);
+  } catch (exception &e) {
     return fmi2Error;
   }
-  
+
   return fmi2OK;
 }
 
@@ -229,13 +239,11 @@ fmi2Status fmi2SetString(fmi2Component c, const fmi2ValueReference vr[],
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
   try {
-    cc->setString(vr,nvr,value);
-  }
-  catch (exception &e)
-  {
+    cc->setString(vr, nvr, value);
+  } catch (exception &e) {
     return fmi2Error;
   }
-  
+
   return fmi2OK;
 }
 
@@ -296,8 +304,7 @@ fmi2Status fmi2DoStep(fmi2Component c, fmi2Real currentCommunicationPoint,
   return fmi2OK;
 }
 
-fmi2Status fmi2CancelStep(fmi2Component c) 
-{ return fmi2Error; }
+fmi2Status fmi2CancelStep(fmi2Component c) { return fmi2Error; }
 
 fmi2Status fmi2GetStatus(fmi2Component c, const fmi2StatusKind, fmi2Status *) {
   return fmi2Error;

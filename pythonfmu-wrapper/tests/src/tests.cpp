@@ -2,51 +2,19 @@
 #include "catch.hpp"
 #include <filesystem>
 
-#include "pythonfmu/PyInitializer.hpp"
-#include "pythonfmu/PyObjectWrapper.hpp"
-
 #include "fmi/fmi2Functions.h"
 
 using namespace std;
 using namespace filesystem;
-using namespace pythonfmu;
 
 void logger(void *env, const char *str1, fmi2Status s, const char *str2,
             const char *str3, ...) {}
 
-TEST_CASE("PyObjectWrapper") {
-  /*
-  SECTION("FMUS")
-  {
-      path fmu_resource_path("resources/adder/");
-      auto state = PyInitializer();
-
-      SECTION("Adder")
-      {
-          auto wrapped = PyObjectWrapper(fmu_resource_path.string());
-
-          unsigned int set_refs[] = {0,1};
-          double set_vals[] = {5,10};
-          wrapped.setReal(set_refs,2,set_vals);
-
-
-
-          wrapped.doStep(0,1);
-
-          unsigned int get_refs[] = {2};
-          double get_vals[] = {0};
-          wrapped.getReal(get_refs,1,get_vals);
-
-
-          REQUIRE(get_vals[0] == 15);
-      }
-  }
-  */
-
-  SECTION("fmi") {
-
-    auto p = path("examples") / "adder" / "resources";
-    const char* resources_path = p.c_str();
+TEST_CASE("PyObjectWrapper")
+{
+  SECTION("multiplier") {
+    auto p = path("examples") / "multiplier" / "resources";
+    const char *resources_path = p.c_str();
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -54,8 +22,9 @@ TEST_CASE("PyObjectWrapper") {
                                        .stepFinished = nullptr,
                                        .componentEnvironment = nullptr};
 
-    fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_path,
-                             &callbacks, fmi2False, fmi2True);
+    fmi2Component c =
+        fmi2Instantiate("multiplier", fmi2Type::fmi2CoSimulation, "check?",
+                        resources_path, &callbacks, fmi2False, fmi2True);
 
     REQUIRE(c != nullptr);
 
@@ -84,6 +53,6 @@ TEST_CASE("PyObjectWrapper") {
 
     s = fmi2GetReal(c, get_refs, 1, get_vals);
     REQUIRE(s == fmi2OK);
-    REQUIRE(get_vals[0] == 15);
+    REQUIRE(get_vals[0] == 50);
   }
 }
