@@ -1,21 +1,22 @@
 
-#include <pythonfmu/PyObjectWrapper.hpp>
-
 #include "fmi/fmi2TypesPlatform.h"
 #include "pythonfmu/PyConfiguration.hpp"
+#include <pythonfmu/PyException.hpp>
+#include <pythonfmu/PyObjectWrapper.hpp>
+
+#include <fmt/format.h>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <pythonfmu/PyException.hpp>
 #include <sstream>
-#include <utility>
 #include <stdexcept>
+#include <utility>
 
-
+using namespace fmt;
+using namespace pyconfiguration;
 using namespace std;
 using namespace filesystem;
-using namespace pyconfiguration;
-
 
 namespace pythonfmu {
 
@@ -35,14 +36,10 @@ void append_resources_folder_to_python_path(path &resource_path) {
   string str = oss.str();
   const char *cstr = str.c_str();
 
-
   int err = PyRun_SimpleString(cstr);
 
-
-
-  if(err != 0)
-    throw runtime_error("Failed to append folder to python path\n"); 
-
+  if (err != 0)
+    throw runtime_error("Failed to append folder to python path\n");
 }
 
 string get_python_module_name(string resource_path) {
@@ -67,63 +64,74 @@ string get_python_module_name(string resource_path) {
 void PyObjectWrapper::instantiate_main_class(string module_name,
                                              string main_class) {
 
+  this->logger->log(
+      fmi2Status::fmi2OK, "Info",
+      format("importing Python module: {}, into the interpreter\n",
+             module_name));
 
-   pModule_ = PyImport_ImportModule(module_name.c_str());
-
+  pModule_ = PyImport_ImportModule(module_name.c_str());
 
   if (pModule_ == NULL) {
-    PyErr_Print();
-    auto err = get_py_exception();
-    ostringstream oss;
-    oss << "Python module defining containing main Python class could not be "
-           "loaded. Ensure that a file named slave_configuration.json exists "
-           "in the resource folder."
-        << "\nThis file must contain a single line defining the name of the "
-           "module containing this class. For example if the given module is "
-           "named adder.py the file should contain the line adder\n"
-        << "Error message from Python is:\n"
-        << err;
 
-    throw runtime_error(oss.str());
+    auto pyErr = get_py_exception();
+    auto msg = format("module could not be imported. Ensure that main script "
+                      "defined inside the wrapper configuration matches a "
+                      "Python script. Error from python was:\n{}",
+                      pyErr);
+    logger->log(fmi2Status::fmi2Fatal, "Error", msg);
+    throw runtime_error(msg);
   }
+
+  this->logger->log(
+      fmi2Status::fmi2OK, "Info",
+      format("module: {} was successfully imported\n", module_name));
+
+  this->logger->log(fmi2Status::fmi2OK, "Info",
+                    format("attempting to read definition of main class: {} "
+                           "from the imported module\n",
+                           main_class));
 
   pClass_ = PyObject_GetAttrString(pModule_, main_class.c_str());
 
   if (pClass_ == nullptr) {
-    auto err = get_py_exception();
-    ostringstream oss;
-    oss << "Main Python class name, " << main_class
-        << ", does not match any class exported by the module. Ensure that the "
-           "'slave_class' property is set to a class defined in that module."
-        << "Error message from Python is:\n"
-        << err;
-
-    throw runtime_error(oss.str());
+    auto pyErr = get_py_exception();
+    auto msg =
+        format("Python module: {} was successfully loaded, but the defintion "
+               "of the main class {} could not be loaded. Ensure that the "
+               "specified module contains a definition of the class. Python error was:\n{}\n",
+               module_name, main_class, pyErr);
+    logger->log(fmi2Status::fmi2Fatal, "Error", msg);
+    throw runtime_error(msg);
   }
+
+  this->logger->log(
+      fmi2Status::fmi2OK, "Info",
+      format("class definition was successfully read\n", main_class));
+
+  this->logger->log(
+      fmi2Status::fmi2OK, "Info",
+      format("attempting to construct an instance of the class: {}\n", main_class));
 
   pInstance_ = PyObject_CallFunctionObjArgs(pClass_, nullptr);
 
   if (pInstance_ == nullptr) {
-    auto err = get_py_exception();
-    ostringstream oss;
-    oss << "Failed to instantiate main Python class. Ensure that the class "
-           "defines a constructor which accepts no parameters\n."
-        << "Error message from python is:\n"
-        << err;
-    throw runtime_error(oss.str());
+    auto pyErr = get_py_exception();
+    auto msg = format("Failed to instantiate class: {}, ensure that the Python script is valid and that defines a parameterless constructor. Python error was:\n{}\n",main_class,pyErr);
+    this->logger->log(fmi2Status::fmi2Fatal,"Error",msg);
+    throw runtime_error(msg);
   }
+
+  this->logger->log(fmi2Status::fmi2OK, "Info", format("Sucessfully created an instance of class: {} defined in module: {}\n",main_class,module_name));
 }
 
+PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
+    : logger(move(logger)) {
 
-
-PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger) :  logger(move(logger)){
-
-  
-  auto state = PyGILState_Ensure();  
+  auto state = PyGILState_Ensure();
 
   if (!Py_IsInitialized()) {
 
-    this->logger->log(fmi2Status::fmi2Fatal,"Error","Test error");
+    this->logger->log(fmi2Status::fmi2Fatal, "Error", "Test error");
 
     throw runtime_error(
         "The Python object cannot be instantiated due to the python intrepeter "
@@ -131,37 +139,35 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger) 
         "successfully prior to the invoking the constructor.");
   }
 
-  
-  {
-    ostringstream oss;
-    oss << "appending path to resource folder to Python interpreter, path specified is: " << resource_path << endl;
-    this->logger->log(fmi2Status::fmi2OK,"Info",oss.str());
-  }
+  this->logger->log(fmi2Status::fmi2OK, "Info",
+                    format("appending path of resource folder to Python "
+                           "Interpreter, the specified path is: {}\n",
+                           resource_path.string()));
+
   append_resources_folder_to_python_path(resource_path);
 
-  // read configuration file specifiying Python script and class
+  this->logger->log(fmi2Status::fmi2OK, "Info",
+                    format("Successfully appended resources directory to Python path\n"));
+
   auto config_path = path(resource_path) / "slave_configuration.json";
-  
-  {
-    ostringstream oss;
-    oss << "Successfully appended resources to path" << endl << "reading configuration file located at: " << config_path << endl;
-    this->logger->log(fmi2Status::fmi2OK,"Info",oss.str());
-  }
+
+  this->logger->log(fmi2Status::fmi2OK, "Info",
+                    format("Reading configuration file located at: {}\n",
+                           config_path.string()));
+
   auto config = read_configuration(config_path);
-  {
-    ostringstream oss;
-    oss << "Successfully loaded configuration file, main script is: " << config.main_script << " and main class is: " << config.main_class << std::endl;
-    this->logger->log(fmi2Status::fmi2OK,"Info",oss.str());
-  }
-  
+
+  this->logger->log(fmi2Status::fmi2OK, "Info",
+                    format("successfully read configuration file, specifying the following: main "
+                           "script is: {} and main class is: {}\n",
+                           config.main_script, config.main_class));
+
   string module_name =
       path(config.main_script).filename().replace_extension("");
-
 
   instantiate_main_class(module_name, config.main_class);
 
   PyGILState_Release(state);
-
 }
 
 void PyObjectWrapper::setupExperiment(double startTime) {
