@@ -1,18 +1,13 @@
 
-#ifndef PYTHONFMU_PYOBJECTWRAPPER_HPP
-#define PYTHONFMU_PYOBJECTWRAPPER_HPP
-
 #include "fmi/fmi2TypesPlatform.h"
 #include "Python.h"
 #include "Logger.hpp"
 #include <string>
 #include <memory>
+#include <filesystem>
 
-extern "C"
-{
-    int foo();
-}
-
+#ifndef PYTHONFMU_PYOBJECTWRAPPER_HPP
+#define PYTHONFMU_PYOBJECTWRAPPER_HPP
 
 namespace pythonfmu
 {
@@ -22,7 +17,7 @@ class PyObjectWrapper
 
 public:
 
-    explicit PyObjectWrapper(const fmi2String resources, std::unique_ptr<Logger> logger);
+    explicit PyObjectWrapper(const std::filesystem::path resources, std::unique_ptr<Logger> logger);
 
     void setupExperiment(double startTime);
 

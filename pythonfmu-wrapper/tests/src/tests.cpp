@@ -1,5 +1,6 @@
 #define CATCH_CONFIG_MAIN
-#include "catch.hpp"
+
+#include "catch2/catch.hpp"
 #include <filesystem>
 
 #include "fmi/fmi2Functions.h"
@@ -10,16 +11,24 @@ using namespace filesystem;
 void logger(void *env, const char *str1, fmi2Status s, const char *str2,
             const char *str3, ...) {}
 
+void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status status)
+{
+
+}
+
 TEST_CASE("PyObjectWrapper")
 {
   SECTION("multiplier") {
-    auto p = path("examples") / "multiplier" / "resources";
+    //auto p = path("examples") / "multiplier" / "resources";
+
+    path p = path("file:///home/clegaard/Desktop/python2fmu/pythonfmu-wrapper/examples/multiplier/resources");
+
     const char *resources_path = p.c_str();
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
                                        .freeMemory = free,
-                                       .stepFinished = nullptr,
+                                       .stepFinished = stepFinished,
                                        .componentEnvironment = nullptr};
 
     fmi2Component c =

@@ -3,6 +3,9 @@ project(pyfmuwrapper VERSION 0.0.1 LANGUAGES CXX)
 
 set(BUILD_SHARED_LIBS ON)
 
+# conan package manager specific
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup()
 
 
 # Ensure only standard C and CXX is used
@@ -17,3 +20,6 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 add_subdirectory(wrapper)
 add_subdirectory(tests)
+
+
+

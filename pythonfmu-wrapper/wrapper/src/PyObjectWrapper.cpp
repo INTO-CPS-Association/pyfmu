@@ -9,22 +9,13 @@
 #include <pythonfmu/PyException.hpp>
 #include <sstream>
 #include <utility>
+#include <stdexcept>
+
 
 using namespace std;
 using namespace filesystem;
 using namespace pyconfiguration;
 
-extern "C" {
-int foo() 
-    {   
-      int a = 100;
-
-
-      int b = 100*20;
-
-      return 10; 
-    }
-}
 
 namespace pythonfmu {
 
@@ -35,11 +26,11 @@ namespace pythonfmu {
  * @param resource_path path to the resources dir supplied when FMU is
  * initialized
  */
-void append_resources_folder_to_python_path(string &resource_path) {
+void append_resources_folder_to_python_path(path &resource_path) {
 
   ostringstream oss;
   oss << "import sys\n";
-  oss << "sys.path.append(r'" << resource_path << "')\n";
+  oss << "sys.path.append(r'" << resource_path.string() << "')\n";
 
   string str = oss.str();
   const char *cstr = str.c_str();
@@ -123,28 +114,46 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
   }
 }
 
-PyObjectWrapper::PyObjectWrapper(fmi2String resource_path, unique_ptr<Logger> logger) :  logger(move(logger)){
 
 
+PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger) :  logger(move(logger)){
+
+  
   auto state = PyGILState_Ensure();  
 
   if (!Py_IsInitialized()) {
+
+    this->logger->log(fmi2Status::fmi2Fatal,"Error","Test error");
+
     throw runtime_error(
         "The Python object cannot be instantiated due to the python intrepeter "
         "not being instantiated. Ensure that Py_Initialize() is invoked "
         "successfully prior to the invoking the constructor.");
   }
 
+  
+  {
+    ostringstream oss;
+    oss << "appending path to resource folder to Python interpreter, path specified is: " << resource_path << endl;
+    this->logger->log(fmi2Status::fmi2OK,"Info",oss.str());
+  }
+  append_resources_folder_to_python_path(resource_path);
 
-  string resource_path_str = resource_path;
-  string config_path = path(resource_path) / "slave_configuration.json";
-
-
-
-  append_resources_folder_to_python_path(resource_path_str);
-
+  // read configuration file specifiying Python script and class
+  auto config_path = path(resource_path) / "slave_configuration.json";
+  
+  {
+    ostringstream oss;
+    oss << "Successfully appended resources to path" << endl << "reading configuration file located at: " << config_path << endl;
+    this->logger->log(fmi2Status::fmi2OK,"Info",oss.str());
+  }
   auto config = read_configuration(config_path);
-
+  {
+    ostringstream oss;
+    oss << "Successfully loaded configuration file, main script is: " << config.main_script << " and main class is: " << config.main_class << std::endl;
+    this->logger->log(fmi2Status::fmi2OK,"Info",oss.str());
+  }
+  
   string module_name =
       path(config.main_script).filename().replace_extension("");
 

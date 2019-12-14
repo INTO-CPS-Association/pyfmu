@@ -25,14 +25,14 @@ namespace pyconfiguration
 PyConfiguration read_configuration(const string &config_path)
 {
 
-
+   
     PyConfiguration config;
 
     ifstream is(config_path);
     
     
     if(!is.is_open())
-        throw new runtime_error("failed to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.");
+        throw runtime_error("failed to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.");
 
 
     json j;
@@ -44,7 +44,7 @@ PyConfiguration read_configuration(const string &config_path)
     }
     catch (const std::exception& e)
     {
-        throw new runtime_error("failed to parse configuration file used to locate correct Python script on startup. Ensure that the slave_configuration.json file is well formed.");
+        throw runtime_error("failed to parse configuration file used to locate correct Python script on startup. Ensure that the slave_configuration.json file is well formed.");
     }
     
 

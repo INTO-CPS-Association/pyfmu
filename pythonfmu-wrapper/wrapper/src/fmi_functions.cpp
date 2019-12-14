@@ -4,14 +4,57 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+#include <exception>
+#include <limits>
+#include <memory>
+
 #include "Python.h"
+#include "fmt/format.h"
+
 #include "fmi/fmi2Functions.h"
 #include "pythonfmu/Logger.hpp"
 #include "pythonfmu/PyInitializer.hpp"
 #include "pythonfmu/PyObjectWrapper.hpp"
-#include <exception>
-#include <limits>
-#include <memory>
+#include "utility/utils.hpp"
+
+
+using namespace fmt;
+using namespace std;
+
+
+std::optional<string> validate_fmi2callbackFunctions(const fmi2CallbackFunctions *functions)
+{
+  
+  string msg = "";
+
+  if (functions == nullptr) {
+    return msg + "pointer to callback function points was a nullptr\n.";
+  }
+
+  bool hasAllocateMemory = functions->allocateMemory != nullptr;
+  bool hasFreeMemory = functions->freeMemory != nullptr;
+  bool hasLogger = functions->logger != nullptr;
+  bool hasStepFinished = functions->stepFinished != nullptr;
+  
+  bool isValid = hasAllocateMemory && hasFreeMemory && hasLogger && hasStepFinished;
+
+  if(isValid)
+    return {};
+
+  if(!hasLogger) 
+    msg.append(" no allocate memory function was specified ");
+  if(!hasFreeMemory)
+    msg.append(" no free memory function was specified ");
+
+  if(!hasLogger)
+    msg.append(" no free memory function was specified ");
+
+  if(!hasStepFinished)
+    msg.append(" no step finished function was specified");
+
+  return msg;
+
+}
 
 // FMI functions
 extern "C" {
@@ -38,65 +81,52 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                               const fmi2CallbackFunctions *functions,
                               fmi2Boolean visible, fmi2Boolean loggingOn) {
 
-  if (functions == NULL) {
-    printf("fmi2 callback functions were not passed to fmi2Instantiate\n");
-    return NULL;
+  auto callbacksValid = validate_fmi2callbackFunctions(functions);
+
+  if(callbacksValid.has_value())
+  {
+    print(stderr, "Failed to instantiate FMU, supplied callback functions were invalid due to: {}", callbacksValid.value());
+    return NULL;    
   }
 
-  if (functions->logger == NULL) {
-    printf("logger callback function was not present in fmi2callbackfunctions "
-           "argument\n");
-    return NULL;
-  }
 
-  auto logger = make_unique<Logger>(functions->logger, instanceName);
+  auto logger = make_unique<Logger>(functions->componentEnvironment,functions->logger, instanceName);
 
-  if (functions->allocateMemory == NULL) {
-    logger->log(
-        NULL, fmi2Status::fmi2Fatal, "Error",
-        "fmi callback structure did not provide a function pointer to a "
-        "memory allocation function, this value was NULL.\n");
 
-    return NULL;
-  }
+  logger->log(fmi2Status::fmi2OK,"Info","Instantiating FMU\n");
 
-  logger->log(NULL,fmi2Status::fmi2OK,"Info","Instantiating FMU");
-
-  return NULL;
 
   if (component != nullptr) {
-    functions->logger(nullptr, "", fmi2Status::fmi2Fatal, "error",
-                      "Failed FMU may only be instantiated once per process!");
+    logger->log(fmi2Status::fmi2Fatal, "Error", "Failed FMU may only be instantiated once per process!\n");
+    return NULL;
   }
 
-  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
-                    "Initializing Python interpreter\n");
+  logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python interpreter\n");
 
   try {
     pyInitializer = new PyInitializer();
   } catch (exception &e) {
-    functions->logger(nullptr, "", fmi2Status::fmi2Fatal, "error",
-                      "failed to initialize embedded Python interpreter\n");
+    logger->log(fmi2Status::fmi2Fatal, "error", "failed to initialize embedded Python interpreter\n");
     return NULL;
   }
 
-  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
+  
+  logger->log(fmi2Status::fmi2OK, "Info",
                     "Successfully initialized Python interpreter\n");
 
-  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
-                    "Initializing Python FMU wrapper\n");
+
+  logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python FMU wrapper\n");
+
+
+  auto fmuResourceLocationPath = getPathFromFileUri(fmuResourceLocation);
 
   try {
-
-    component = new PyObjectWrapper(fmuResourceLocation, move(logger));
+    component = new PyObjectWrapper(fmuResourceLocationPath, move(logger));
   } catch (exception &e) {
-    functions->logger(nullptr, "", fmi2Status::fmi2Fatal, "error",
-                      "failed to load main script\n");
+    logger->log(fmi2Status::fmi2Fatal, "Error", "failed to load main script\n");
     return NULL;
   }
 
-  functions->logger(nullptr, instanceName, fmi2Status::fmi2OK, "INFO",
-                    "Successfully initialized Python FMU wrapper\n");
 
   return component;
 }
