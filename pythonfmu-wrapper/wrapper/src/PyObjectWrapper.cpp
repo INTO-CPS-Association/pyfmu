@@ -42,25 +42,6 @@ void append_resources_folder_to_python_path(path &resource_path) {
     throw runtime_error("Failed to append folder to python path\n");
 }
 
-string get_python_module_name(string resource_path) {
-  path script_path = path(resource_path) / "script_config.txt";
-
-  ifstream config(script_path);
-
-  if (!config) {
-    ostringstream oss;
-    oss << "Could not locate configuration file pointing to the main Python "
-           "class. \nThe file following file does not exist: "
-        << script_path << ", in the current path: " << current_path();
-    throw runtime_error(oss.str().c_str());
-  }
-
-  string moduleName;
-  getline(config, moduleName, '/');
-
-  return moduleName;
-}
-
 void PyObjectWrapper::instantiate_main_class(string module_name,
                                              string main_class) {
 
@@ -127,7 +108,7 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
 PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
     : logger(move(logger)) {
 
-  auto state = PyGILState_Ensure();
+  PyGIL g;
 
   if (!Py_IsInitialized()) {
 
@@ -167,7 +148,6 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
 
   instantiate_main_class(module_name, config.main_class);
 
-  PyGILState_Release(state);
 }
 
 void PyObjectWrapper::setupExperiment(double startTime) {
@@ -180,6 +160,8 @@ void PyObjectWrapper::setupExperiment(double startTime) {
 }
 
 void PyObjectWrapper::enterInitializationMode() {
+
+  PyGIL g;
   auto f =
       PyObject_CallMethod(pInstance_, "enter_initialization_mode", nullptr);
   if (f == nullptr) {
@@ -189,6 +171,8 @@ void PyObjectWrapper::enterInitializationMode() {
 }
 
 void PyObjectWrapper::exitInitializationMode() {
+  PyGIL g;
+
   auto f = PyObject_CallMethod(pInstance_, "exit_initialization_mode", nullptr);
   if (f == nullptr) {
     handle_py_exception();
@@ -197,6 +181,8 @@ void PyObjectWrapper::exitInitializationMode() {
 }
 
 bool PyObjectWrapper::doStep(double currentTime, double stepSize) {
+  PyGIL g;
+
   auto f =
       PyObject_CallMethod(pInstance_, "do_step", "(dd)", currentTime, stepSize);
   if (f == nullptr) {
@@ -208,6 +194,8 @@ bool PyObjectWrapper::doStep(double currentTime, double stepSize) {
 }
 
 void PyObjectWrapper::reset() {
+  PyGIL g;
+
   auto f = PyObject_CallMethod(pInstance_, "reset", nullptr);
   if (f == nullptr) {
     handle_py_exception();
@@ -216,6 +204,8 @@ void PyObjectWrapper::reset() {
 }
 
 void PyObjectWrapper::terminate() {
+  PyGIL g;
+
   auto f = PyObject_CallMethod(pInstance_, "terminate", nullptr);
   if (f == nullptr) {
     handle_py_exception();
@@ -225,6 +215,8 @@ void PyObjectWrapper::terminate() {
 
 void PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t nvr,
                                  fmi2Integer *values) const {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -249,6 +241,8 @@ void PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t nvr,
 
 void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
                               fmi2Real *values) const {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -273,6 +267,8 @@ void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
 
 void PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t nvr,
                                  fmi2Boolean *values) const {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -297,6 +293,8 @@ void PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t nvr,
 
 void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
                                 fmi2String *values) const {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -320,6 +318,8 @@ void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
 
 void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
                                  const fmi2Integer *values) {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -341,6 +341,8 @@ void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
 
 void PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr,
                               const fmi2Real *values) {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -368,6 +370,8 @@ void PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr,
 
 void PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t nvr,
                                  const fmi2Boolean *values) {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -387,6 +391,8 @@ void PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t nvr,
 
 void PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr,
                                 const fmi2String *value) {
+  PyGIL g;
+
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
   for (int i = 0; i < nvr; i++) {
@@ -404,6 +410,8 @@ void PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr,
 }
 
 PyObjectWrapper::~PyObjectWrapper() {
+  PyGIL g;
+
   Py_XDECREF(pInstance_);
   Py_XDECREF(pClass_);
   Py_XDECREF(pModule_);

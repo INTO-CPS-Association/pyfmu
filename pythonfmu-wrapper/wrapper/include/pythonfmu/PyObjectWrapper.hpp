@@ -1,10 +1,14 @@
 
-#include "fmi/fmi2TypesPlatform.h"
+
 #include "Python.h"
 #include "Logger.hpp"
 #include <string>
 #include <memory>
 #include <filesystem>
+
+#include "fmi/fmi2TypesPlatform.h"
+#include "pythonfmu/PyGIL.hpp"
+
 
 #ifndef PYTHONFMU_PYOBJECTWRAPPER_HPP
 #define PYTHONFMU_PYOBJECTWRAPPER_HPP
