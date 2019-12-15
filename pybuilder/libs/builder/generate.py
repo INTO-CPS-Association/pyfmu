@@ -2,7 +2,7 @@
 This module contains functionality to the creation of Python FMU projects
 """
 from os import makedirs
-from os.path import  basename, curdir, isdir, join, realpath, dirname, exists
+from os.path import  basename, curdir, isdir, join, realpath, dirname, exists, normpath
 from shutil import copy, copytree, rmtree
 from jinja2 import Template
 
@@ -59,7 +59,9 @@ def _copy_python_library_to_sources(python_lib_path : str, project_resources_pat
 
 
 
-def create_project(working_dir: str, project_path: str, main_class_name: str, overwrite = True):
+def create_project(project_path: str, main_class_name: str, overwrite = True):
+
+    working_dir = normpath(dirname(__file__))
 
     if(overwrite and exists(project_path)):
         rmtree(project_path)

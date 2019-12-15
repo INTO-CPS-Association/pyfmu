@@ -7,13 +7,12 @@ from pybuilder.libs.builder.generate import create_project
 
 def test_export(tmp_path_factory):
 
-    working_dir = os.getcwd()
 
     project_dir = tmp_path_factory.mktemp('project')
     archive_dir = tmp_path_factory.mktemp('archive')
 
-    create_project(working_dir,project_dir,'Adder')
-    export_project(working_dir,project_dir,archive_dir,compress=False)
+    create_project(project_dir,'Adder')
+    export_project(project_dir,archive_dir,compress=False)
 
     # resources
     main_script_path = join(archive_dir,'resources','adder.py')

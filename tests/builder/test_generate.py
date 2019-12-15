@@ -6,8 +6,7 @@ from pybuilder.libs.builder.generate import create_project
 
 def test_generate(tmp_path):
     
-    working_dir = os.getcwd()
-    create_project(working_dir,tmp_path,"Adder")
+    create_project(tmp_path,"Adder")
 
 
     main_script_path = join(tmp_path,'resources','adder.py')

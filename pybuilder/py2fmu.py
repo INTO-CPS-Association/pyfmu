@@ -73,7 +73,7 @@ def handle_generate(args):
 
     main_class_name = args.name if args.name is not None else basename(normpath(project_path))
 
-    create_project(working_dir, project_path, main_class_name)
+    create_project(project_path, main_class_name)
 
 def handle_export(args):
     
