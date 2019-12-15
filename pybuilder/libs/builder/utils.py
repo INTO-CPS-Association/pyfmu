@@ -1,7 +1,14 @@
 from zipfile import ZipFile, ZIP_DEFLATED
 import os
-from os.path import isdir, isfile
+from os.path import dirname, isdir, isfile, join, normpath
 
+def builder_basepath() -> str:
+    """gets the path to the builder's root
+    
+    Returns:
+        str -- path to root
+    """
+    return normpath(join(dirname(__file__),"..",".."))
 
 def zipdir(inDir: str, outDir: str):
 

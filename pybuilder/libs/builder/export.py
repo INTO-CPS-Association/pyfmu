@@ -13,8 +13,9 @@ from shutil import make_archive, move, copy, make_archive
 import logging
 
 from .configure import read_configuration
-
 from .modelDescription import extract_model_description_v2
+from .utils import builder_basepath
+
 
 _log = logging.getLogger(__name__)
 
@@ -70,7 +71,9 @@ def _create_archive_directories(archive_path, exist_ok=True):
         raise RuntimeError("Failed to create archive directories")
 
 
-def _copy_source_files_to_archive(project_dir, builder_resources_dir, archive_dir):
+def _resources_to_archive(project_dir, builder_resources_dir, archive_dir):
+
+    # TODO ensure that binaries actually exist
 
     # copy binaries / python wrapper into archive
     builder_binaries_dir = join(builder_resources_dir, "wrapper", "binaries")
@@ -137,7 +140,10 @@ def _validate_model_description(md: str) -> bool:
     return True
 
 
-def export_project(working_dir: str, project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True):
+def export_project(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True):
+
+
+    working_dir = builder_basepath()
 
     if(not overwrite and exists(archive_path)):
         raise FileExistsError(
@@ -160,7 +166,7 @@ def export_project(working_dir: str, project_path: str, archive_path: str, compr
         rmtree(archive_path, ignore_errors=True)
 
     
-    _copy_source_files_to_archive(
+    _resources_to_archive(
         project_path, builder_resources_path, archive_path)
 
     _generate_model_description(project_main_script_path, main_class, archive_model_description_path)

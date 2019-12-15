@@ -7,6 +7,7 @@ from shutil import copy, copytree, rmtree
 from jinja2 import Template
 
 from .configure import _create_config
+from .utils import builder_basepath
 
 def _create_dirs(project_path: str, exist_ok: bool = True):
     resources_path = join(project_path, "resources")
@@ -61,7 +62,7 @@ def _copy_python_library_to_sources(python_lib_path : str, project_resources_pat
 
 def create_project(project_path: str, main_class_name: str, overwrite = True):
 
-    working_dir = normpath(dirname(__file__))
+    working_dir = builder_basepath()
 
     if(overwrite and exists(project_path)):
         rmtree(project_path)
