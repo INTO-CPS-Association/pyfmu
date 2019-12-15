@@ -33,9 +33,9 @@ def extract_model_description_v2(fmu_instance) -> str:
     for var in fmu_instance.vars:
 
         vref = str(var.value_reference)
-        v = var.variability.value
-        c = var.causality.value[0]
-        t = var.data_type.value[0]
+        v = var.variability
+        c = var.causality
+        t = var.data_type
 
         idx_comment = ET.Comment(f'Index of variable = "{variable_index + 1}"')
         mvs.append(idx_comment)
