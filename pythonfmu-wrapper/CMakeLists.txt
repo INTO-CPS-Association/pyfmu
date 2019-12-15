@@ -1,24 +1,21 @@
-cmake_minimum_required(VERSION 3.16)
-
+cmake_minimum_required(VERSION 3.10)
+project(pyfmu LANGUAGES C CXX)
 
 set(BUILD_SHARED_LIBS ON)
 
-# conan package manager specific
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-
-
-# Ensure only standard C and CXX is used
-set(CMAKE_C_EXTENSIONS OFF)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(Python_FIND_ABI "OFF" "ANY" "ANY") # FORCE cmake to link against RELEASE LIBRARIES
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
-
-add_subdirectory(wrapper)
-
-
-
+add_library(${PROJECT_NAME}
+        src/fmi_functions.cpp
+        src/PyObjectWrapper.cpp
+        src/PyConfiguration.cpp
+        src/Logger.cpp
+)
+target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_compile_features(${PROJECT_NAME} PUBLIC "cxx_std_17")
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+        Python3::Python        
+)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CONAN_LIBS})
