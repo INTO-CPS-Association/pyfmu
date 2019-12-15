@@ -173,12 +173,6 @@ def export_project(project_path: str, archive_path: str, compress: bool = False,
 
     
 
-    if(store_compressed):
-        pass
-
-    if(not store_compressed):
-        rmtree(archive_path, ignore_errors=True)
-
     _generate_slave_config(archive_path, main_script, main_class)
 
     _log.info(f"Successfully exported {basename(archive_path)}")

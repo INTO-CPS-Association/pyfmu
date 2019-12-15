@@ -6,10 +6,10 @@ def _has_fmpy() -> bool:
     
     return True
 
-def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False, use_vdmcheck: bool = False) -> bool:
+def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False, use_vdmcheck: bool = False):
 
     if(use_fmpy and not _has_fmpy()):
-        raise Exception("Cannot validate exported module using fmpy, the module could not be loaded. Ensure that the package is installed.")
+        raise ImportError("Cannot validate exported module using fmpy, the module could not be loaded. Ensure that the package is installed.")
 
     valid = True
 
@@ -22,4 +22,7 @@ def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False
             res = simulate_fmu(fmu_archive)
         except Exception as e:
             valid = False
+            return repr(e)
+
+    return None
         

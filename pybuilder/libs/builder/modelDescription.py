@@ -6,7 +6,7 @@ import io
 
 from xml.dom import minidom
 
-from pybuilder.libs.pyfmu.fmi2types import Fmi2Causality
+from ..pyfmu.fmi2types import Fmi2Causality
 
 import datetime
 
@@ -23,7 +23,7 @@ def extract_model_description_v2(fmu_instance) -> str:
     fmd.set('generationDateAndTime', date_str_xsd)
     fmd.set('variableNamingConvention', 'structured')
     
-    cs = ET.SubElement(fmd,'CoSimulataion')
+    cs = ET.SubElement(fmd,'CoSimulation')
     cs.set("modelIdentifier", 'libpyfmu')
 
     mvs = ET.SubElement(fmd,'ModelVariables')
