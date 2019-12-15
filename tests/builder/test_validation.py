@@ -16,4 +16,4 @@ def test_validation(tmp_path):
 
     is_valid = validate(outdir)
 
-    assert(is_valid)
+    assert(is_valid == None)
