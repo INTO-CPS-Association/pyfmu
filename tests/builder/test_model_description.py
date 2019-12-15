@@ -22,14 +22,3 @@ class SineGenerator(Fmi2Slave):
         self.register_variable('phase', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.parameter, start=0)
         self.register_variable('y', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.output)
 
-
-def test_extract_model_description_v2():
-    
-
-    a = Adder()
-    
-    md = extract_model_description_v2(a)
-
-    with open("test.xml",'w') as f:
-        f.write(md)
-
