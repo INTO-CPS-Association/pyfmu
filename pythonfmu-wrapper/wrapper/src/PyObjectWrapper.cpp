@@ -151,6 +151,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
 }
 
 void PyObjectWrapper::setupExperiment(double startTime) {
+  PyGIL g;
   auto f =
       PyObject_CallMethod(pInstance_, "setup_experiment", "(d)", startTime);
   if (f == nullptr) {

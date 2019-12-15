@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2019-12-09T07:01:40Z" guid="" modelName="Multiplier" variableNamingConvention="structured">
-   <ModelExchange modelIdentifier="libpyfmu"/>
+   <CoSimulation modelIdentifier="libpyfmu"/>
    <ModelVariables>
       <!--Index of variable = "1"-->
       <ScalarVariable causality="input" name="a" valueReference="0" variability="continuous">

@@ -36,7 +36,8 @@ std::optional<string> validate_fmi2callbackFunctions(const fmi2CallbackFunctions
   bool hasLogger = functions->logger != nullptr;
   bool hasStepFinished = functions->stepFinished != nullptr;
   
-  bool isValid = hasAllocateMemory && hasFreeMemory && hasLogger && hasStepFinished;
+  //bool isValid = hasAllocateMemory && hasFreeMemory && hasLogger && hasStepFinished;
+  bool isValid = hasAllocateMemory && hasFreeMemory && hasLogger;
 
   if(isValid)
     return {};
@@ -133,11 +134,11 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
 void fmi2FreeInstance(fmi2Component c) {
   if (component != nullptr) {
-    delete component;
+    // delete component;
   }
 
   if (pyInitializer != nullptr) {
-    delete pyInitializer;
+    //delete pyInitializer;
   }
 }
 
