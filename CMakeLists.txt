@@ -7,6 +7,7 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
 add_subdirectory(pythonfmu-wrapper)
+add_subdirectory(tests/wrapper)
 
 # update wrapper in pybuilder resource folder on build
 add_custom_target(copy_wrapper_to_resources ALL

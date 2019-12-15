@@ -1,8 +1,8 @@
-from libs.builder.generate import create_project
 from os.path import join, exists, isdir, isfile
 import os
 import json
 
+from pybuilder.libs.builder.generate import create_project
 
 def test_generate(tmp_path):
     

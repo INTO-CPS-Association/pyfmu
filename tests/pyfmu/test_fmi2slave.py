@@ -1,5 +1,5 @@
-from libs.pyfmu.fmi2slave import Fmi2Slave
-from libs.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality
+from pybuilder.libs.pyfmu.fmi2slave import Fmi2Slave
+from pybuilder.libs.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality
 
 class Adder(Fmi2Slave):
     
@@ -22,8 +22,3 @@ class Tests_fmi2Slave:
 
         assert(a.a == 0)
         assert(a.b == 0)
-
-        
-
-    
-    pass

@@ -6,7 +6,7 @@ import io
 
 from xml.dom import minidom
 
-from libs.pyfmu.fmi2types import Fmi2Causality
+from pybuilder.libs.pyfmu.fmi2types import Fmi2Causality
 
 import datetime
 
