@@ -81,7 +81,7 @@ def handle_export(args):
 
     archive_path = args.output
 
-    export_project(working_dir, project_path,archive_path)
+    export_project(project_path,archive_path)
 
 def handle_validate(args):
     

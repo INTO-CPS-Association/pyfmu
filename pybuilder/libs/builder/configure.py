@@ -13,6 +13,7 @@ def _create_config(config_path: str, class_name: str, relative_script_path: str)
 
 def read_configuration(config_path : str) -> object:
 
+    print(f"configuration path is {config_path}")
     if(not exists(config_path)):
         raise FileNotFoundError("Failed to read configuration, the file does not exist")
 

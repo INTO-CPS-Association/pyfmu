@@ -143,6 +143,9 @@ def _validate_model_description(md: str) -> bool:
 def export_project(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True):
 
 
+    if(not isdir(project_path)):
+        raise FileNotFoundError("the project path does not correspond to Python FMU project")
+
     working_dir = builder_basepath()
 
     if(not overwrite and exists(archive_path)):

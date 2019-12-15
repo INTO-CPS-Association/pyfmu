@@ -22,9 +22,13 @@ def extract_model_description_v2(fmu_instance) -> str:
     fmd.set('author',fmu_instance.author)
     fmd.set('generationDateAndTime', date_str_xsd)
     fmd.set('variableNamingConvention', 'structured')
-    
+    fmd.set("generationTool", 'pyfmu')
+
     cs = ET.SubElement(fmd,'CoSimulation')
     cs.set("modelIdentifier", 'libpyfmu')
+    cs.set('needsExecutionTool','true')
+    
+    
 
     mvs = ET.SubElement(fmd,'ModelVariables')
     
