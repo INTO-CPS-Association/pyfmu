@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(pyfmuwrapper VERSION 0.0.1 LANGUAGES CXX)
+
 
 set(BUILD_SHARED_LIBS ON)
 
@@ -19,7 +19,6 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
 
 add_subdirectory(wrapper)
-add_subdirectory(tests)
 
 
 

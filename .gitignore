@@ -105,3 +105,25 @@ venv.bak/
 
 # vs studio
 *sln
+
+
+# vscode
+.vscode
+
+# CMake
+build
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# Generated visual studio project files
+*.vcxproj
+*.filters
+*.VC.db
