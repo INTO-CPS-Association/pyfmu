@@ -1,5 +1,15 @@
-# PyFMU
-A framework and set of utility programs to facility packaging of Python3 code as Functional Mockup Units (FMUs)
+# python2fmu
+A framework and utility program to support the use of Python3 code in Functional Mockup Units (FMUs).
+
+# How does it work?
+The FMI standard specifies a set of functions 
+```C
+fmi2Status fmi2DoStep(fmi2Component c,
+fmi2Real currentCommunicationPoint,
+fmi2Real communicationStepSize,
+fmi2Boolean noSetFMUStatePriorToCurrentPoint);
+```
+
 
 ## Prerequisites
 
