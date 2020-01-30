@@ -8,7 +8,7 @@ At a conceptual level an FMU can be thought of as a black box that converts a nu
 
 A simple example of this is an _adder_, which takes as input two numbers and produces the sum of these as its output.
 
-<img src="documentation/figures/adder.svg" width="40%">
+<img src="documentation/figures/adder.svg" width="50%">
 
 The FMU can be interacted with using several functions defined by the FMI specification. Some of the most essential of these are for getting values, setting values and advancing the simulation by taking a step. Using these three operations we can outline the process of simulating the adder as follows:
 
@@ -53,19 +53,15 @@ As a result there are fundamentally two ways to implment an FMU.
 The FMU is written in a compiled language that is capable of producing a shared object such as C. In addition to the specification itself, the standard is also shipped a number of C header files.
 Implementing the headers in C makes it possible to compile the shared object as illustrated below:
 
-<img src="documentation/figures/compiled_fmu.svg" width="25%">
+<img src="documentation/figures/compiled_fmu.svg" width="50%">
 
 Its important to emphasize that, even though C is the "favored" language, it is still possible to use any other language, as long as the resulting shared object is ABI compatible.
 
 ### **Wrapper FMU**
 
-In addition to the document defining the standard, a number of C header files are available which declares the functions which must be implemented:
+An alternative approach to implementing the FMU in a compiled language, is to instead create a wrapper which defers calls to an interpreter of another language.
 
-- fmi2getXXX :
-- fmi2setXXX :
-- fmi2dostep :
-
-<img src="documentation/figures/python_wrapper.svg" width="70%">
+<img src="documentation/figures/python_wrapper.svg" width="100%">
 
 # Prerequisites
 
