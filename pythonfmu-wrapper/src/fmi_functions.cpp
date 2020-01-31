@@ -164,9 +164,37 @@ fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
   return fmi2OK;
 }
 
-fmi2Status fmi2EnterInitializationMode(fmi2Component c) { return fmi2OK; }
+fmi2Status fmi2EnterInitializationMode(fmi2Component c) {
+   
+   auto cc = reinterpret_cast<PyObjectWrapper*>(c);
 
-fmi2Status fmi2ExitInitializationMode(fmi2Component c) { return fmi2OK; }
+    try
+    {
+      cc->enterInitializationMode();
+    }
+    catch(const exception& e)
+    {
+      return fmi2Error;
+    }
+    
+   return fmi2OK; 
+   }
+
+fmi2Status fmi2ExitInitializationMode(fmi2Component c) { 
+
+    auto cc = reinterpret_cast<PyObjectWrapper*>(c);
+
+    try
+    {
+      cc->enterInitializationMode();
+    }
+    catch(const exception& e)
+    {
+      return fmi2Error;
+    }
+    
+   return fmi2OK; 
+}
 
 fmi2Status fmi2Terminate(fmi2Component c) { return fmi2OK; }
 
