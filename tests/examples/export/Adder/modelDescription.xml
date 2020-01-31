@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-01-31T06:49:18Z" generationTool="pyfmu" guid="" modelName="Adder" variableNamingConvention="structured">
+   <CoSimulation modelIdentifier="libpyfmu" needsExecutionTool="true"/>
+   <ModelVariables>
+      <!--Index of variable = "1"-->
+      <ScalarVariable causality="output" initial="calculated" name="s" valueReference="0" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "2"-->
+      <ScalarVariable causality="input" name="a" valueReference="1" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "3"-->
+      <ScalarVariable causality="input" name="b" valueReference="2" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+   </ModelVariables>
+   <ModelStructure>
+      <Outputs>
+         <Unknown dependencies="" index="1"/>
+      </Outputs>
+   </ModelStructure>
+</fmiModelDescription>
