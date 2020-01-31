@@ -36,6 +36,11 @@ class ScalarVariable(ABC):
                 "Illegal combination of variabilty causality, see FMI2 spec p.49 for legal combinations")
 
 
+        is_valid_start = validate_start_value(variability,causality,initial,start)
+
+        if(is_valid_start != None):
+            raise Exception("Illegal start value\n")
+
         self.causality = causality
         self.data_type = data_type
         self.description = description
