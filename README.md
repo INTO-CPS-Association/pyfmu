@@ -63,6 +63,30 @@ An alternative approach to implementing the FMU in a compiled language, is to in
 
 <img src="documentation/figures/python_wrapper.svg" width="100%">
 
+
+The correspondance between the call to the FMI interface and the resulting call to the Python can be illustrated as:
+
+C-code:
+```C
+fmi2Status fmi2DoStep(fmi2Component c, fmi2Real currentCommunicationPoint,
+                      fmi2Real communicationStepSize, fmi2Boolean) {
+                      
+  status = wrapped.doStep(currentCommunicationPoint, communicationStepSize);
+  
+  return status;
+}
+
+```
+
+Python-code:
+```Python
+def do_step(self, current_time: float, step_size: float) -> bool:
+    
+    self.S = self.A + self.B
+    
+    return True
+```
+
 # Prerequisites
 
 ## [Conan](https://docs.conan.io/en/latest/)
