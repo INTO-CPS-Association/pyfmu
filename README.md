@@ -121,8 +121,18 @@ Linux building from source:
 
 The utility program py2fmu provides
 
+## Generating a project
+To generate a project the **generate** command can be used:
 ```bash
-python3 py2fmu generate -p Adder
+python3 py2fmu.py generate --n Adder
+```
+
+## Export project
+To export the project as an FMU the **export command** is used:
+
+
+```bash
+python3 py2fmu export -p Adder
 ```
 
 # FMI Support
