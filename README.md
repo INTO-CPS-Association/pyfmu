@@ -166,9 +166,13 @@ We may define this in Python as follows:
 
 ``` Python
 self.register_variable(
-            "a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input,
+            "a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output,
             initial=Fmi2Initial.exact, start=0)
 ```
+
+Note that according to the FMI spec inputs may **NOT** define an initial value, but they **MUST** define a start value.
+In this sense they the initial value is implicitly exact, but it must not be explictly defined.
+
 When using static analysis tools such as pylint, it may sometimes be useful to declare variables explictly as follows:
 ``` Python
 self.a = 0
