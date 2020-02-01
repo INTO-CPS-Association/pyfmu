@@ -19,7 +19,9 @@ class ConstantSignalSource(Fmi2Slave):
                                variability=Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=1)
 
         self.register_variable(
-            "y", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output, start=0)
+            "y", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
+        
+        self.y = self.k
 
     def setup_experiment(self, start_time: float):
         pass
