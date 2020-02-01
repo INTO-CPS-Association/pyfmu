@@ -135,6 +135,70 @@ To export the project as an FMU the **export command** is used:
 python3 py2fmu export -p Adder
 ```
 
+# Commonly asked questions
+
+## Default values
+The FMI2 standard specifies the default values for attributes of variables specifically:
+* Initial
+* **Elaborate rest**
+
+The *register_variable* function follows this convention by inferring any unspecified attributes.
+Consider the declaration of the ouput *s*:
+``` Python
+self.register_variable("s", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
+```
+Implicitly, two defaults are chosen:
+1. Initial is *calculated*
+2. Variability is *continous*
+
+
+<img src="documentation/figures/initial_default.png" width="100%">
+
+## Initial Values
+The FMI2 specification allows the initial value of a variable to be set the 3 following ways: 
+* Exact
+* Calculated
+* Approx
+
+### Exact
+Using exact the variable is initialized using the specified start value, that is a start value **MUST** be defined.
+We may define this in Python as follows:
+
+``` Python
+self.register_variable(
+            "a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input,
+            initial=Fmi2Initial.exact, start=0)
+```
+When using static analysis tools such as pylint, it may sometimes be useful to declare variables explictly as follows:
+``` Python
+self.a = 0
+self.register_variable("a", ... , start=0)
+```
+This will ensure that the linter does not produce false warnings percieved missing variables.
+This approach is supported as long as the value of the variable and the start value are identical, anything else is undefined behaviour.
+
+### Calculated
+Using calculated the variable is initialized based on other variables during intialization. This may be useful in cases of an output, which typically depend on the values of the inputs.
+
+``` Python
+self.register_variable(
+            "s", data_type=Fmi2DataTypes.real,
+            causality=Fmi2Causality.output, initial=Fmi2Initial.calculated)
+```
+The recommended way to initialize the variable is in the *exit_initialization_mode* function.
+This ensures that the co-simulation engine has had the chance to set the value of the inputs and parameters.
+``` Python
+def exit_initialization_mode(self):
+    self.s = self.a + self.b
+    return True
+```
+
+### Approx
+Using calculated the variable is initialized based on the result of an iteration of an algebraic loop, which is initialized with the specified start value. As such a start value **MUST** be specified.
+
+**TODO elaborate what the difference between this and exact is, in particular if its relevant to the python part**
+
+
 # FMI Support
 
 Currently, only FMI2 is supported.
