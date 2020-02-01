@@ -15,7 +15,8 @@ class ScalarVariable(ABC):
                  causality=Fmi2Causality.local,
                  variability=Fmi2Variability.continuous,
                  start = None,
-                 description: str = ""):
+                 description: str = "",
+                 value_reference: int = None):
 
         err = validate_vc(
             variability, causality)
@@ -47,14 +48,9 @@ class ScalarVariable(ABC):
         self.initial = initial
         self.name = name
         self.variability = variability
-        self.value_reference = ScalarVariable.__get_and_increment_vr()
         self.start = start
+        self.value_reference = value_reference
         
-    @staticmethod
-    def __get_and_increment_vr():
-        vr = ScalarVariable.__vr_counter
-        ScalarVariable.__vr_counter += 1
-        return vr
 
     def is_real(self) -> bool:
         return self.data_type == Fmi2DataTypes.real
