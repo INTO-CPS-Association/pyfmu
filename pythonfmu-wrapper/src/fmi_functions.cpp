@@ -178,7 +178,8 @@ fmi2Status fmi2EnterInitializationMode(fmi2Component c) {
     }
     
    return fmi2OK; 
-   }
+   
+}
 
 fmi2Status fmi2ExitInitializationMode(fmi2Component c) { 
 
@@ -196,9 +197,37 @@ fmi2Status fmi2ExitInitializationMode(fmi2Component c) {
    return fmi2OK; 
 }
 
-fmi2Status fmi2Terminate(fmi2Component c) { return fmi2OK; }
+fmi2Status fmi2Terminate(fmi2Component c) {
+   
+   auto cc = reinterpret_cast<PyObjectWrapper*>(c);
+   
+   try
+   {
+     cc->terminate();
+   }
+   catch(const exception& e)
+   {
+     return fmi2Error;
+   }
 
-fmi2Status fmi2Reset(fmi2Component c) { return fmi2OK; }
+   return fmi2OK;
+}
+
+fmi2Status fmi2Reset(fmi2Component c) { 
+
+  auto cc = reinterpret_cast<PyObjectWrapper*>(c);
+   
+   try
+   {
+     cc->reset();
+   }
+   catch(const exception& e)
+   {
+     return fmi2Error;
+   }
+
+   return fmi2OK;
+}
 
 fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[],
                        size_t nvr, fmi2Real value[]) {
