@@ -1,6 +1,7 @@
 from pyfmu.fmi2slave import Fmi2Slave
 from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes
 
+#from .pyfmu.fmi2types import Fmi2Initial
 
 class ConstantSignalSource(Fmi2Slave):
 
@@ -15,27 +16,13 @@ class ConstantSignalSource(Fmi2Slave):
             author=author,
             description=description)
 
-        self.register_variable("k", data_type=Fmi2DataTypes.real,
-                               variability=Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=1)
-
-        self.register_variable(
-            "y", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output, start=0)
-
-    def setup_experiment(self, start_time: float):
-        pass
-
-    def enter_initialization_mode(self):
-        pass
+        self.register_variable("k", data_type=Fmi2DataTypes.real,variability=Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=1)
+        self.register_variable("y", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
 
     def exit_initialization_mode(self):
-        pass
+        self.y = self.k
+        return True
 
     def do_step(self, current_time: float, step_size: float) -> bool:
         self.y = self.k
         return True
-
-    def reset(self):
-        pass
-
-    def terminate(self):
-        pass
