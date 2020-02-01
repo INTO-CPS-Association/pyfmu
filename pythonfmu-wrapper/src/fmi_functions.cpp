@@ -187,7 +187,7 @@ fmi2Status fmi2ExitInitializationMode(fmi2Component c) {
 
     try
     {
-      cc->enterInitializationMode();
+      cc->exitInitializationMode();
     }
     catch(const exception& e)
     {
