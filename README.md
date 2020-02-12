@@ -210,3 +210,8 @@ Currently, only FMI2 is supported.
 Support for FMI1 is **NOT** planned.
 
 Support for FMI3 **is** planned.
+
+
+# Acknowledgements:
+
+* Lars Ivar Hatledal: For his implementation of PythonFMU which was the initial starting point for pyfmu.
