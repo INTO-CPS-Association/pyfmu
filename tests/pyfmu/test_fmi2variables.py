@@ -22,31 +22,31 @@ def test_input_initialNotAllowed():
     with pytest.raises(Exception):
         v = ScalarVariable("a",data_type=Fmi2DataTypes.real,causality=Fmi2Causality.input,initial=Fmi2Initial.calculated)
 
-def test_approx_startDefined_throwsError():
+def test_approx_startDefined_NOK():
     with pytest.raises(Exception):
-        v = ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.approx)
+        ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.approx)
 
 def test_approx_startNotDefined_OK():
     ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.approx, start=0)
 
-def test_initialIsCalculated_startDefined_throwsError():
+def test_initialIsCalculated_startDefined_NOK():
     with pytest.raises(Exception):
-        v = ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.calculated,start=0)
+        ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.calculated,start=0)
 
 def test_initialIsCalculated_startNotDefined_OK():
     ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.calculated)
     
-def test_initialIsExact_startNotDefined_throwsError():
+def test_initialIsExact_startNotDefined_NOK():
     with pytest.raises(Exception):
-        v = ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.exact)
+        ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.exact)
     
-def test_initialIsExact_startDefined_throwsError():
+def test_initialIsExact_startDefined_NOK():
     
     ScalarVariable("a",data_type=Fmi2DataTypes.real, initial=Fmi2Initial.exact, start=0)
 
-def test_input_startNotDefined_throwsError():
+def test_input_startNotDefined_NOK():
     with pytest.raises(Exception):
-        v = ScalarVariable("a",causality=Fmi2Causality.input,data_type=Fmi2DataTypes.real)
+        ScalarVariable("a",causality=Fmi2Causality.input,data_type=Fmi2DataTypes.real)
 
 def test_input_startDefined_OK():
     ScalarVariable("a",causality=Fmi2Causality.input,data_type=Fmi2DataTypes.real, start=0)
@@ -74,4 +74,3 @@ def test_output_approx_startDefined_OK():
 def test_output_approx_startUndefined_NOK():
     with pytest.raises(Exception):
         ScalarVariable('a',causality=Fmi2Causality.output, initial=Fmi2Initial.approx, data_type=Fmi2DataTypes.real)
- 

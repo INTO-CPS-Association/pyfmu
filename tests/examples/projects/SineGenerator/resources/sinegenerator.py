@@ -20,7 +20,7 @@ class SineGenerator(Fmi2Slave):
         self.register_variable("frequency", data_type=Fmi2DataTypes.real, variability=Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=1)
         self.register_variable("phase", data_type=Fmi2DataTypes.real, variability = Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=0)
 
-        self.register_variable("y", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output, start=0)
+        self.register_variable("y", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
 
     def setup_experiment(self, start_time: float):
         self.start_time = start_time

@@ -1,12 +1,14 @@
 from os.path import join, dirname
 
-
-from ..examples.example_finder import get_example_project
+from ..examples.example_finder import get_example_project, get_available_examples
 
 from pybuilder.libs.builder.validate import validate, validate_modelDescription
 from pybuilder.libs.builder.export import export_project
 
-
+def vdmcheck_no_errors(results):
+    """ Returns true if VDMCheck finds has found no errors.
+    """
+    return results.stdout == b'No errors found.\n'
 
 def test_validation(tmp_path):
     p = get_example_project('SineGenerator')
@@ -21,14 +23,14 @@ def test_validation(tmp_path):
 
 def test_validate_vdmcheck(tmpdir):
     
-    p = get_example_project('SineGenerator')
+    for pname in get_available_examples():
+        p = get_example_project(pname)    
+        outdir = tmpdir / pname
+        archive = export_project(p,outdir, store_compressed=False)
+        results = validate_modelDescription(archive.model_description, use_vdmcheck=True)
+        assert(vdmcheck_no_errors(results['VDMCheck']))
+
     
-    outdir = tmpdir / 'SineGenerator'
+    
 
-    archive = export_project(p,outdir, store_compressed=False)
-
-
-    result = validate_modelDescription(archive.model_description, use_vdmcheck=True)
-
-    print(result['VDMCheck'].stdout)
-    assert(False)
+    

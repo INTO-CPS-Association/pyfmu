@@ -8,7 +8,7 @@ def get_available_examples():
     """
     return {
         'Adder',
-        'Constant'
+        'ConstantSignalGenerator',
         'SineGenerator'
     }
 

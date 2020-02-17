@@ -121,7 +121,7 @@ def get_possible_initial(variability: Fmi2Variability, causality: Fmi2Causality)
 
     if(validate_vc(variability, causality) is not None):
         raise Exception(
-            f"Combinations of variability: {variability} and causality: {causaility} is not allowed!")
+            f"Combinations of variability: {variability} and causality: {causality} is not allowed!")
 
     return _vc_combinations[variability][causality]["initial"]["possible"]
 
@@ -149,7 +149,7 @@ def validate_start_value(variability: Fmi2Variability, causality: Fmi2Causality,
     is_defined = start != None
     must_be_defined = should_define_start(variability, causality, initial)
 
-    return (must_be_defined ^ is_defined)
+    return (must_be_defined == is_defined)
 
 
 def validate_vc(variability: Fmi2Variability, causality: Fmi2Causality):

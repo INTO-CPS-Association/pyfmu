@@ -45,7 +45,7 @@ class ScalarVariable(ABC):
         # 2.2.6) p.46 + p.49
         is_valid_start = validate_start_value(variability,causality,initial,start)
 
-        if(not is_valid_start, ):
+        if(not is_valid_start):
             raise ValueError(f'Illegal start value')
 
         self.causality = causality
