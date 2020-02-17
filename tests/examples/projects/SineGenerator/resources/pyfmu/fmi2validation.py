@@ -145,15 +145,11 @@ def should_define_start(variability: Fmi2Variability, causality: Fmi2Causality, 
     return must_define_start
 
 
-def validate_start_value(variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial, start: Any) -> Union[str, None]:
+def validate_start_value(variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial, start: Any) -> bool:
     is_defined = start != None
     must_be_defined = should_define_start(variability, causality, initial)
 
-    if(must_be_defined ^ is_defined):
-        s = "must be defined" if not is_defined else "may not be defined"
-        return f"Start values {s} for this combination of variability: {variability}, causality: {causality} and intial: {initial}"
-
-    return None
+    return (must_be_defined ^ is_defined)
 
 
 def validate_vc(variability: Fmi2Variability, causality: Fmi2Causality):
