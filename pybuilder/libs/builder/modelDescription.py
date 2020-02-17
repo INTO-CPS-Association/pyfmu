@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import ElementTree
 from xml.dom import minidom
 import datetime
+import uuid
 
 from jinja2 import Template
 
@@ -17,10 +18,12 @@ def extract_model_description_v2(fmu_instance) -> str:
     data_time_obj = datetime.datetime.now()
     date_str_xsd = datetime.datetime.strftime(data_time_obj, '%Y-%m-%dT%H:%M:%SZ')
 
+    uid = str(uuid.uuid4())
+
     fmd = ET.Element("fmiModelDescription")
     fmd.set("fmiVersion","2.0")
     fmd.set("modelName",fmu_instance.modelName)
-    fmd.set("guid","") #TODO
+    fmd.set("guid",uid)
     fmd.set('author',fmu_instance.author)
     fmd.set('generationDateAndTime', date_str_xsd)
     fmd.set('variableNamingConvention', 'structured')
@@ -69,6 +72,9 @@ def extract_model_description_v2(fmu_instance) -> str:
 
     ms = ET.SubElement(fmd,'ModelStructure')
     
+    
+
+    # 2.2.8) For each output we must declare 'Outputs' and 'InitialUnknowns'
     outputs = [(idx+1,o) for idx,o in enumerate(fmu_instance.vars) if o.causality.name == Fmi2Causality.output.name]
 
     if(outputs):
@@ -76,7 +82,9 @@ def extract_model_description_v2(fmu_instance) -> str:
         for idx,o in outputs:
             ET.SubElement(os,'Unknown',{'index' : str(idx), 'dependencies' : ''})
 
-
+        os = ET.SubElement(ms, 'InitialUnknowns')
+        for idx,o in outputs:
+            ET.SubElement(os,'Unknown',{'index' : str(idx), 'dependencies' : ''})
     
 
     try:
@@ -85,8 +93,8 @@ def extract_model_description_v2(fmu_instance) -> str:
     except Exception as e:
         raise RuntimeError("Failed to parse model description. ") from e
    
+    # Format XML
     md_not_formatted =  stream.getvalue()
-    
     md_formatted = minidom.parseString(md_not_formatted).toprettyxml(indent='   ')
 
 

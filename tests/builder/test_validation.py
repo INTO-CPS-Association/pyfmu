@@ -30,5 +30,5 @@ def test_validate_vdmcheck(tmpdir):
 
     result = validate_modelDescription(archive.model_description, use_vdmcheck=True)
 
-    
+    print(result['VDMCheck'].stdout)
     assert(False)
