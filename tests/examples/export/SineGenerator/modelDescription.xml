@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2019-12-15T17:04:11Z" generationTool="pyfmu" guid="" modelName="SineGenerator" variableNamingConvention="structured">
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-02-17T00:05:37Z" generationTool="pyfmu" guid="" modelName="SineGenerator" variableNamingConvention="structured">
    <CoSimulation modelIdentifier="libpyfmu" needsExecutionTool="true"/>
    <ModelVariables>
       <!--Index of variable = "1"-->

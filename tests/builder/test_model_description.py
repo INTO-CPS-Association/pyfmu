@@ -22,3 +22,6 @@ class SineGenerator(Fmi2Slave):
         self.register_variable('phase', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.parameter, start=0)
         self.register_variable('y', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.output)
 
+
+def test_vdmcheck():
+    pass

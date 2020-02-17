@@ -1,0 +1,135 @@
+/**
+ * This file is part of the INTO-CPS toolchain.
+ *
+ * Copyright (c) 2017-2019, INTO-CPS Association,
+ * c/o Professor Peter Gorm Larsen, Department of Engineering
+ * Finlandsgade 22, 8200 Aarhus N.
+ *
+ * All rights reserved.
+ *
+ * THIS PROGRAM IS PROVIDED UNDER THE TERMS OF GPL VERSION 3 LICENSE OR
+ * THIS INTO-CPS ASSOCIATION PUBLIC LICENSE VERSION 1.0.
+ * ANY USE, REPRODUCTION OR DISTRIBUTION OF THIS PROGRAM CONSTITUTES
+ * RECIPIENT'S ACCEPTANCE OF THE OSMC PUBLIC LICENSE OR THE GPL 
+ * VERSION 3, ACCORDING TO RECIPIENTS CHOICE.
+ *
+ * The INTO-CPS toolchain  and the INTO-CPS Association Public License are
+ * obtained from the INTO-CPS Association, either from the above address, from
+ * the URLs: http://www.into-cps.org, and in the INTO-CPS toolchain distribution.
+ * GNU version 3 is obtained from: http://www.gnu.org/copyleft/gpl.html.
+ *
+ * This program is distributed WITHOUT ANY WARRANTY; without
+ * even the implied warranty of  MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE, EXCEPT AS EXPRESSLY SET FORTH IN THE
+ * BY RECIPIENT SELECTED SUBSIDIARY LICENSE CONDITIONS OF
+ * THE INTO-CPS ASSOCIATION.
+ *
+ * See the full INTO-CPS Association Public License conditions for more details.
+ */
+
+/**
+ * 2.2.2 Build Configuration
+ */
+types
+	BuildConfiguration ::
+		location				: Location
+		modelIdentifier			: NormalizedString1
+		platform				: [NormalizedString1]
+		description				: [NormalizedString1]
+		sourceFileSets			: [seq1 of SourceFileSet]
+		libraries				: [seq1 of Library];
+
+	SourceFileSet ::
+		location				: Location
+		language				: [NormalizedString1]
+		compiler				: [NormalizedString1]
+		compilerOptions			: [AnyString]
+		sourceFiles				: seq1 of SourceFile
+		preprocessorDefinitions	: [seq1 of PreprocessorDefinition]
+		includeDirectories		: [seq1 of IncludeDirectory];
+
+	SourceFile ::
+		location				: Location
+		name					: NormalizedString1;
+
+	PreprocessorDefinition ::
+		location				: Location
+		name					: NormalizedString1
+		optional				: [bool]
+		value					: [NormalizedString1]
+		description				: [AnyString]
+		options					: [seq1 of Option];
+
+	Option ::
+		location				: Location
+		value					: [NormalizedString1]
+		description				: [AnyString];
+
+	IncludeDirectory ::
+		location				: Location
+		name					: NormalizedString1;
+
+	Library ::
+		location				: Location
+		name					: NormalizedString1
+		version					: [NormalizedString1]
+		external				: [bool]
+		description				: [AnyString];
+
+functions
+	isValidBuildConfiguration: [BuildConfiguration] +> bool
+	isValidBuildConfiguration(bc) ==
+		bc <> nil and bc.sourceFileSets <> nil =>
+		{
+			-- @OnFail("2.2.2 Invalid SourceFileSet at line %s", sfs.location)
+			( isValidSourceFileSet(sfs) ) | sfs in seq bc.sourceFileSets
+		}
+		union
+		{
+			-- @OnFail("2.2.2 Invalid Library at line %s", lib.location)
+			( isValidLibrary(lib) ) | lib in seq bc.libraries
+		}
+		= {true};
+
+	isValidSourceFileSet: SourceFileSet +> bool
+	isValidSourceFileSet(sfs) ==
+	{
+		-- @OnFail("2.2.2 Compiler options set without compiler at line %s", sfs.location)
+		( sfs.compilerOptions <> nil => sfs.compiler <> nil ),
+		-- @OnFail("2.2.2 Invalid SourceFiles at line %s", sfs.location)
+		( isValidSourceFiles(sfs.sourceFiles) ),
+		-- @OnFail("2.2.2 Invalid PreprocessorDefinitions at line %s", sfs.location)
+		( isValidPreprocessorDefinitions(sfs.preprocessorDefinitions) ),
+		-- @OnFail("2.2.2 Invalid IncludeDirectories at line %s", sfs.location)
+		( isValidIncludeDirectories(sfs.includeDirectories) )
+	} = {true};
+
+	isValidSourceFiles: seq1 of SourceFile +> bool
+	isValidSourceFiles(files) ==
+		let names = [ sf.name | sf in seq files ] in
+			/* @OnFail("2.2.2 SourceFileSet has duplicate names: %s",
+				{ files(a) | a, b in set inds names & a <> b and files(a). = files(b) })
+			 */
+			( card elems names = len names );
+
+	isValidPreprocessorDefinitions: [seq1 of PreprocessorDefinition] +> bool
+	isValidPreprocessorDefinitions(defs) ==
+		defs <> nil =>
+			let names = [ d.name | d in seq defs ] in
+				/* @OnFail("2.2.2 PreprocessorDefinitions has duplicate names: %s",
+					{ names(a) | a, b in set inds names & a <> b and names(a) = names(b) })
+				 */
+				( card elems names = len names );
+
+	isValidIncludeDirectories: [seq1 of IncludeDirectory] +> bool
+	isValidIncludeDirectories(incs) ==
+		incs <> nil =>
+			let names = [ d.name | d in seq incs ] in
+				/* @OnFail("2.2.2 IncludeDirectories has duplicate names: %s",
+					{ names(a) | a, b in set inds names & a <> b and names(a) = names(b) })
+				 */
+				( card elems names = len names );
+
+	isValidLibrary: Library +> bool
+	isValidLibrary(-) ==
+		true;

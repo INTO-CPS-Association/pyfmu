@@ -9,16 +9,16 @@ class Tests_fmpy:
     
     def test_SineGenerator(self):
         p = get_exported_example_project('SineGenerator')
-        res = simulate_fmu(p)
+        - = simulate_fmu(p)
 
 
     def test_ConstantSignalSource(self):
-        p = get_exported_example_project('ConstantSignalSource')
-        res = simulate_fmu(p)
+        p = get_exported_example_project('ConstantSignalGenerator')
+        _ = simulate_fmu(p)
 
 
         
     def test_Adder(self):
         p = get_exported_example_project('Adder')
-        res = simulate_fmu(p)
+        _ = simulate_fmu(p)
         
