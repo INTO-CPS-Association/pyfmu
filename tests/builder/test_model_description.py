@@ -21,13 +21,3 @@ class SineGenerator(Fmi2Slave):
         self.register_variable('frequency', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.parameter, start=1)
         self.register_variable('phase', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.parameter, start=0)
         self.register_variable('y', data_type = Fmi2DataTypes.real, causality=Fmi2Causality.output)
-
-def invoke_vdmcheck(modelDescription : str) -> bool
-    
-    subprocess.call(['java', '-jar', 'Blender.jar'])
-
-
-
-def test_vdmcheck():
-    
-    

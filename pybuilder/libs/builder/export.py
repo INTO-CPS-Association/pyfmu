@@ -15,11 +15,27 @@ import logging
 from .configure import read_configuration
 from .modelDescription import extract_model_description_v2
 from .utils import builder_basepath
-
+from pathlib import Path
 
 _log = logging.getLogger(__name__)
 
 
+_exists_ok = True
+
+class PyfmuProject():
+    pass
+
+class PyfmuArchive():
+    """Object representation of exported Python FMU.
+    """
+
+    def __init__(self, model_description : str):
+        """Creates an object representation of the exported Python FMU.
+        
+        Arguments:
+            model_description {str} -- The model description of the exported FMU.
+        """
+        self.model_description = model_description
 
 def import_by_source(path: str):
     """Loads a python module using its name and the path to the python source script.
@@ -43,14 +59,8 @@ def import_by_source(path: str):
 
     return module
 
-
-
-_exists_ok = True
-
-
 def _available_export_platforms():
     return ["Win64", "Linux64"]
-
 
 def _create_archive_directories(archive_path, exist_ok=True):
 
@@ -69,7 +79,6 @@ def _create_archive_directories(archive_path, exist_ok=True):
 
     except Exception as e:
         raise RuntimeError("Failed to create archive directories")
-
 
 def _resources_to_archive(project_dir, builder_resources_dir, archive_dir):
 
@@ -90,7 +99,7 @@ def _compress(archive_path: str):
     make_archive(archive_path, 'zip', archive_path)
     rename(f"{archive_path}.{extension}", f"{archive_path}.fmu")
 
-def _generate_model_description(main_script_path: str, main_class: str, model_description_path: str) -> None:
+def _generate_model_description(main_script_path: str, main_class: str, model_description_path: str) -> str:
     
 
     instance = _instantiate_main_class(main_script_path,main_class)
@@ -98,6 +107,8 @@ def _generate_model_description(main_script_path: str, main_class: str, model_de
 
     with open(model_description_path,'w') as f:
         f.write(md)
+    
+    return md
 
 def _generate_slave_config(archive_path: str, main_script_path : str, main_class : str):
     """Generates a configuration file which is used by the FMU to locate the specific Python script and class which it must instantiate.
@@ -135,12 +146,10 @@ def _instantiate_main_class(main_script_path: str, main_class : str):
 
     return main_class_instance
     
-
 def _validate_model_description(md: str) -> bool:
     return True
 
-
-def export_project(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True):
+def export_project(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True) -> PyfmuArchive:
 
 
     if(not isdir(project_path)):
@@ -172,10 +181,15 @@ def export_project(project_path: str, archive_path: str, compress: bool = False,
     _resources_to_archive(
         project_path, builder_resources_path, archive_path)
 
-    _generate_model_description(project_main_script_path, main_class, archive_model_description_path)
+    md = _generate_model_description(project_main_script_path, main_class, archive_model_description_path)
 
     
 
     _generate_slave_config(archive_path, main_script, main_class)
 
     _log.info(f"Successfully exported {basename(archive_path)}")
+
+    archive = PyfmuArchive(model_description = md)
+
+    return archive
+
