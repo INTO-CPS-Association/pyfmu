@@ -9,7 +9,7 @@ class Tests_fmpy:
     
     def test_SineGenerator(self):
         p = get_exported_example_project('SineGenerator')
-        - = simulate_fmu(p)
+        _ = simulate_fmu(p)
 
 
     def test_ConstantSignalSource(self):
