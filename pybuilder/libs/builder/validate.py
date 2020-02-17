@@ -12,6 +12,26 @@ class FMI_Versions(Enum):
     FMI2 = "fmi2"
     FMI3 = "fmi3"
 
+class ValidationResult():
+    """
+    Represents the result of validating an FMU with different validation techniques.
+    """
+
+    def __init__(self):
+        self.validation_tools = {}
+
+    def set_result_for(self, tool : str, valid : bool, message = ""):
+        self.validation_tools[tool] = {"valid" : valid, "message" : message}
+
+    def get_result_for(self, tool : str):
+        return self.validation_tools[tool]
+
+    @property
+    def valid(self):
+        ss = {s['valid'] for s in self.validation_tools.values()}
+        return False not in ss
+            
+
 def _has_fmpy() -> bool:
     try:
         import fmpy
@@ -40,24 +60,32 @@ def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False
 
     return None
 
-def validate_modelDescription(modelDescription : str, use_fmucheck = False, use_vdmcheck = False, vdmcheck_version = FMI_Versions.FMI2):
+def validate_modelDescription(modelDescription : str, use_fmucheck = False, use_vdmcheck = False, vdmcheck_version = FMI_Versions.FMI2) -> ValidationResult :
     
     if(True not in {use_fmucheck, use_vdmcheck}):
         raise ValueError("arguments must specifiy at least one verification tool")
 
-    results = {}
+    results = ValidationResult()
 
     if(use_vdmcheck):
-        results['VDMCheck'] = _validate_vdmcheck(modelDescription, vdmcheck_version)
+        _validate_vdmcheck(modelDescription, results, vdmcheck_version)
 
 
     if(use_fmucheck):
         pass
 
-    
-    return results
 
-def _validate_vdmcheck(modelDescription : str, fmi_version = FMI_Versions.FMI2):
+    return results
+    
+
+
+
+def _vdmcheck_no_errors(results):
+    """ Returns true if VDMCheck finds has found no errors.
+    """
+    return results.stdout == b'No errors found.\n'
+
+def _validate_vdmcheck(modelDescription : str, validation_results : ValidationResult, fmi_version = FMI_Versions.FMI2):
     """Validate the model description using the VDMCheck tool.
     
     Arguments:
@@ -117,8 +145,6 @@ def _validate_vdmcheck(modelDescription : str, fmi_version = FMI_Versions.FMI2):
     tmpdir = Path(mkdtemp())
     md_path = tmpdir / 'modelDescription.xml'
 
-    result = None
-
     try:
         with open(md_path,'w') as f:
             f.write(modelDescription)
@@ -126,12 +152,12 @@ def _validate_vdmcheck(modelDescription : str, fmi_version = FMI_Versions.FMI2):
         result = subprocess.run([script_path,md_path],capture_output=True)
 
     finally:
-        # delete tmp dir
+        # TODO delete tmp dir
         pass
    
+    isValid = _vdmcheck_no_errors(result)
 
-    return result
-    
+    validation_results.set_result_for('vdmcheck',isValid, result.stdout)
         
     
 

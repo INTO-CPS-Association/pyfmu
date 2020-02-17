@@ -55,11 +55,3 @@ def test_parametersUseStartValue():
 
     d.__get_real__([vr],result)
     assert(result[0] == start)
-
-def test_inputsSetOverridesStart():
-
-    d = Dummy()
-
-    start = 10
-    vr = 0
-    d.register_variable("a",data_type)
