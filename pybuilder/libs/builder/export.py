@@ -150,7 +150,25 @@ def _validate_model_description(md: str) -> bool:
     return True
 
 def export_project(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True) -> PyfmuArchive:
-
+    """Exports a pyfmu project as an fmu archive
+    
+    Arguments:
+        project_path {str} -- path to the project
+        archive_path {str} -- output path
+    
+    Keyword Arguments:
+        compress {bool} -- Whether or not to compress the archive. (default: {False})
+        overwrite {bool} -- Determines if the method is allowed to overwrite an exisiting file (default: {True})
+        store_uncompressed {bool} -- [description] (default: {True})
+        store_compressed {bool} -- [description] (default: {True})
+    
+    Raises:
+        FileNotFoundError: [description]
+        FileExistsError: [description]
+    
+    Returns:
+        PyfmuArchive -- [description]
+    """
 
     if(not isdir(project_path)):
         raise FileNotFoundError("the project path does not correspond to Python FMU project")
