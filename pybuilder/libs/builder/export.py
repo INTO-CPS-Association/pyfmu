@@ -29,13 +29,14 @@ class PyfmuArchive():
     """Object representation of exported Python FMU.
     """
 
-    def __init__(self, model_description : str):
+    def __init__(self, root :str, model_description : str):
         """Creates an object representation of the exported Python FMU.
         
         Arguments:
             model_description {str} -- The model description of the exported FMU.
         """
         self.model_description = model_description
+        self.root = root
 
 def import_by_source(path: str):
     """Loads a python module using its name and the path to the python source script.
@@ -207,7 +208,7 @@ def export_project(project_path: str, archive_path: str, compress: bool = False,
 
     _log.info(f"Successfully exported {basename(archive_path)}")
 
-    archive = PyfmuArchive(model_description = md)
+    archive = PyfmuArchive(root = archive_path, model_description = md)
 
     return archive
 
