@@ -10,19 +10,12 @@ log = logging.getLogger('fmu')
 
 class Fmi2Slave:
     
-    guid = uuid1()
-    author = None
-    license = None
-    version = None
-    copyright = None
-    modelName = None
-    description = None
-
     def __init__(self, modelName: str, author="", copyright="", version="", description=""):
 
         self.author = author
         self.copyright = copyright
         self.description = description
+        self.license = ""
         self.modelName = modelName
         self.vars = []
         self.version = version

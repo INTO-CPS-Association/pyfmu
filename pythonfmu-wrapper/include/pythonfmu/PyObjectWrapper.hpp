@@ -23,6 +23,8 @@ public:
 
     explicit PyObjectWrapper(const std::filesystem::path resources, std::unique_ptr<Logger> logger);
 
+    explicit PyObjectWrapper(PyObjectWrapper &&other);
+
     void setupExperiment(double startTime);
 
     void enterInitializationMode();
@@ -52,6 +54,8 @@ public:
     void setString(const fmi2ValueReference *vr, std::size_t nvr, const fmi2String *value);
 
     ~PyObjectWrapper();
+
+    PyObjectWrapper& operator=(PyObjectWrapper&& rhs);
 
 private:
     PyObject *pModule_;

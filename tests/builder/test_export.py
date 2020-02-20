@@ -1,9 +1,11 @@
 from os.path import join, basename, isdir, isfile, realpath
 import os
 
-from pybuilder.libs.builder.export import export_project
+from pybuilder.libs.builder.export import export_project, PyfmuProject
 from pybuilder.libs.builder.generate import create_project
 
+
+from ..examples.example_finder import get_example_project
 
 def test_export(tmp_path_factory):
 
@@ -33,3 +35,27 @@ def test_export(tmp_path_factory):
     assert(isfile(md_path))
     assert(isdir(pylib_dir))
     assert(isfile(config_path))
+
+
+class TestCopyPyfmuLibToArchive:
+    def test_copy_from_resources(self):
+        assert False
+
+    def test_copy_from_project_archive_present(self):
+        assert False
+
+    def test_copy_from_project_archive_not_present(self):
+        assert False
+
+class TestPyfmuProject():
+    
+    def test_from_existing(self):
+        
+        p = get_example_project('Adder')
+
+        project = PyfmuProject.from_existing(p)
+
+        assert project.root == p
+        assert project.main_class == 'Adder'
+        assert project.main_script == 'adder.py'
+        

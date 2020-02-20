@@ -23,7 +23,65 @@ _log = logging.getLogger(__name__)
 _exists_ok = True
 
 class PyfmuProject():
-    pass
+    """Object representing an pyfmu project.
+    """
+    
+    def __init__(self, root : str, main_script : str, main_script_path : Path , main_class : str):
+
+        self.root = root
+        self.main_script = main_script
+        self.main_script_path = main_script_path
+        self.main_class = main_class
+
+    @staticmethod
+    def from_existing(p : Path):
+        """Instantiates an object representation based on an existing project
+        
+        Arguments:
+            p {Path} -- path to the root of the project
+        """
+        p = Path(p)
+
+        # Verify that path points to a valid pyfmu project.
+
+        # 1. Should be directory        
+        if(not Path.is_dir):
+            raise ValueError('Specified path does not point to a directory, ensure that the path is correct.')
+        
+        # 2. Should contain a 'project.json' in the root
+        has_project_json = (p / 'project.json').is_file()
+
+        with open(p/'project.json') as f:
+            project_json = json.load(f)
+
+        # 2+ TODO validate using json schema
+        main_script = project_json['main_script']
+        main_class = project_json['main_class']
+
+        if(not has_project_json):
+            raise RuntimeError('The directory does not contain a "project.json" file.')
+
+        # 3. Should contain resources folder
+        has_resources = (p / 'resources').is_dir()
+
+        if(not has_resources):
+            raise RuntimeError('The directory does not contain a resource folder.')
+        
+        # 4. main script should exist inside resources.
+        has_main_script = (p / 'resources' / main_script).is_file()
+
+        if(not has_main_script):
+            raise RuntimeError(f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
+
+        # 5. TODO main class should be defined by main script
+
+
+        project = PyfmuProject(p,main_script=main_script,main_script_path=None,main_class=main_class)
+
+        return project
+
+    
+        
 
 class PyfmuArchive():
     """Object representation of exported Python FMU.
@@ -94,6 +152,23 @@ def _resources_to_archive(project_dir, builder_resources_dir, archive_dir):
     project_resources_dir = join(project_dir, "resources")
     archive_resources_dir = join(archive_dir, "resources")
     copytree(project_resources_dir, archive_resources_dir)
+
+def _copy_pyfmu_lib_to_archive(archive : PyfmuArchive, project : PyfmuProject = None):
+    """ Copies the Python library into the archive.
+    
+    If a project is not specified a 'clean' copy from the resources folder is used. 
+    Otherwise, if a project is specified the library is copied from this folder instead.
+    
+    Arguments:
+        archive {PyfmuArchive} -- The FMU
+    
+    Keyword Arguments:
+        project {PyfmuProject} -- If specified, the potentially modified pyfmu library instead of one from the resources. (default: {None})
+    """
+    
+    pass
+
+    
 
 def _compress(archive_path: str):
     extension = "zip"

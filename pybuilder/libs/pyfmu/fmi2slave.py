@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from uuid import uuid1
+from uuid import uuid4
 from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability
 from .fmi2variables import ScalarVariable
 
@@ -10,13 +10,6 @@ log = logging.getLogger('fmu')
 
 class Fmi2Slave:
     
-    guid = uuid1()
-    author = None
-    license = None
-    version = None
-    copyright = None
-    modelName = None
-    description = None
 
     def __init__(self, modelName: str, author="", copyright="", version="", description=""):
 
@@ -24,6 +17,8 @@ class Fmi2Slave:
         self.copyright = copyright
         self.description = description
         self.modelName = modelName
+        self.license = license
+        self.guid = uuid4()
         self.vars = []
         self.version = version
         self.value_reference_counter = 0

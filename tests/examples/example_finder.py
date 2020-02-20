@@ -1,10 +1,10 @@
 from os.path import dirname, join
 from tempfile import mkdtemp
-from shutil import rmtree
+from shutil import rmtree, copytree
 from pathlib import Path
 
 
-from pybuilder.libs.builder.export import export_project, PyfmuArchive
+from pybuilder.libs.builder.export import export_project, PyfmuProject, PyfmuArchive
 
 def get_available_examples():
     """Returns the set of available examples.
@@ -18,11 +18,15 @@ def get_available_examples():
         'SineGenerator'
     }
 
-def get_example_project(name: str):
+def get_example_project(name: str) -> Path:
     """ Gets the path to a specific example project, to get an fmu use get_example_fmu(...)
     """
-    projects_dir = join(dirname(__file__),"projects")
-    return join(projects_dir,name)
+    if(name not in get_available_examples()):
+        raise ValueError(f'Failed to resolve the path to the example project. The project {name} does not exist.')
+
+    p = Path(__file__).parent / 'projects' / name
+    
+    return p
 
 
 
@@ -32,13 +36,62 @@ def get_exported_example_project(name : str):
     projects_dir = join(dirname(__file__),"export")
     return join(projects_dir,name)
 
+
 class ExampleProject():
-    """Wrapper that encapsulates the exporting of example projects used for automatic testing.
+    """Wrapper that encapsulates the creation of example projects used for automatic testing.
+
+    Wrapper that encapsulates the exporting of example archives used for automatic testing.
 
     This allows them to be accessed using a with statements.
     Attributes such as the path to the object can be accessed through the archive object which is returned.
     ```
     with ExampleProject('Adder') as p:
+        print(p.modelDescription)
+        ...
+    ```
+
+    The example project generated as a copy of an example project inside a temporary folder, which is freed after the with statement terminates.   
+    Modifications of properties such as its model description can be made through its properties:
+    ```
+    with ExampleProject('Adder') as p:
+        p.modelDescription = "invalid model description"
+        ...
+    ```
+    """
+
+    def __init__(self, project_name : str):
+        
+        if(project_name not in get_available_examples()):
+            raise ValueError(f'Unable to read the example project. The specified project {project_name} could not be found.')
+
+        project_path = get_exported_example_project
+
+        # copy project to temporary directory
+        self.tmpdir = mkdtemp()
+        outdir = Path(self.tmpdir) / project_name
+        copytree(project_path,outdir)
+
+        #instantiate object representation of project
+        self.project = PyfmuProject.from_existing(outdir)
+
+        
+
+    def __enter__(self) -> PyfmuProject:
+        return self.project
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        rmtree(self.tmpdir)
+
+        
+
+
+class ExampleArchive():
+    """Wrapper that encapsulates the exporting of example archives used for automatic testing.
+
+    This allows them to be accessed using a with statements.
+    Attributes such as the path to the object can be accessed through the archive object which is returned.
+    ```
+    with ExampleArchive('Adder') as p:
         print(p.modelDescription)
         ...
     ```

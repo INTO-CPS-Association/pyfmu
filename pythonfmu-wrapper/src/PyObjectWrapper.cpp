@@ -150,6 +150,10 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
 
 }
 
+PyObjectWrapper::PyObjectWrapper (PyObjectWrapper &&other) : pModule_(other.pModule_), pClass_(other.pClass_), pInstance_(other.pInstance_), logger(std::move(other.logger))
+{
+}
+
 void PyObjectWrapper::setupExperiment(double startTime) {
   PyGIL g;
   auto f =
@@ -417,5 +421,15 @@ PyObjectWrapper::~PyObjectWrapper() {
   Py_XDECREF(pClass_);
   Py_XDECREF(pModule_);
 }
+
+PyObjectWrapper& PyObjectWrapper::operator=( PyObjectWrapper&& other)
+{
+  this->pClass_ = other.pClass_;
+  this->pModule_ = other.pModule_;
+  this->pInstance_ = other.pInstance_;
+  this->logger = move(other.logger);
+  return *this;
+}
+
 
 } // namespace pythonfmu

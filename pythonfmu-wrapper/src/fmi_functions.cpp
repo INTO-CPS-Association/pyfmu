@@ -1,9 +1,12 @@
 #include <exception>
 #include <limits>
 #include <memory>
+#include <map>
+#include <vector>
 
 #include "Python.h"
 #include "fmt/format.h"
+
 
 #include "fmi/fmi2Functions.h"
 #include "pythonfmu/Logger.hpp"
@@ -63,7 +66,10 @@ const char *fmi2GetVersion() { return "2.0"; }
 using namespace pythonfmu;
 using namespace std;
 
-PyObjectWrapper *component = NULL;
+
+
+PyObjectWrapper* component = nullptr;
+vector<PyObjectWrapper> components;
 PyInitializer *pyInitializer = nullptr;
 
 bool loggingOn_ = false;
@@ -87,11 +93,13 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
   logger->log(fmi2Status::fmi2OK, "Info", "Instantiating FMU\n");
 
+  /*
   if (component != nullptr)
   {
     logger->log(fmi2Status::fmi2Fatal, "Error", "Failed FMU may only be instantiated once per process!\n");
     return NULL;
   }
+  */
 
   logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python interpreter\n");
 
@@ -115,10 +123,12 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   try
   {
     component = new PyObjectWrapper(fmuResourceLocationPath, move(logger));
+    // components.emplace_back(fmuResourceLocation, move(logger));
+    
   }
   catch (exception &e)
   {
-    logger->log(fmi2Status::fmi2Fatal, "Error", "failed to load main script\n");
+    //logger->log(fmi2Status::fmi2Fatal, "Error", "failed to load main script\n");
     return NULL;
   }
 
@@ -127,15 +137,7 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
 void fmi2FreeInstance(fmi2Component c)
 {
-  if (component != nullptr)
-  {
-    // delete component;
-  }
-
-  if (pyInitializer != nullptr)
-  {
-    //delete pyInitializer;
-  }
+  // TODO implement correctly
 }
 
 fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,

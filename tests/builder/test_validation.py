@@ -1,6 +1,6 @@
 from os.path import join, dirname
 
-from ..examples.example_finder import get_example_project, get_available_examples, ExampleProject
+from ..examples.example_finder import get_example_project, get_available_examples, ExampleArchive
 
 from pybuilder.libs.builder.validate import validate, validate_modelDescription
 from pybuilder.libs.builder.export import export_project
@@ -12,7 +12,7 @@ def test_validate_md_VDMCheck(tmpdir):
     
     for pname in get_available_examples():
         
-        with ExampleProject(pname) as archive:
+        with ExampleArchive(pname) as archive:
             results = validate_modelDescription(archive.model_description, use_vdmcheck=True)
             assert(results.valid == True)
         
