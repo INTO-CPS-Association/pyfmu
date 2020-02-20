@@ -1,11 +1,20 @@
 from os.path import join, basename, isdir, isfile, realpath
 import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from pybuilder.libs.builder.export import export_project, PyfmuProject
+from pybuilder.libs.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive
 from pybuilder.libs.builder.generate import create_project
 
+import pytest
 
-from ..examples.example_finder import get_example_project
+from ..examples.example_finder import get_example_project, ExampleProject, ExampleArchive
+
+def get_empty_archive(root : Path) -> PyfmuArchive:
+    return PyfmuArchive(root,"")
+
+def get_empty_project(root: Path) -> PyfmuProject:
+    return PyfmuProject(root, None,None,None)
 
 def test_export(tmp_path_factory):
 
@@ -36,20 +45,50 @@ def test_export(tmp_path_factory):
     assert(isdir(pylib_dir))
     assert(isfile(config_path))
 
-
 class TestCopyPyfmuLibToArchive:
-    def test_copy_from_resources(self):
-        assert False
+    """Tests related to how the pyfmu library is copied into the exported FMUs.
+    """
+    def test_copyFromResources_copiedToArchive(self,tmpdir):
+        
 
-    def test_copy_from_project_archive_present(self):
-        assert False
+        a = get_empty_archive(tmpdir)
+        
+        _copy_pyfmu_lib_to_archive(a)
 
-    def test_copy_from_project_archive_not_present(self):
-        assert False
+        pyfmu_folder_exists = (Path(tmpdir) / 'resources' / 'pyfmu').is_dir()
+
+        assert pyfmu_folder_exists
+
+    def test_copyFromPoject_projectExists_copiedToArchive(self,tmpdir):
+        
+        a = get_empty_archive(Path(tmpdir))
+
+        with ExampleProject('Adder') as p:
+            _copy_pyfmu_lib_to_archive(a,p)
+
+        pyfmu_folder_exists = (a.root / 'resources' / 'pyfmu').is_dir()
+
+        assert pyfmu_folder_exists
+
+
+
+    def test_copyFromPoject_projectDoesNotExist_throws(self):
+        
+        with TemporaryDirectory() as tmpdir_p, TemporaryDirectory() as tmpdir_a:
+            p = get_empty_project(Path(tmpdir_p))
+            a = get_empty_archive(Path(tmpdir_a))
+                          
+
+            with pytest.raises(RuntimeError):
+                _copy_pyfmu_lib_to_archive(a,p)
+
+        
+            
+        
 
 class TestPyfmuProject():
     
-    def test_from_existing(self):
+    def test_fromExisting_projectExists_OK(self):
         
         p = get_example_project('Adder')
 
@@ -58,4 +97,8 @@ class TestPyfmuProject():
         assert project.root == p
         assert project.main_class == 'Adder'
         assert project.main_script == 'adder.py'
-        
+    
+    def test_fromExisting_emptyDirectory_Throws(self,tmpdir):
+
+        with pytest.raises(ValueError):
+            _ = PyfmuProject.from_existing(tmpdir)

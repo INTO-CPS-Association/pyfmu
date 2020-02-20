@@ -4,23 +4,31 @@ import importlib
 import json
 from logging import debug, info, warning, error
 
-from shutil import copyfile, copytree, rmtree
+from shutil import copyfile, copytree, rmtree, make_archive, move, copy
 import sys
 from distutils.dir_util import copy_tree
-
-from shutil import make_archive, move, copy, make_archive
+from pathlib import Path
 
 import logging
 
 from .configure import read_configuration
 from .modelDescription import extract_model_description_v2
 from .utils import builder_basepath
-from pathlib import Path
+
 
 _log = logging.getLogger(__name__)
 
-
 _exists_ok = True
+
+def _resources_path() -> Path:
+    """Returns the path the the resource folder. 
+    
+    This is expected to be placed relative to this file ../../resources
+    
+    Returns:
+        Path -- path to the resources folder
+    """
+    return Path(__file__).parent.parent.parent / 'resources'
 
 class PyfmuProject():
     """Object representing an pyfmu project.
@@ -51,6 +59,9 @@ class PyfmuProject():
         # 2. Should contain a 'project.json' in the root
         has_project_json = (p / 'project.json').is_file()
 
+        if(not has_project_json):
+            raise ValueError('The directory does not contain a "project.json" file.')
+
         with open(p/'project.json') as f:
             project_json = json.load(f)
 
@@ -58,20 +69,17 @@ class PyfmuProject():
         main_script = project_json['main_script']
         main_class = project_json['main_class']
 
-        if(not has_project_json):
-            raise RuntimeError('The directory does not contain a "project.json" file.')
-
         # 3. Should contain resources folder
         has_resources = (p / 'resources').is_dir()
 
         if(not has_resources):
-            raise RuntimeError('The directory does not contain a resource folder.')
+            raise ValueError('The directory does not contain a resource folder.')
         
         # 4. main script should exist inside resources.
         has_main_script = (p / 'resources' / main_script).is_file()
 
         if(not has_main_script):
-            raise RuntimeError(f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
+            raise ValueError(f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
 
         # 5. TODO main class should be defined by main script
 
@@ -80,14 +88,11 @@ class PyfmuProject():
 
         return project
 
-    
-        
-
 class PyfmuArchive():
     """Object representation of exported Python FMU.
     """
 
-    def __init__(self, root :str, model_description : str):
+    def __init__(self, root : Path, model_description : str):
         """Creates an object representation of the exported Python FMU.
         
         Arguments:
@@ -166,9 +171,24 @@ def _copy_pyfmu_lib_to_archive(archive : PyfmuArchive, project : PyfmuProject = 
         project {PyfmuProject} -- If specified, the potentially modified pyfmu library instead of one from the resources. (default: {None})
     """
     
-    pass
+    copy_from_resources = project is None
 
-    
+    if(copy_from_resources):        
+        lib_path = _resources_path() / 'pyfmu'
+        err_msg = 'No directory named pyfmu was found in the resources directory, likely this has been deleted.'
+
+    else:
+        lib_path = project.root / 'resources' / 'pyfmu'
+        err_msg = "No directory named pyfmu was found in the projects resources. If the intention is to copy the 'local' library, ensure that is is present in the resources folder of the project. Otherwise, to use a clean copy omit specifying the project."
+
+    lib_exists = lib_path.is_dir()
+
+    if(not lib_exists):
+            raise RuntimeError(f'Failed to copy the library to the archive. {err_msg}')
+
+    copytree(lib_path, archive.root / 'resources' / 'pyfmu')
+
+
 
 def _compress(archive_path: str):
     extension = "zip"

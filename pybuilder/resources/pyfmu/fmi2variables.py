@@ -6,8 +6,6 @@ from .fmi2types import Fmi2DataTypes, Fmi2Initial, Fmi2Causality, Fmi2Variabilit
 
 class ScalarVariable(ABC):
 
-    __vr_counter = 0
-
     def __init__(self,
                  name: str, 
                  data_type: Fmi2DataTypes,

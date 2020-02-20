@@ -64,7 +64,7 @@ class ExampleProject():
         if(project_name not in get_available_examples()):
             raise ValueError(f'Unable to read the example project. The specified project {project_name} could not be found.')
 
-        project_path = get_exported_example_project
+        project_path = get_example_project(project_name)
 
         # copy project to temporary directory
         self.tmpdir = mkdtemp()
