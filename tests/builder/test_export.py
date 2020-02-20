@@ -3,7 +3,8 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from pybuilder.libs.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive
+
+from pybuilder.libs.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive, _copy_sources_to_archive
 from pybuilder.libs.builder.generate import create_project
 
 import pytest
@@ -14,7 +15,7 @@ def get_empty_archive(root : Path) -> PyfmuArchive:
     return PyfmuArchive(root,"")
 
 def get_empty_project(root: Path) -> PyfmuProject:
-    return PyfmuProject(root, None,None,None)
+    return PyfmuProject(root,None,None)
 
 def test_export(tmp_path_factory):
 
@@ -83,7 +84,38 @@ class TestCopyPyfmuLibToArchive:
                 _copy_pyfmu_lib_to_archive(a,p)
 
         
+class TestCopySourcesToArchive:
+    """Tests related to how source files are copied from a project to an archive
+    """
+
+    def test_copySourcesToArchive_mainScriptExists_mainScriptCopied(self):
+
+        with TemporaryDirectory() as tmpdir_a:
             
+            a = get_empty_archive(Path(tmpdir_a))
+
+            with ExampleProject('Adder') as p:
+                _copy_sources_to_archive(p,a)
+
+            has_main_script = (a.root / 'resources' / 'adder.py').is_file()
+
+            assert has_main_script
+
+
+    def test_copySourcesToArchive_mainScriptNotFound_throws(self):
+        
+        with TemporaryDirectory() as tmpdir_a:
+            
+            a = get_empty_archive(Path(tmpdir_a))
+
+            with ExampleProject('Adder') as p:
+
+                # remove script
+                os.remove(p.main_script_path)
+
+                with pytest.raises(RuntimeError):
+                    _copy_sources_to_archive(p,a)
+
         
 
 class TestPyfmuProject():

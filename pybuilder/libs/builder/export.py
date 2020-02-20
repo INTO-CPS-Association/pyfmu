@@ -34,11 +34,10 @@ class PyfmuProject():
     """Object representing an pyfmu project.
     """
     
-    def __init__(self, root : str, main_script : str, main_script_path : Path , main_class : str):
+    def __init__(self, root : Path, main_script : str, main_class : str):
 
         self.root = root
         self.main_script = main_script
-        self.main_script_path = main_script_path
         self.main_class = main_class
 
     @staticmethod
@@ -84,9 +83,17 @@ class PyfmuProject():
         # 5. TODO main class should be defined by main script
 
 
-        project = PyfmuProject(p,main_script=main_script,main_script_path=None,main_class=main_class)
+        project = PyfmuProject(p,main_script=main_script,main_class=main_class)
 
         return project
+
+    @property
+    def main_script_path(self):
+        if(self.main_script == None):
+            return None
+        
+        else:
+            return self.root / 'resources' / self.main_script
 
 class PyfmuArchive():
     """Object representation of exported Python FMU.
@@ -187,6 +194,32 @@ def _copy_pyfmu_lib_to_archive(archive : PyfmuArchive, project : PyfmuProject = 
             raise RuntimeError(f'Failed to copy the library to the archive. {err_msg}')
 
     copytree(lib_path, archive.root / 'resources' / 'pyfmu')
+
+def _copy_sources_to_archive(project : PyfmuProject, archive: PyfmuArchive):
+    """Copies the source files of the project into the archive.
+
+    Note that that a distinction is made between source files and the pyfmu library. 
+    
+    In this case source files refer to files written by the developer.
+
+    NOTE: Currently this only copies main script.
+    
+    Arguments:
+        project {PyfmuProject} -- [description]
+        archive {PyfmuArchive} -- [description]
+    """
+    p_msp = project.root /'resources' / project.main_script
+    
+    main_script_found = p_msp.is_file()
+
+    if(not main_script_found):
+        raise RuntimeError(f'main script: {project.main_script} was not found inside project: {project.root}')
+    
+    a_msp = archive.root /'resources' / project.main_script
+
+    makedirs(a_msp.parent)
+
+    copyfile(p_msp,a_msp)
 
 
 
