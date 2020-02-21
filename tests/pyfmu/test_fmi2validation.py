@@ -1,8 +1,8 @@
 
 
 
-from pybuilder.libs.pyfmu.fmi2validation import get_default_initial, validate_vc
-from pybuilder.libs.pyfmu.fmi2types import Fmi2Causality, Fmi2Initial, Fmi2Variability
+from pybuilder.resources.pyfmu.fmi2validation import get_default_initial, validate_vc
+from pybuilder.resources.pyfmu.fmi2types import Fmi2Causality, Fmi2Initial, Fmi2Variability
 
 
 from pytest import raises

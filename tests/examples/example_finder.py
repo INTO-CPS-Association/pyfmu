@@ -100,13 +100,14 @@ class ExampleArchive():
     """
     def __init__(self, project_name : str):
         
-        p = get_example_project(project_name)
 
         self.tmpdir = mkdtemp()
 
         outdir = Path(self.tmpdir) / project_name
 
-        self.archive = export_project(p,outdir, store_compressed=False)
+        with ExampleProject(project_name) as p:
+            self.archive = export_project(p,outdir, store_compressed=False)    
+        
 
     def __enter__(self) -> PyfmuArchive:
         return self.archive

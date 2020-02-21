@@ -3,7 +3,7 @@ from os.path import join, dirname
 from ..examples.example_finder import get_example_project, get_available_examples, ExampleArchive
 
 from pybuilder.libs.builder.validate import validate, validate_modelDescription
-from pybuilder.libs.builder.export import export_project
+
 
 from fmpy import simulate_fmu
 

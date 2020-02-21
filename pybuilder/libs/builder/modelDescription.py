@@ -9,8 +9,7 @@ import uuid
 
 from jinja2 import Template
 
-from ..pyfmu.fmi2types import Fmi2Causality
-
+from pybuilder.resources.pyfmu.fmi2types import Fmi2Causality
 
 
 def extract_model_description_v2(fmu_instance) -> str:

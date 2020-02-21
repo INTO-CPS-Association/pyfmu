@@ -1,5 +1,5 @@
-from pybuilder.libs.pyfmu.fmi2slave import Fmi2Slave
-from pybuilder.libs.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality, Fmi2Variability
+from pybuilder.resources.pyfmu.fmi2slave import Fmi2Slave
+from pybuilder.resources.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality, Fmi2Variability
 
 class Adder(Fmi2Slave):
     

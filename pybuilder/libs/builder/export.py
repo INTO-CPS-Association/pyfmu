@@ -14,36 +14,39 @@ import logging
 from .configure import read_configuration
 from .modelDescription import extract_model_description_v2
 from .utils import builder_basepath
+from .validate import validate_project
 
 
 _log = logging.getLogger(__name__)
 
 _exists_ok = True
 
+
 def _resources_path() -> Path:
     """Returns the path the the resource folder. 
-    
+
     This is expected to be placed relative to this file ../../resources
-    
+
     Returns:
         Path -- path to the resources folder
     """
     return Path(__file__).parent.parent.parent / 'resources'
 
+
 class PyfmuProject():
     """Object representing an pyfmu project.
     """
-    
-    def __init__(self, root : Path, main_script : str, main_class : str):
+
+    def __init__(self, root: Path, main_script: str, main_class: str):
 
         self.root = root
         self.main_script = main_script
         self.main_class = main_class
 
     @staticmethod
-    def from_existing(p : Path):
+    def from_existing(p: Path):
         """Instantiates an object representation based on an existing project
-        
+
         Arguments:
             p {Path} -- path to the root of the project
         """
@@ -51,15 +54,17 @@ class PyfmuProject():
 
         # Verify that path points to a valid pyfmu project.
 
-        # 1. Should be directory        
+        # 1. Should be directory
         if(not Path.is_dir):
-            raise ValueError('Specified path does not point to a directory, ensure that the path is correct.')
-        
+            raise ValueError(
+                'Specified path does not point to a directory, ensure that the path is correct.')
+
         # 2. Should contain a 'project.json' in the root
         has_project_json = (p / 'project.json').is_file()
 
         if(not has_project_json):
-            raise ValueError('The directory does not contain a "project.json" file.')
+            raise ValueError(
+                'The directory does not contain a "project.json" file.')
 
         with open(p/'project.json') as f:
             project_json = json.load(f)
@@ -72,18 +77,20 @@ class PyfmuProject():
         has_resources = (p / 'resources').is_dir()
 
         if(not has_resources):
-            raise ValueError('The directory does not contain a resource folder.')
-        
+            raise ValueError(
+                'The directory does not contain a resource folder.')
+
         # 4. main script should exist inside resources.
         has_main_script = (p / 'resources' / main_script).is_file()
 
         if(not has_main_script):
-            raise ValueError(f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
+            raise ValueError(
+                f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
 
         # 5. TODO main class should be defined by main script
 
-
-        project = PyfmuProject(p,main_script=main_script,main_class=main_class)
+        project = PyfmuProject(
+            p, main_script=main_script, main_class=main_class)
 
         return project
 
@@ -91,22 +98,62 @@ class PyfmuProject():
     def main_script_path(self):
         if(self.main_script == None):
             return None
-        
+
         else:
             return self.root / 'resources' / self.main_script
+
+    @property
+    def project_configuration_path(self):
+        return self.root / 'project.json'
+
+    @property
+    def project_configuration(self):
+
+        try:
+            with open(self.project_configuration_path, 'r') as f:
+                config = json.load(f)
+                return config
+
+        except Exception:
+            return None
+
 
 class PyfmuArchive():
     """Object representation of exported Python FMU.
     """
 
-    def __init__(self, root : Path, model_description : str):
+    def __init__(self,
+                 root: Path = None,
+                 resources_dir: Path =  None,
+                 slave_configuration_path : Path = None,
+                 binaries_dir : Path = None,
+                 main_script_path : Path = None,
+                 model_description: Path = None,
+                 model_description_path : Path = None,
+                 main_script: Path = None,
+                 main_class : Path = None,
+                 pyfmu_dir : Path = None
+    ):
         """Creates an object representation of the exported Python FMU.
-        
+
         Arguments:
             model_description {str} -- The model description of the exported FMU.
         """
         self.model_description = model_description
+
+        self.main_script = main_script
+        self.main_class = main_class
+        self.slave_configuration = None
+
+        # paths
         self.root = root
+        self.resources_dir = resources_dir
+        self.slave_configuration_path = slave_configuration_path
+        self.main_script_path = main_script_path
+        self.model_description_path = model_description_path
+        self.binaries_dir = binaries_dir
+        self.pyfmu_dir = pyfmu_dir
+
 
 def import_by_source(path: str):
     """Loads a python module using its name and the path to the python source script.
@@ -130,8 +177,10 @@ def import_by_source(path: str):
 
     return module
 
+
 def _available_export_platforms():
     return ["Win64", "Linux64"]
+
 
 def _create_archive_directories(archive_path, exist_ok=True):
 
@@ -151,6 +200,7 @@ def _create_archive_directories(archive_path, exist_ok=True):
     except Exception as e:
         raise RuntimeError("Failed to create archive directories")
 
+
 def _resources_to_archive(project_dir, builder_resources_dir, archive_dir):
 
     # TODO ensure that binaries actually exist
@@ -165,22 +215,23 @@ def _resources_to_archive(project_dir, builder_resources_dir, archive_dir):
     archive_resources_dir = join(archive_dir, "resources")
     copytree(project_resources_dir, archive_resources_dir)
 
-def _copy_pyfmu_lib_to_archive(archive : PyfmuArchive, project : PyfmuProject = None):
+
+def _copy_pyfmu_lib_to_archive(archive: PyfmuArchive, project: PyfmuProject = None) -> PyfmuArchive:
     """ Copies the Python library into the archive.
-    
+
     If a project is not specified a 'clean' copy from the resources folder is used. 
     Otherwise, if a project is specified the library is copied from this folder instead.
-    
+
     Arguments:
         archive {PyfmuArchive} -- The FMU
-    
+
     Keyword Arguments:
         project {PyfmuProject} -- If specified, the potentially modified pyfmu library instead of one from the resources. (default: {None})
     """
-    
+
     copy_from_resources = project is None
 
-    if(copy_from_resources):        
+    if(copy_from_resources):
         lib_path = _resources_path() / 'pyfmu'
         err_msg = 'No directory named pyfmu was found in the resources directory, likely this has been deleted.'
 
@@ -191,35 +242,94 @@ def _copy_pyfmu_lib_to_archive(archive : PyfmuArchive, project : PyfmuProject = 
     lib_exists = lib_path.is_dir()
 
     if(not lib_exists):
-            raise RuntimeError(f'Failed to copy the library to the archive. {err_msg}')
+        raise RuntimeError(
+            f'Failed to copy the library to the archive. {err_msg}')
 
-    copytree(lib_path, archive.root / 'resources' / 'pyfmu')
+    archive_lib_dir = archive.root / 'resources' / 'pyfmu'
 
-def _copy_sources_to_archive(project : PyfmuProject, archive: PyfmuArchive):
+    copytree(lib_path, archive_lib_dir)
+
+    archive.pyfmu_dir = archive_lib_dir
+
+    return archive
+
+def _copy_binaries_to_archive(archive: PyfmuArchive) -> PyfmuArchive:
+    
+    binaries_path = _resources_path() / 'wrapper' / 'binaries'
+
+
+    archive_binaries_path = archive.root / 'binaries'
+
+
+    #makedirs(archive_binaries_path)
+    copytree(binaries_path,archive_binaries_path)
+
+    archive.binaries_dir = archive_binaries_path
+
+    return archive
+
+def _copy_sources_to_archive(project: PyfmuProject, archive: PyfmuArchive) -> PyfmuArchive:
     """Copies the source files of the project into the archive.
 
     Note that that a distinction is made between source files and the pyfmu library. 
-    
+
     In this case source files refer to files written by the developer.
 
     NOTE: Currently this only copies main script.
-    
+
     Arguments:
         project {PyfmuProject} -- [description]
         archive {PyfmuArchive} -- [description]
     """
-    p_msp = project.root /'resources' / project.main_script
-    
-    main_script_found = p_msp.is_file()
+
+    main_script_found = project.main_script_path.is_file()
 
     if(not main_script_found):
-        raise RuntimeError(f'main script: {project.main_script} was not found inside project: {project.root}')
+        raise RuntimeError(
+            f'main script: {project.main_script} was not found inside project: {project.root}')
+
+    archive_main_script_path = archive.root / 'resources' / archive.main_script
+
+    # make directories and copy source files
+
+    if(not archive_main_script_path.parent.is_dir()):
+        makedirs(archive_main_script_path.parent)
     
-    a_msp = archive.root /'resources' / project.main_script
+    copyfile(project.main_script_path,archive_main_script_path)
 
-    makedirs(a_msp.parent)
+    archive.main_script_path = archive_main_script_path
 
-    copyfile(p_msp,a_msp)
+def _write_modelDescription_to_archive(project : PyfmuProject, archive : PyfmuArchive) -> PyfmuArchive:
+    
+    instance = _instantiate_main_class(project.main_script_path, project.main_class)
+    md = extract_model_description_v2(instance)
+
+    archive_model_description_path = archive.root / 'modelDescription.xml'
+    
+    with open(archive_model_description_path,'w') as f:
+        f.write(md)
+
+    archive.model_description = md
+    archive.model_description_path = archive_model_description_path
+
+def _write_slaveConfiguration_to_archive(project : PyfmuProject, archive : PyfmuArchive) -> PyfmuArchive:
+    
+    archive_slave_configuration_path = archive.root / 'resources' / 'slave_configuration.json'
+
+    # currently project and slave configuration contains same info
+    slave_configuration  = project.project_configuration
+
+    makedirs(archive_slave_configuration_path.parent)
+
+    with open(archive_slave_configuration_path,'w') as f:
+        json.dump(slave_configuration,f)
+
+    archive.slave_configuration_path = archive_slave_configuration_path
+    archive.slave_configuration = slave_configuration
+    archive.main_class = slave_configuration['main_class']
+    archive.main_script = slave_configuration['main_script']
+
+    return PyfmuArchive
 
 
 
@@ -228,115 +338,145 @@ def _compress(archive_path: str):
     make_archive(archive_path, 'zip', archive_path)
     rename(f"{archive_path}.{extension}", f"{archive_path}.fmu")
 
-def _generate_model_description(main_script_path: str, main_class: str, model_description_path: str) -> str:
-    
+def _generate_model_description(main_script_path: str, main_class: str) -> str:
 
-    instance = _instantiate_main_class(main_script_path,main_class)
+    instance = _instantiate_main_class(main_script_path, main_class)
     md = extract_model_description_v2(instance)
 
-    with open(model_description_path,'w') as f:
-        f.write(md)
-    
     return md
 
-def _generate_slave_config(archive_path: str, main_script_path : str, main_class : str):
-    """Generates a configuration file which is used by the FMU to locate the specific Python script and class which it must instantiate.
-    
+
+def _generate_slave_config(project: PyfmuProject):
+    """Generate a slave configuration file for the project
+
+    Note: Currently there is no difference between the project.json and slave_configuration.json files.
+    The difference 
+
     Arguments:
-        archive_path {str} -- Path to the root of the archive
-        main_script_path {str} -- Path to the main script defined relative to the 'resources' folder.
-        main_class {str} -- Name of the main class
+        project {PyfmuProject} -- [description]
 
-    Examples:
-        >>_generate_slave_config('somedir/adder','adder.py','Adder')
+    Returns:
+        [type] -- Dict
     """
-    
+    return project.project_configuration
 
-    config_path = join(archive_path,'resources','slave_configuration.json')
 
-    with open(config_path,'w') as f:
-        json.dump({
-            "main_script" : main_script_path,
-            "main_class" : main_class
-        },f,indent=4)
-
-def _instantiate_main_class(main_script_path: str, main_class : str):
+def _instantiate_main_class(main_script_path: str, main_class: str):
     module = import_by_source(main_script_path)
 
     main_class_ctor = getattr(module, main_class)
-    
+
     if(main_class_ctor is None or not callable(main_class_ctor)):
-        raise RuntimeError(f"Failed to generate model description. The specified file {main_script_path} does not define any callable attribute named {main_class}.")
+        raise RuntimeError(
+            f"Failed to generate model description. The specified file {main_script_path} does not define any callable attribute named {main_class}.")
 
     try:
         main_class_instance = main_class_ctor()
     except Exception as e:
-        raise RuntimeError(f"Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor. Error message was: {repr(e)}") from e
+        raise RuntimeError(
+            f"Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor. Error message was: {repr(e)}") from e
 
     return main_class_instance
-    
+
+
 def _validate_model_description(md: str) -> bool:
     return True
 
-def export_project(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True) -> PyfmuArchive:
-    """Exports a pyfmu project as an fmu archive
+
+def export_project(project: PyfmuProject, outputPath: Path, overwrite=False, store_compressed : bool = True) -> PyfmuArchive:
+
+    is_valid_project = validate_project(project)
+
+    if(not is_valid_project):
+        raise RuntimeError(
+            'The specified project can not be exported due to errors in the project.')
+
+    if(overwrite and exists(outputPath)):
+        rmtree(outputPath, ignore_errors=True)
+
+    # create object representation of the project being exported
+    # The purpose of this is to encapsulate path related stuff
+    archive = PyfmuArchive(
+        
+        binaries_dir = outputPath / 'binaries',
+        model_description_path = outputPath / 'modelDescription.xml',
+        root=outputPath,
+        resources_dir = outputPath / 'resources',
+        slave_configuration_path = outputPath / 'resources' / 'slave_configuration.json'
+    )
+
+    # read slave configuration
+    _write_slaveConfiguration_to_archive(project,archive)
+
+    # copy source files to archive
+    _copy_sources_to_archive(project, archive)
     
+    # copy pyfmu lib to archive, a fresh copy from resources is always used.
+    _copy_pyfmu_lib_to_archive(archive)
+
+    _copy_binaries_to_archive(archive)
+
+    # generate model description and write
+    _write_modelDescription_to_archive(project,archive)
+
+
+       
+    return archive
+
+
+def export_project_bak(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True) -> PyfmuArchive:
+    """Exports a pyfmu project as an fmu archive
+
     Arguments:
         project_path {str} -- path to the project
         archive_path {str} -- output path
-    
+
     Keyword Arguments:
         compress {bool} -- Whether or not to compress the archive. (default: {False})
         overwrite {bool} -- Determines if the method is allowed to overwrite an exisiting file (default: {True})
         store_uncompressed {bool} -- [description] (default: {True})
         store_compressed {bool} -- [description] (default: {True})
-    
+
     Raises:
         FileNotFoundError: [description]
         FileExistsError: [description]
-    
+
     Returns:
         PyfmuArchive -- [description]
     """
 
     if(not isdir(project_path)):
-        raise FileNotFoundError("the project path does not correspond to Python FMU project")
+        raise FileNotFoundError(
+            "the project path does not correspond to Python FMU project")
 
     working_dir = builder_basepath()
 
     if(not overwrite and exists(archive_path)):
         raise FileExistsError(
             "Failed to export project. The a file or directory with a path identical to the output already exists. If you wish to overwrite this file or folder please specifiy the --overwrite flag")
-    
-    
-    archive_model_description_path = join(archive_path,'modelDescription.xml')
-    project_config_path = join(project_path,'project.json')
+
+    archive_model_description_path = join(archive_path, 'modelDescription.xml')
+    project_config_path = join(project_path, 'project.json')
     project_config = read_configuration(project_config_path)
-    
+
     main_class = project_config['main_class']
     main_script = project_config['main_script']
 
-
-
     builder_resources_path = join(working_dir, "resources")
-    project_main_script_path = join(project_path,"resources",main_script)
+    project_main_script_path = join(project_path, "resources", main_script)
 
     if(overwrite and exists(archive_path)):
         rmtree(archive_path, ignore_errors=True)
 
-    
-    _resources_to_archive(
-        project_path, builder_resources_path, archive_path)
+    _resources_to_archive(project_path, builder_resources_path, archive_path)
 
-    md = _generate_model_description(project_main_script_path, main_class, archive_model_description_path)
-
-    
+    md = _generate_model_description(
+        project_main_script_path, main_class, archive_model_description_path)
 
     _generate_slave_config(archive_path, main_script, main_class)
 
     _log.info(f"Successfully exported {basename(archive_path)}")
 
-    archive = PyfmuArchive(root = archive_path, model_description = md)
+    archive = PyfmuArchive(root=archive_path, model_description=md)
 
     return archive
-

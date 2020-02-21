@@ -8,6 +8,8 @@ from pathlib import Path
 
 from pybuilder.resources.locator import get_resource, BuilderResources
 
+
+
 class FMI_Versions(Enum):
     FMI2 = "fmi2"
     FMI3 = "fmi3"
@@ -60,6 +62,19 @@ def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False
 
     return None
 
+def validate_project(project) -> bool:
+    """Validate a project to ensure that it is consistent.
+    
+    Arguments:
+        project {PyfmuProject} -- The project that is validated
+    
+    Returns:
+        bool -- [description]
+    """
+    # TODO add validation
+    return True
+
+
 def validate_modelDescription(modelDescription : str, use_fmucheck = False, use_vdmcheck = False, vdmcheck_version = FMI_Versions.FMI2) -> ValidationResult :
     
     if(True not in {use_fmucheck, use_vdmcheck}):
@@ -77,9 +92,6 @@ def validate_modelDescription(modelDescription : str, use_fmucheck = False, use_
 
     return results
     
-
-
-
 def _vdmcheck_no_errors(results):
     """ Returns true if VDMCheck finds has found no errors.
     """

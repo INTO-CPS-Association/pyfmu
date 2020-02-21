@@ -1,7 +1,7 @@
 import pytest
 
-from pybuilder.libs.pyfmu.fmi2variables import ScalarVariable
-from pybuilder.libs.pyfmu.fmi2types import Fmi2Initial, Fmi2DataTypes, Fmi2Causality, Fmi2Variability
+from pybuilder.resources.pyfmu.fmi2variables import ScalarVariable
+from pybuilder.resources.pyfmu.fmi2types import Fmi2Initial, Fmi2DataTypes, Fmi2Causality, Fmi2Variability
 
 def test_defaultCausality_isLocal():
     v = ScalarVariable("a",data_type=Fmi2DataTypes.real)

@@ -24,7 +24,7 @@ def test_export(tmp_path_factory):
     archive_dir = tmp_path_factory.mktemp('archive')
 
     create_project(project_dir,'Adder')
-    export_project(project_dir,archive_dir,compress=False)
+    export_project(project_dir,archive_dir)
 
     # resources
     main_script_path = join(archive_dir,'resources','adder.py')
@@ -45,6 +45,48 @@ def test_export(tmp_path_factory):
     assert(isfile(md_path))
     assert(isdir(pylib_dir))
     assert(isfile(config_path))
+
+
+class TestExport():
+    
+    def test_export_validProject_sourcesCopied(self):
+        
+        with ExampleArchive('Adder') as a:
+            sources_copied = a.main_script_path.is_file()
+
+            assert sources_copied
+
+    def test_export_validProject_binariesCopied(self):
+        with ExampleArchive('Adder') as a:
+
+
+            assert a.binaries_dir.is_dir()
+            assert (a.binaries_dir / 'win64' / 'libpyfmu.dll').is_file()
+            assert (a.binaries_dir / 'linux64' / 'libpyfmu.so').is_file()
+
+    def test_export_validProject_libCopied(self):
+        with ExampleArchive('Adder') as a:
+
+            assert a.pyfmu_dir.is_dir()
+            assert (a.pyfmu_dir / 'fmi2slave.py').is_file()
+            assert (a.pyfmu_dir / 'fmi2types.py').is_file()
+            assert (a.pyfmu_dir / 'fmi2validation.py').is_file()
+            assert (a.pyfmu_dir / 'fmi2variables.py').is_file()
+
+    def test_export_validProject_slaveConfigurationGenerated(self):
+        with ExampleArchive('Adder') as a:
+            slaveConfiguration_generated = a.slave_configuration_path.is_file()
+
+            assert slaveConfiguration_generated
+
+            
+
+    def test_export_validProject_modelDescriptionGenerated(self):
+        pass
+
+    def test_export_validProject_modelDescriptionValid(self):
+        pass
+
 
 class TestCopyPyfmuLibToArchive:
     """Tests related to how the pyfmu library is copied into the exported FMUs.
@@ -71,8 +113,6 @@ class TestCopyPyfmuLibToArchive:
 
         assert pyfmu_folder_exists
 
-
-
     def test_copyFromPoject_projectDoesNotExist_throws(self):
         
         with TemporaryDirectory() as tmpdir_p, TemporaryDirectory() as tmpdir_a:
@@ -82,41 +122,7 @@ class TestCopyPyfmuLibToArchive:
 
             with pytest.raises(RuntimeError):
                 _copy_pyfmu_lib_to_archive(a,p)
-
-        
-class TestCopySourcesToArchive:
-    """Tests related to how source files are copied from a project to an archive
-    """
-
-    def test_copySourcesToArchive_mainScriptExists_mainScriptCopied(self):
-
-        with TemporaryDirectory() as tmpdir_a:
-            
-            a = get_empty_archive(Path(tmpdir_a))
-
-            with ExampleProject('Adder') as p:
-                _copy_sources_to_archive(p,a)
-
-            has_main_script = (a.root / 'resources' / 'adder.py').is_file()
-
-            assert has_main_script
-
-
-    def test_copySourcesToArchive_mainScriptNotFound_throws(self):
-        
-        with TemporaryDirectory() as tmpdir_a:
-            
-            a = get_empty_archive(Path(tmpdir_a))
-
-            with ExampleProject('Adder') as p:
-
-                # remove script
-                os.remove(p.main_script_path)
-
-                with pytest.raises(RuntimeError):
-                    _copy_sources_to_archive(p,a)
-
-        
+      
 
 class TestPyfmuProject():
     
