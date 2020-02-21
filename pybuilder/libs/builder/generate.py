@@ -2,12 +2,97 @@
 This module contains functionality to the creation of Python FMU projects
 """
 from os import makedirs
-from os.path import  basename, curdir, isdir, join, realpath, dirname, exists, normpath
+from os.path import basename, curdir, isdir, join, realpath, dirname, exists, normpath
+from pathlib import Path
 from shutil import copy, copytree, rmtree
 from jinja2 import Template
+import json
 
 from .configure import _create_config
-from .utils import builder_basepath
+from .resources import Resources
+
+
+class PyfmuProject():
+    """Object representing an pyfmu project.
+    """
+
+    def __init__(self,
+                 root: Path,
+                 main_class: str = None,
+                 main_script: str = None,
+                 main_script_path: Path = None,
+                 project_configuration: dict = None,
+                 project_configuration_path: Path = None,
+                 pyfmu_dir: Path = None,
+                 ):
+
+        self.main_class = main_class
+        self.main_script = main_script
+        self.main_script_path = main_script_path
+        self.project_configuration = project_configuration
+        self.project_configuration_path = project_configuration_path
+        self.pyfmu_dir = pyfmu_dir
+        self.root = root
+
+    @staticmethod
+    def from_existing(p: Path):
+        """Instantiates an object representation based on an existing project
+
+        Arguments:
+            p {Path} -- path to the root of the project
+        """
+        p = Path(p)
+
+        # Verify that path points to a valid pyfmu project.
+
+        # 1. Should be directory
+        if(not Path.is_dir):
+            raise ValueError(
+                'Specified path does not point to a directory, ensure that the path is correct.')
+
+        # 2. Should contain a 'project.json' in the root
+        has_project_json = (p / 'project.json').is_file()
+
+        if(not has_project_json):
+            raise ValueError(
+                'The directory does not contain a "project.json" file.')
+
+        with open(p/'project.json') as f:
+            project_json = json.load(f)
+
+        # 2+ TODO validate using json schema
+        main_script = project_json['main_script']
+        main_class = project_json['main_class']
+        main_script_path = p / 'resources' / main_script
+        project_configuration_path = p / 'project.json'
+        project_configuration = project_json
+
+        # 3. Should contain resources folder
+        has_resources = (p / 'resources').is_dir()
+
+        if(not has_resources):
+            raise ValueError(
+                'The directory does not contain a resource folder.')
+
+        # 4. main script should exist inside resources.
+        has_main_script = (p / 'resources' / main_script).is_file()
+
+        if(not has_main_script):
+            raise ValueError(
+                f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
+
+        # 5. TODO main class should be defined by main script
+
+        project = PyfmuProject(root=p,
+                               main_script=main_script,
+                               main_class=main_class,
+                               main_script_path=main_script_path,
+                               project_configuration=project_configuration,
+                               project_configuration_path=project_configuration_path
+                               )
+
+        return project
+
 
 def _create_dirs(project_path: str, exist_ok: bool = True):
     resources_path = join(project_path, "resources")
@@ -20,7 +105,8 @@ def _create_dirs(project_path: str, exist_ok: bool = True):
     except Exception as e:
         raise Exception("Failed to create directories for the Python project")
 
-def _generate_fmu_template(template_path: str, main_class_name: str, script_output_path : str) -> None:
+
+def _generate_fmu_template(template_path: str, main_class_name: str, script_output_path: str) -> None:
 
     r = None
     with open(template_path, 'r') as f:
@@ -41,46 +127,82 @@ def _generate_fmu_template(template_path: str, main_class_name: str, script_outp
     with open(script_output_path, 'w') as f:
         f.write(r)
 
-def _copy_python_library_to_sources(python_lib_path : str, project_resources_path: str):
 
-    
+def _copy_pyfmu_to_project(project: PyfmuProject) -> PyfmuProject:
 
-    python_lib_available = isdir(python_lib_path)
+    resource_pyfmu_dir = Resources.get().pyfmu_dir
 
-    if(not python_lib_available):
-        raise FileNotFoundError(f'Could not copy pyfmu library to the project, directory containing library was not found at {python_lib_path}.')
-
-    project_lib_path = join(project_resources_path, basename(python_lib_path))
+    project_pyfmu_dir = project.root / 'resources' / 'pyfmu'
 
     try:
-        copytree(python_lib_path, project_lib_path)
+        copytree(resource_pyfmu_dir, project_pyfmu_dir)
     except Exception as e:
-        raise RuntimeError("pyfmu library exists but could not be copied the generated project.") from e
+        raise RuntimeError(
+            "pyfmu library exists but could not be copied the generated project.") from e
+
+    project.pyfmu_dir = project_pyfmu_dir
+
+    return project
 
 
+def _write_templateScript_to_project(project: PyfmuProject):
+
+    resource_scriptTemplate_path = Resources.get().scriptTemplate_path
+
+    with open(resource_scriptTemplate_path, 'r') as f:
+        s = f.read()
+        template = Template(s)
+
+        r = template.render(
+            {
+                "class_name": project.main_class,
+                "description": "",
+                "model_name": project.main_class,
+                "author": ""
+            }
+        )
+
+    project_scriptTemplate_path = project.root / 'resources' / project.main_script
+
+    makedirs(project_scriptTemplate_path.parent, exist_ok=True)
+
+    with open(project_scriptTemplate_path, 'w') as f:
+        f.write(r)
+
+    project.main_script_path = project_scriptTemplate_path
 
 
-def create_project(project_path: str, main_class_name: str, overwrite = True):
+def _write_projectConfig_to_project(project: PyfmuProject):
 
-    working_dir = builder_basepath()
+    project_configuration_path = project.root / \
+        'resources' / 'project.json'
+
+    config = {
+        "main_class": project.main_class,
+        "main_script": project.main_script
+    }
+
+    with open(project_configuration_path, 'w') as f:
+        json.dump(config, f)
+
+    project.project_configuration = config
+    project.project_configuration_path = project_configuration_path
+
+
+def create_project(project_path: str, main_class_name: str, overwrite=True) -> PyfmuProject:
+
+    project_path = Path(project_path)
 
     if(overwrite and exists(project_path)):
         rmtree(project_path)
-    
 
-    builder_template_path = join(working_dir, "resources",
-                         "templates", "fmu.py.j2")
-    builder_pylib_path = join(working_dir,"libs","pyfmu")
+    # TODO validate script names
+    main_script = main_class_name.lower() + '.py'
+    project = PyfmuProject(
+        project_path, main_class=main_class_name, main_script=main_script)
 
-    main_script_name = main_class_name.lower() + ".py"
-    project_config_path = join(project_path,"project.json")
-    project_resource_path = join(project_path, "resources")
-    project_main_script_path = join(project_resource_path, main_script_name)    
-    
-    _generate_fmu_template(builder_template_path, main_class_name, project_main_script_path)
+    _copy_pyfmu_to_project(project)
+    _write_templateScript_to_project(project)
+    _write_projectConfig_to_project(project)
 
-
-    _copy_python_library_to_sources(builder_pylib_path, project_resource_path)
-
-    _create_config(project_config_path, main_class_name, main_script_name)
-
+    return project

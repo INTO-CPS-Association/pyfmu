@@ -1,6 +1,7 @@
 from zipfile import ZipFile, ZIP_DEFLATED
 import os
 from os.path import dirname, isdir, isfile, join, normpath
+from pathlib import Path
 
 def builder_basepath() -> str:
     """gets the path to the builder's root
@@ -31,3 +32,14 @@ if __name__ == "__main__":
     outpath = join(dirname(__file__), "out.zip")
 
     zipdir(inPath, outpath)
+
+
+def _resources_path() -> Path:
+    """Returns the path the the resource folder. 
+
+    This is expected to be placed relative to this file ../../resources
+
+    Returns:
+        Path -- path to the resources folder
+    """
+    return Path(__file__).parent.parent.parent / 'resources'

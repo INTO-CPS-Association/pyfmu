@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 
 
 from pybuilder.libs.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive, _copy_sources_to_archive
-from pybuilder.libs.builder.generate import create_project
+from pybuilder.libs.builder.generate import create_project, PyfmuProject
 
 import pytest
 
@@ -82,10 +82,11 @@ class TestExport():
             
 
     def test_export_validProject_modelDescriptionGenerated(self):
-        pass
 
-    def test_export_validProject_modelDescriptionValid(self):
-        pass
+        with ExampleArchive('Adder') as a:
+            assert a.model_description != None
+            assert a.model_description_path.is_file()
+        
 
 
 class TestCopyPyfmuLibToArchive:

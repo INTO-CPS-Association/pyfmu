@@ -3,6 +3,7 @@ from os import makedirs, listdir, rename
 import importlib
 import json
 from logging import debug, info, warning, error
+import json
 
 from shutil import copyfile, copytree, rmtree, make_archive, move, copy
 import sys
@@ -12,110 +13,19 @@ from pathlib import Path
 import logging
 
 from .configure import read_configuration
+from .utils import _resources_path
 from .modelDescription import extract_model_description_v2
 from .utils import builder_basepath
 from .validate import validate_project
-
+from .generate import PyfmuProject
 
 _log = logging.getLogger(__name__)
 
 _exists_ok = True
 
 
-def _resources_path() -> Path:
-    """Returns the path the the resource folder. 
-
-    This is expected to be placed relative to this file ../../resources
-
-    Returns:
-        Path -- path to the resources folder
-    """
-    return Path(__file__).parent.parent.parent / 'resources'
 
 
-class PyfmuProject():
-    """Object representing an pyfmu project.
-    """
-
-    def __init__(self, root: Path, main_script: str, main_class: str):
-
-        self.root = root
-        self.main_script = main_script
-        self.main_class = main_class
-
-    @staticmethod
-    def from_existing(p: Path):
-        """Instantiates an object representation based on an existing project
-
-        Arguments:
-            p {Path} -- path to the root of the project
-        """
-        p = Path(p)
-
-        # Verify that path points to a valid pyfmu project.
-
-        # 1. Should be directory
-        if(not Path.is_dir):
-            raise ValueError(
-                'Specified path does not point to a directory, ensure that the path is correct.')
-
-        # 2. Should contain a 'project.json' in the root
-        has_project_json = (p / 'project.json').is_file()
-
-        if(not has_project_json):
-            raise ValueError(
-                'The directory does not contain a "project.json" file.')
-
-        with open(p/'project.json') as f:
-            project_json = json.load(f)
-
-        # 2+ TODO validate using json schema
-        main_script = project_json['main_script']
-        main_class = project_json['main_class']
-
-        # 3. Should contain resources folder
-        has_resources = (p / 'resources').is_dir()
-
-        if(not has_resources):
-            raise ValueError(
-                'The directory does not contain a resource folder.')
-
-        # 4. main script should exist inside resources.
-        has_main_script = (p / 'resources' / main_script).is_file()
-
-        if(not has_main_script):
-            raise ValueError(
-                f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
-
-        # 5. TODO main class should be defined by main script
-
-        project = PyfmuProject(
-            p, main_script=main_script, main_class=main_class)
-
-        return project
-
-    @property
-    def main_script_path(self):
-        if(self.main_script == None):
-            return None
-
-        else:
-            return self.root / 'resources' / self.main_script
-
-    @property
-    def project_configuration_path(self):
-        return self.root / 'project.json'
-
-    @property
-    def project_configuration(self):
-
-        try:
-            with open(self.project_configuration_path, 'r') as f:
-                config = json.load(f)
-                return config
-
-        except Exception:
-            return None
 
 
 class PyfmuArchive():
