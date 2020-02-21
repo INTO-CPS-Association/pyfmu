@@ -211,7 +211,7 @@ def _copy_sources_to_archive(project: PyfmuProject, archive: PyfmuArchive) -> Py
 
 def _write_modelDescription_to_archive(project : PyfmuProject, archive : PyfmuArchive) -> PyfmuArchive:
     
-    instance = _instantiate_main_class(project.main_script_path, project.main_class)
+    instance = _instantiate_main_class(archive.main_script_path, archive.main_class)
     md = extract_model_description_v2(instance)
 
     archive_model_description_path = archive.root / 'modelDescription.xml'

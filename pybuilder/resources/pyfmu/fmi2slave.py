@@ -50,6 +50,7 @@ class Fmi2Slave:
             define_attribute {bool} -- if true, automatically add the specified attribute to instance if it does not already exist. (default: {True})
         """      
 
+
         # if not specified find an unused value reference
         if(value_reference is None):
             value_reference = self._acquire_unused_value_reference()
