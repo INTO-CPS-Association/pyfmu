@@ -293,6 +293,24 @@ def _validate_model_description(md: str) -> bool:
 
 
 def export_project(project: PyfmuProject, outputPath: Path, overwrite=False, store_compressed : bool = True) -> PyfmuArchive:
+    """Exports a pyfmu project as an FMU to the specified output path.
+    
+    Arguments:
+        project {PyfmuProject} -- A PyfmuProject or the path to a project. 
+        outputPath {Path} -- The path to which the FMU is exported.
+    
+    Keyword Arguments:
+        store_compressed {bool} -- compress the exported FMU (default: {True})
+    
+    Raises:
+        RuntimeError: [description]
+    
+    Returns:
+        PyfmuArchive -- An object representing the exported FMU.
+    
+
+    """
+
 
     is_valid_project = validate_project(project)
 

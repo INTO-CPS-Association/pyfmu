@@ -25,7 +25,7 @@ class PyfmuProject():
                  project_configuration_path: Path = None,
                  pyfmu_dir: Path = None,
                  ):
-
+        
         self.main_class = main_class
         self.main_script = main_script
         self.main_script_path = main_script_path
@@ -41,7 +41,14 @@ class PyfmuProject():
         Arguments:
             p {Path} -- path to the root of the project
         """
-        p = Path(p)
+        try:
+            p = Path(p)
+
+        except Exception:
+            raise RuntimeError('Unable to load project. The specified argument could not be converted to a path')
+        
+        if(not p.is_dir()):
+                raise FileNotFoundError(f'Unable to load project. The specified argument does not appear to be a directory')
 
         # Verify that path points to a valid pyfmu project.
 
