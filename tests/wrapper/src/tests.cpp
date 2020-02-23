@@ -1,9 +1,13 @@
 #define CATCH_CONFIG_MAIN
 
-#include "catch2/catch.hpp"
 #include <filesystem>
 
+#include "catch2/catch.hpp"
+
 #include "fmi/fmi2Functions.h"
+#include "example_finder.hpp"
+
+
 
 using namespace std;
 using namespace filesystem;
@@ -16,8 +20,42 @@ void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status stat
 
 }
 
+
+TEST_CASE("sandbox")
+{
+  SECTION("temporary")
+  {
+    REQUIRE(true);
+  }
+}
+
+TEST_CASE("fmifunctions")
+{
+  SECTION("fmi2instantiate_calledMultipleTimes_OK")
+  {
+    path p = path("file:///home/clegaard/Desktop/python2fmu/pythonfmu-wrapper/examples/multiplier/resources");
+
+    const char *resources_path = p.c_str();
+
+    fmi2CallbackFunctions callbacks = {.logger = logger,
+                                       .allocateMemory = calloc,
+                                       .freeMemory = free,
+                                       .stepFinished = stepFinished,
+                                       .componentEnvironment = nullptr};
+
+    fmi2Component a = fmi2Instantiate("a", fmi2Type::fmi2CoSimulation, "check?",
+                        resources_path, &callbacks, fmi2False, fmi2True);
+
+    fmi2Component b = fmi2Instantiate("b", fmi2Type::fmi2CoSimulation, "check?",
+                        resources_path, &callbacks, fmi2False, fmi2True);
+
+    REQUIRE(true);
+  }
+}
+
 TEST_CASE("PyObjectWrapper")
 {
+
   SECTION("multiplier") {
     //auto p = path("examples") / "multiplier" / "resources";
 
