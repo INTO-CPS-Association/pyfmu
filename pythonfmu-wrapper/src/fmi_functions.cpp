@@ -69,6 +69,7 @@ using namespace std;
 
 
 vector<PyObjectWrapper> components;
+PyObjectWrapper* component = nullptr;
 PyInitializer *pyInitializer = nullptr;
 
 bool loggingOn_ = false;
@@ -92,10 +93,6 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
   logger->log(fmi2Status::fmi2OK, "Info", "Instantiating FMU\n");
 
-
- 
-
-
   logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python interpreter\n");
 
   try
@@ -118,9 +115,9 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   
   
   try
-  {
-    // component = new PyObjectWrapper(fmuResourceLocationPath, move(logger));
-    auto component = &components.emplace_back(fmuResourceLocation, move(logger));
+  { 
+    component = new PyObjectWrapper(fmuResourceLocationPath, move(logger));
+
     return component;
     
   }

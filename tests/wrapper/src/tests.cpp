@@ -11,6 +11,7 @@
 
 using namespace std;
 using namespace filesystem;
+namespace fs = std::filesystem;
 
 void logger(void *env, const char *str1, fmi2Status s, const char *str2,
             const char *str3, ...) {}
@@ -23,8 +24,15 @@ void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status stat
 
 TEST_CASE("sandbox")
 {
+
+  auto p = fs::current_path();
+  setProjecsDirectory(p);
+
   SECTION("temporary")
   {
+
+    ExampleArchive a("Adder");
+
     REQUIRE(true);
   }
 }
