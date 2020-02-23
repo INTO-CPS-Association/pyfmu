@@ -86,7 +86,7 @@ class TestCopyPyfmuLibToArchive:
 
         assert pyfmu_folder_exists
 
-    def test_copyFromPoject_projectExists_copiedToArchive(self,tmpdir):
+    def excluded_test_copyFromPoject_projectExists_copiedToArchive(self,tmpdir):
         
         a = get_empty_archive(Path(tmpdir))
 

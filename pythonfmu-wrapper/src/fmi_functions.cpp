@@ -93,13 +93,13 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
   logger->log(fmi2Status::fmi2OK, "Info", "Instantiating FMU\n");
 
-  /*
+
   if (component != nullptr)
   {
     logger->log(fmi2Status::fmi2Fatal, "Error", "Failed FMU may only be instantiated once per process!\n");
     return NULL;
   }
-  */
+  
 
   logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python interpreter\n");
 
