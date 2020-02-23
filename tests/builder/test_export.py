@@ -4,8 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 
-from pybuilder.libs.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive, _copy_sources_to_archive
-from pybuilder.libs.builder.generate import create_project, PyfmuProject
+from pybuilder.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive, _copy_sources_to_archive
+from pybuilder.builder.generate import create_project, PyfmuProject
 
 import pytest
 

@@ -8,8 +8,8 @@ from shutil import copy, copytree, rmtree
 from jinja2 import Template
 import json
 
-from .configure import _create_config
-from .resources import Resources
+from pybuilder.builder.configure import _create_config
+from pybuilder.resources.resources import Resources
 
 
 class PyfmuProject():

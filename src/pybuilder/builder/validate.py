@@ -6,7 +6,7 @@ from tempfile import mkdtemp
 from os.path import realpath, join
 from pathlib import Path
 
-from pybuilder.resources.locator import get_resource, BuilderResources
+from pybuilder.resources.resources import Resources
 
 
 
@@ -128,20 +128,20 @@ def _validate_vdmcheck(modelDescription : str, validation_results : ValidationRe
     if (fmi_version == FMI_Versions.FMI2):
         
         if(p in bash_systems):
-            script_path = get_resource(BuilderResources.vdmcheck2_sh)
+            script_path = Resources.get().vdmcheck_fmi2_sh
 
         elif(p in powershell_systems):
-            script_path = get_resource(BuilderResources.vdmcheck2_ps)
+            script_path = Resources.get().vdmcheck_fmi3_ps
 
         else:
             raise ValueError(f'VDM checker for FMI 2 is not available for the current platform: {p}')
 
     elif (fmi_version == FMI_Versions.FMI3):
         if(p in bash_systems):
-            script_path = get_resource(BuilderResources.vdmcheck3_sh)
+            script_path = Resources.get().vdmcheck_fmi3_sh
 
         elif(p in powershell_systems):
-            script_path = get_resource(BuilderResources.vdmcheck3_ps)
+            script_path = Resources.get().vdmcheck_fmi3_ps
 
         else:
             raise ValueError(f'VDM checker for FMI 3 is not available for the current platform: {p}')

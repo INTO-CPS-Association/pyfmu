@@ -4,7 +4,7 @@ import json
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
-from pybuilder.libs.builder.generate import create_project
+from pybuilder.builder.generate import create_project
 
 class TestGenerate():
     

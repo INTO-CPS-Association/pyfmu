@@ -12,12 +12,11 @@ from pathlib import Path
 
 import logging
 
-from .configure import read_configuration
-from .utils import _resources_path
-from .modelDescription import extract_model_description_v2
-from .utils import builder_basepath
-from .validate import validate_project
-from .generate import PyfmuProject
+from pybuilder.builder.configure import read_configuration
+from pybuilder.builder.modelDescription import extract_model_description_v2
+from pybuilder.builder.validate import validate_project
+from pybuilder.builder.generate import PyfmuProject
+from pybuilder.resources.resources import Resources
 
 _log = logging.getLogger(__name__)
 
@@ -142,7 +141,8 @@ def _copy_pyfmu_lib_to_archive(archive: PyfmuArchive, project: PyfmuProject = No
     copy_from_resources = project is None
 
     if(copy_from_resources):
-        lib_path = _resources_path() / 'pyfmu'
+        
+        lib_path = Resources.get().pyfmu_dir
         err_msg = 'No directory named pyfmu was found in the resources directory, likely this has been deleted.'
 
     else:
@@ -165,13 +165,12 @@ def _copy_pyfmu_lib_to_archive(archive: PyfmuArchive, project: PyfmuProject = No
 
 def _copy_binaries_to_archive(archive: PyfmuArchive) -> PyfmuArchive:
     
-    binaries_path = _resources_path() / 'wrapper' / 'binaries'
+    binaries_path = Resources.get().binaries_dir
 
 
     archive_binaries_path = archive.root / 'binaries'
 
 
-    #makedirs(archive_binaries_path)
     copytree(binaries_path,archive_binaries_path)
 
     archive.binaries_dir = archive_binaries_path
@@ -333,60 +332,3 @@ def export_project(project: PyfmuProject, outputPath: Path, overwrite=False, sto
        
     return archive
 
-
-def export_project_bak(project_path: str, archive_path: str, compress: bool = False, overwrite=True, store_uncompressed=True, store_compressed=True) -> PyfmuArchive:
-    """Exports a pyfmu project as an fmu archive
-
-    Arguments:
-        project_path {str} -- path to the project
-        archive_path {str} -- output path
-
-    Keyword Arguments:
-        compress {bool} -- Whether or not to compress the archive. (default: {False})
-        overwrite {bool} -- Determines if the method is allowed to overwrite an exisiting file (default: {True})
-        store_uncompressed {bool} -- [description] (default: {True})
-        store_compressed {bool} -- [description] (default: {True})
-
-    Raises:
-        FileNotFoundError: [description]
-        FileExistsError: [description]
-
-    Returns:
-        PyfmuArchive -- [description]
-    """
-
-    if(not isdir(project_path)):
-        raise FileNotFoundError(
-            "the project path does not correspond to Python FMU project")
-
-    working_dir = builder_basepath()
-
-    if(not overwrite and exists(archive_path)):
-        raise FileExistsError(
-            "Failed to export project. The a file or directory with a path identical to the output already exists. If you wish to overwrite this file or folder please specifiy the --overwrite flag")
-
-    archive_model_description_path = join(archive_path, 'modelDescription.xml')
-    project_config_path = join(project_path, 'project.json')
-    project_config = read_configuration(project_config_path)
-
-    main_class = project_config['main_class']
-    main_script = project_config['main_script']
-
-    builder_resources_path = join(working_dir, "resources")
-    project_main_script_path = join(project_path, "resources", main_script)
-
-    if(overwrite and exists(archive_path)):
-        rmtree(archive_path, ignore_errors=True)
-
-    _resources_to_archive(project_path, builder_resources_path, archive_path)
-
-    md = _generate_model_description(
-        project_main_script_path, main_class, archive_model_description_path)
-
-    _generate_slave_config(archive_path, main_script, main_class)
-
-    _log.info(f"Successfully exported {basename(archive_path)}")
-
-    archive = PyfmuArchive(root=archive_path, model_description=md)
-
-    return archive

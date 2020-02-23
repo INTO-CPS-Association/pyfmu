@@ -4,7 +4,7 @@ from shutil import rmtree, copytree
 from pathlib import Path
 
 
-from pybuilder.libs.builder.export import export_project, PyfmuProject, PyfmuArchive
+from pybuilder.builder.export import export_project, PyfmuProject, PyfmuArchive
 
 def get_available_examples():
     """Returns the set of available examples.
