@@ -136,6 +136,12 @@ The model description for the adder project looks like:
 </fmiModelDescription>
 ```
 
+## Examples
+See the tests/examples/projects folder.
+
+## Acknowledgements
+
+* Lars Ivar Hatledal: For his implementation of PythonFMU which was the initial starting point for PyFMU.
 
 <!-- # How does it work?
 
@@ -347,7 +353,4 @@ Support for FMI1 is **NOT** planned.
 Support for FMI3 **is** planned.
 
 
-# Acknowledgements:
-
-* Lars Ivar Hatledal: For his implementation of PythonFMU which was the initial starting point for pyfmu.
  -->
