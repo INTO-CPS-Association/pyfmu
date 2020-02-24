@@ -310,7 +310,18 @@ def export_project(project: PyfmuProject, outputPath: Path, overwrite=False, sto
     
 
     """
+    isProject = isinstance(project, PyfmuProject)
+    if(not isProject):
 
+        try:
+            project = PyfmuProject.from_existing(Path(project))
+        except Exception as e:
+            raise ValueError('Could not load the specified project. The path project argument appears to be neither a project or the path to a project') from e
+        
+    try:
+        outputPath = Path(outputPath)
+    except Exception as e:
+        raise(ValueError('The output path does not appear to be a valid path, please ensure that it is correct.'))
 
     is_valid_project = validate_project(project)
 
