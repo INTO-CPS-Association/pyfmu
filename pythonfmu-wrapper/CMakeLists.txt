@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(pyfmu LANGUAGES C CXX)
 
+
+
 # Force to use stable Python ABI https://docs.python.org/3/c-api/stable.html
 # add_compile_definitions(Py_LIMITED_API)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
@@ -21,3 +23,14 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         Python3::Python        
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CONAN_LIBS})
+
+
+
+# On windows only the release libraries release versions of Python are distributed
+# We need to explicitly link to the static release library by choosing MT runtime linking.
+set_property(TARGET pyfmu PROPERTY
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
+            
+set_property(TARGET pyfmu PROPERTY 
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
