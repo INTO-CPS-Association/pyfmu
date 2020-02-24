@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 project(pyfmu LANGUAGES C CXX)
 
-set(BUILD_SHARED_LIBS ON)
-
-
-set(Python_FIND_ABI "OFF" "ANY" "ANY") # FORCE cmake to link against RELEASE LIBRARIES
+# Force to use stable Python ABI https://docs.python.org/3/c-api/stable.html
+# add_compile_definitions(Py_LIMITED_API)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+if (WIN32)
+  set(Python3_LIBRARIES ${Python3_LIBRARY_DIRS}/python3.lib)
+endif ()
+
 
 add_library(${PROJECT_NAME}
         src/fmi_functions.cpp
@@ -14,7 +16,7 @@ add_library(${PROJECT_NAME}
         src/Logger.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC include)
-target_compile_features(${PROJECT_NAME} PUBLIC "cxx_std_17")
+target_compile_features(${PROJECT_NAME} PUBLIC "cxx_std_20")
 target_link_libraries(${PROJECT_NAME} PUBLIC 
         Python3::Python        
 )

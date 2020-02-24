@@ -136,7 +136,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
                     format("Reading configuration file located at: {}\n",
                            config_path.string()));
 
-  auto config = read_configuration(config_path);
+  auto config = read_configuration(config_path.string());
 
   this->logger->log(fmi2Status::fmi2OK, "Info",
                     format("successfully read configuration file, specifying the following: main "
@@ -144,7 +144,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
                            config.main_script, config.main_class));
 
   string module_name =
-      path(config.main_script).filename().replace_extension("");
+      (path(config.main_script).filename().replace_extension("")).string();
 
   instantiate_main_class(module_name, config.main_class);
 

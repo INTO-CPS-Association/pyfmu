@@ -3,6 +3,7 @@
 #include <memory>
 #include <map>
 #include <vector>
+#include <optional>
 
 #include "Python.h"
 #include "fmt/format.h"

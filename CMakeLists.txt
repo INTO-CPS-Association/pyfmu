@@ -1,8 +1,25 @@
 project(pyfmu LANGUAGES C CXX)
 cmake_minimum_required(VERSION 3.10)
 
+set(BUILD_SHARED_LIBS ON)
 
+if (MSVC)
+  # https://stackoverflow.com/questions/14172856/compile-with-mt-instead-of-md-using-cmake
+  set(CompilerFlags
+          CMAKE_CXX_FLAGS
+          CMAKE_CXX_FLAGS_DEBUG
+          CMAKE_CXX_FLAGS_RELEASE
+          CMAKE_C_FLAGS
+          CMAKE_C_FLAGS_DEBUG
+          CMAKE_C_FLAGS_RELEASE
+          )
+  foreach (CompilerFlag ${CompilerFlags})
+    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+  endforeach ()
+endif ()
 
+# Automatically export all symbols in Windows DLLs.
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # The project relies on several external libraries.
 # These are managed by the Conan package manager (https://conan.io/)
@@ -32,8 +49,8 @@ add_subdirectory(pythonfmu-wrapper)
 add_subdirectory(tests/wrapper)
 
 # update wrapper in pybuilder resource folder on build
-add_custom_target(copy_wrapper_to_resources ALL
-    COMMAND ${CMAKE_COMMAND} -E echo "Copying binaries into pybuilder resources\n"
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pyfmu> ${CMAKE_SOURCE_DIR}/src/pybuilder/resources/wrapper/binaries/linux64/$<TARGET_FILE_NAME:pyfmu>
-)
-add_dependencies(copy_wrapper_to_resources pyfmu)
+# add_custom_target(copy_wrapper_to_resources ALL
+#     COMMAND ${CMAKE_COMMAND} -E echo "Copying binaries into pybuilder resources\n"
+#     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pyfmu> ${CMAKE_SOURCE_DIR}/src/pybuilder/resources/wrapper/binaries/linux64/$<TARGET_FILE_NAME:pyfmu>
+# )
+# add_dependencies(copy_wrapper_to_resources pyfmu)

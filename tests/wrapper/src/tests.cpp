@@ -43,7 +43,10 @@ TEST_CASE("fmifunctions")
   {
     path p = path("file:///home/clegaard/Desktop/python2fmu/pythonfmu-wrapper/examples/multiplier/resources");
 
-    const char *resources_path = p.c_str();
+
+    char resources_path[300] = {'0'};
+    wctomb(resources_path, *p.c_str());
+    
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -69,7 +72,10 @@ TEST_CASE("PyObjectWrapper")
 
     path p = path("file:///home/clegaard/Desktop/python2fmu/pythonfmu-wrapper/examples/multiplier/resources");
 
-    const char *resources_path = p.c_str();
+
+    char resources_path[300] = { '0' };
+    wctomb(resources_path, *p.c_str());
+
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
