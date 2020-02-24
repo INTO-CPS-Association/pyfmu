@@ -1,3 +1,7 @@
+"""Export all example projects as FMUs to folder named exported
+"""
+
+
 from pathlib import Path
 
 import tqdm
