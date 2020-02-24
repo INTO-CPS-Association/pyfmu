@@ -21,3 +21,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         Python3::Python        
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CONAN_LIBS})
+
+
+# we are trying to link to the static Python library py3x.lib
+set_property(TARGET pyfmu PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set_property(TARGET pyfmu PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")
