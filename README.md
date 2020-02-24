@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/into-cps-application/badge/?version=latest)](https://into-cps-application.readthedocs.io/en/latest/?badge=latest)
+
 # python2fmu
 
 A framework and utility program to support the use of Python3 code in Functional Mockup Units (FMUs).
