@@ -1,10 +1,143 @@
 [![Documentation Status](https://readthedocs.org/projects/into-cps-application/badge/?version=latest)](https://into-cps-application.readthedocs.io/en/latest/?badge=latest)
 
-# python2fmu
+# PyFMU
 
-A framework and utility program to support the use of Python3 code in Functional Mockup Units (FMUs).
+PyFMU is a library that allows FMUs to be implemented using in Python 3. Its goal is to enable rapid prototyping of a wide of FMUs for a wide range of use cases.
 
-# How does it work?
+Its highligts include:
+
+* Supports FMI 2.0.
+* Write FMUs in high-level langauge.
+* Use the extensive collection of standard and third party libraries.
+* Model description automatically generated.
+* Model can be changed without re-compilation.
+
+**PyFMU is still work in progress. Only Linux is supported currently.**
+
+## Installing
+
+The project consists of two parts:
+
+1. C/C++ shared library which acts which serves as an 'wrapper' around the Python code.
+2. Set of tools for generating and exporting projects.
+
+
+The wrapper is build using CMake as follows:
+``` bash
+mkdir build
+cd build
+cmake ..
+```
+This will download external dependencies and try to locate Python 3 development headers.
+Building the wrapper automatically copies it to the resources of the PyFMU tool.
+
+To install the tools from source pip can be invoked from the root dir.
+``` bash
+pip install -e.
+```
+
+## Usage
+
+The library comes with a command line tool py2fmu which eases the creation of projects and the subsequent export as FMUs
+
+As an example a two input Adder is used.
+
+### Generating and implementing
+
+To create a new project the *generate* command is used:
+``` bash
+python py2fmu.py generate --path /someDir/Adder
+```
+
+This generates a empty project containing the necessary resources and configuration files.
+By default a template of the main class is generated. In this case a file *adder.py* defining the class *Adder* is created.
+
+This subclasses the Fmi2Slave class which provides the methods necessary to define the FMU.
+``` Python
+class Adder(Fmi2Slave):
+
+    def __init__(self):
+        # programatically register variables here
+        ...
+
+    def do_step(self, current_time: float, step_size: float) -> bool:
+        return True
+    
+    ...
+```
+
+To define inputs, outputs and parameters the *register_variable* function is used. 
+For a two input adder the inputs and outputs can be specified as:
+``` Python
+def __init__(self):
+    ...
+    self.register_variable("s", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
+    self.register_variable("a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0)
+    self.register_variable("b", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0)
+```
+Note that the variables MUST be defined either in the *\_\_init\_\_* function or as part of a call chain resulting from it. This requirement is related to how model descriptions are extracted.
+
+To implement the dynamics of the FMU the functions of the baseclass must be overwritten.
+For the adder we define the *do\_step* and *exit\_initialization\_mode* of the Adder class.
+``` Python
+def exit_initialization_mode(self):
+        self.s = self.a + self.b
+        return True
+
+def do_step(self, current_time: float, step_size: float) -> bool:
+    self.s = self.a + self.b
+    return True
+```
+It is not necessary to implement the **set\_xxx** and **get\_xxx** functions. By default these are mapped directly to instance variables.
+
+### Exporting
+
+To export an project as an FMU the **export** subcommand is used:
+
+``` bash
+python py2fmu.py export --project /someDir/Adder --output /myFMUs/Adder
+```
+
+The result of this command is an FMU containing the Python that was just written.
+
+Under the hood a few things happen:
+* Wrapper is copied to binaries
+* Resources are copied into the archive
+* A model description is generated.
+
+The model description for the adder project looks like:
+
+``` XML
+<?xml version="1.0" ?>
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-02-23T09:30:00Z" generationTool="pyfmu" guid="221df7a6-36d3-41f7-bc35-8489663bb7ae" modelName="Adder" variableNamingConvention="structured">
+   <CoSimulation modelIdentifier="libpyfmu" needsExecutionTool="true"/>
+   <ModelVariables>
+      <!--Index of variable = "1"-->
+      <ScalarVariable causality="output" initial="calculated" name="s" valueReference="0" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "2"-->
+      <ScalarVariable causality="input" name="a" valueReference="1" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "3"-->
+      <ScalarVariable causality="input" name="b" valueReference="2" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+   </ModelVariables>
+   <ModelStructure>
+      <Outputs>
+         <Unknown dependencies="" index="1"/>
+      </Outputs>
+      <InitialUnknowns>
+         <Unknown dependencies="" index="1"/>
+      </InitialUnknowns>
+   </ModelStructure>
+</fmiModelDescription>
+```
+
+
+<!-- # How does it work?
 
 At a conceptual level an FMU can be thought of as a black box that converts a number of inputs into a number of outputs.
 
@@ -217,3 +350,4 @@ Support for FMI3 **is** planned.
 # Acknowledgements:
 
 * Lars Ivar Hatledal: For his implementation of PythonFMU which was the initial starting point for pyfmu.
+ -->
