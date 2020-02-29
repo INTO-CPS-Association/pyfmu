@@ -34,6 +34,13 @@ conan_cmake_run(REQUIRES
 add_subdirectory(pythonfmu-wrapper)
 add_subdirectory(tests/wrapper)
 
+add_custom_target(copy_wrapper_to_resources ALL
+   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/copy_binaries_to_resources.py
+)
+
+find_file(copy_script copy_binaries_into_resources.py ${CMAKE_CURRENT_SOURCE_DIR})
+#message(FATAL_ERROR ${copy_script})
+execute_process(COMMAND python ${copy_script} $<TARGET_FILE:pyfmu> OUTPUT_VARIABLE res)
 
 
 # update wrapper in pybuilder resource folder on build

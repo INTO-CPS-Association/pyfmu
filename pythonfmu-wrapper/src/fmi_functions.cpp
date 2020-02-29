@@ -8,7 +8,6 @@
 #include "Python.h"
 #include "fmt/format.h"
 
-
 #include "fmi/fmi2Functions.h"
 #include "pythonfmu/Logger.hpp"
 #include "pythonfmu/PyInitializer.hpp"
@@ -67,10 +66,8 @@ const char *fmi2GetVersion() { return "2.0"; }
 using namespace pythonfmu;
 using namespace std;
 
-
-
 vector<PyObjectWrapper> components;
-PyObjectWrapper* component = nullptr;
+PyObjectWrapper *component = nullptr;
 PyInitializer *pyInitializer = nullptr;
 
 bool loggingOn_ = false;
@@ -100,7 +97,7 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   {
     pyInitializer = new PyInitializer();
   }
-  catch (exception &e)
+  catch (exception)
   {
     logger->log(fmi2Status::fmi2Fatal, "error", "failed to initialize embedded Python interpreter\n");
     return NULL;
@@ -113,16 +110,13 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
   auto fmuResourceLocationPath = getPathFromFileUri(fmuResourceLocation);
 
-  
-  
   try
-  { 
+  {
     component = new PyObjectWrapper(fmuResourceLocationPath, move(logger));
 
     return component;
-    
   }
-  catch (exception &e)
+  catch (exception)
   {
     //logger->log(fmi2Status::fmi2Fatal, "Error", "failed to load main script\n");
     return NULL;
@@ -153,7 +147,7 @@ fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
   {
     cc->setupExperiment(startTime);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -170,7 +164,7 @@ fmi2Status fmi2EnterInitializationMode(fmi2Component c)
   {
     cc->enterInitializationMode();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -187,7 +181,7 @@ fmi2Status fmi2ExitInitializationMode(fmi2Component c)
   {
     cc->exitInitializationMode();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -204,7 +198,7 @@ fmi2Status fmi2Terminate(fmi2Component c)
   {
     cc->terminate();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -221,7 +215,7 @@ fmi2Status fmi2Reset(fmi2Component c)
   {
     cc->reset();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -239,7 +233,7 @@ fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getReal(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -256,7 +250,7 @@ fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getInteger(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -273,7 +267,7 @@ fmi2Status fmi2GetBoolean(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getBoolean(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -290,7 +284,7 @@ fmi2Status fmi2GetString(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getString(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -308,7 +302,7 @@ fmi2Status fmi2SetReal(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setReal(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -325,7 +319,7 @@ fmi2Status fmi2SetInteger(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setInteger(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -342,7 +336,7 @@ fmi2Status fmi2SetBoolean(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setBoolean(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -359,7 +353,7 @@ fmi2Status fmi2SetString(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setString(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -428,7 +422,7 @@ fmi2Status fmi2DoStep(fmi2Component c, fmi2Real currentCommunicationPoint,
   {
     cc->doStep(currentCommunicationPoint, communicationStepSize);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
