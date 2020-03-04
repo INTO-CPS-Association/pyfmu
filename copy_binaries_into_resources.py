@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 import sys
 from shutil import copy
+import sys
+
 
 from pybuilder.resources.resources import Resources
 
@@ -43,16 +45,26 @@ def FMI2_binary_directory_from_hostname():
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(
-        description='Copies the wrapper binary into the resources of the tool depending on the architecture.')
-    parser.add_argument('binary_path', type=str)
+    print("shiver me timbers")
 
-    args = parser.parse_args()
+    try:
+        parser = argparse.ArgumentParser(
+            description='Copies the wrapper binary into the resources of the tool depending on the architecture.')
+        parser.add_argument('binary_path', type=str)
 
-    p = args.binary_path
+        args = parser.parse_args()
 
-    outdir = Resources.get().binaries_dir / FMI2_binary_directory_from_hostname()
+        p = args.binary_path
 
-    l.log(logging.DEBUG, f'Copying: {args.binary_path} to: {outdir}')
+        outdir = Resources.get().binaries_dir / FMI2_binary_directory_from_hostname()
 
-    copy(p, outdir)
+        l.log(logging.DEBUG, f'Copying: {p} to: {outdir}')
+
+        copy(p, outdir)
+
+    except Exception as e:
+        l.log(logging.ERROR,
+              f'Failed copying binary to resources directory, an exception was thrown:\n{e}')
+        sys.exit(-1)
+
+    sys.exit(0)
