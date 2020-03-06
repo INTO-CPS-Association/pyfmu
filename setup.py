@@ -7,5 +7,5 @@ setup(
     package_dir={'': 'src'},
 
     install_requires=["numpy", "pandas", "pytest", "Sphinx",
-                      "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi", "cmake", "conan"]
+                      "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi", "cmake", "conan", "fmpy"]
 )
