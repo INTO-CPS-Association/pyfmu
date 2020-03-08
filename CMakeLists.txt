@@ -1,7 +1,7 @@
 project(pyfmu LANGUAGES C CXX)
 cmake_minimum_required(VERSION 3.10)
 
-#set(BUILD_SHARED_LIBS ON)
+set(BUILD_SHARED_LIBS ON)
 
 if (MSVC)
   # https://stackoverflow.com/questions/14172856/compile-with-mt-instead-of-md-using-cmake

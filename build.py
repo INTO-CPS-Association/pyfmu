@@ -5,6 +5,9 @@ from pathlib import Path
 import os
 import logging
 import sys
+from shutil import copy
+
+from pybuilder.resources.resources import Resources
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 l = logging.getLogger(__file__)
@@ -40,8 +43,29 @@ def FMI2_binary_directory_from_hostname() -> Path:
     return identifier
 
 
+def _getLibraryNameForHost() -> str:
+    sys = platform.system()
+    if(sys == 'Windows'):
+        return 'libpyfmu.dll'
+    else:
+        raise NotImplementedError()
+
+
 def copy():
-    pass
+
+    bin_name = _getLibraryNameForHost()
+
+    binary_path = Path(__file__).parent / 'build' / \
+        'bin' / bin_name
+
+    resources_dir = Resources.get().binaries_dir / \
+        FMI2_binary_directory_from_hostname() / bin_name
+
+    try:
+        os.makedirs(resources_dir, exist_ok=True)
+        copy(build_dir, resources_dir)
+    except Exception as e:
+        raise RuntimeError("Failed to copy binaries into the resources") from e
 
 
 def build():
@@ -85,7 +109,7 @@ def build():
     try:
         l.log(logging.DEBUG, 'Building project')
         res = subprocess.run(
-            ['cmake', '--build', '.', '--config', 'release'], shell=True)
+            ['cmake', '--build', '.', '--config', 'Release'], shell=True)
 
         if(res.returncode != 0):
             raise RuntimeError(
@@ -102,6 +126,13 @@ if __name__ == "__main__":
     try:
         build()
     except Exception as e:
-        l.log(logging.DEBUG,
-              'Build directory does not exist, creating and configuring using CMake')
-        pass
+        l.log(logging.ERROR,
+              'Failed building PyFMU, an exception was thrown:\n{e}')
+
+    l.log(logging.DEBUG, 'Copying build binaries to resource folder')
+    try:
+        copy()
+        test = 10
+    except Exception as e:
+        l.log(logging.ERROR,
+              f'Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}')
