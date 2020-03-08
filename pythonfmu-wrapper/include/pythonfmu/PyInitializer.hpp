@@ -21,6 +21,8 @@ public:
             Py_SetPath(module_path.c_str());
         }
 
+        wchar_t *p = L"C:\\ProgramData\\Miniconda3\\Lib";
+        Py_SetPath(p);
         printf("initializing Python interpreter\n");
         Py_Initialize();
 

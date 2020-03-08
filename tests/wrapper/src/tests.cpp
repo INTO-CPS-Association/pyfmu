@@ -50,16 +50,12 @@ TEST_CASE("fmifunctions")
 TEST_CASE("PyObjectWrapper")
 {
 
-  /*
-  SECTION("multiplier")
+  SECTION("adder")
   {
-    //auto p = path("examples") / "multiplier" / "resources";
 
-    path p = path("file:///home/clegaard/Desktop/python2fmu/pythonfmu-wrapper/examples/multiplier/resources");
-
-
-
-    auto p = get_resource_uri("Multiplier")
+    std::string resources_path = get_resource_uri("Adder");
+    auto resources_path_cstr = resources_path.c_str();
+    //fmt::print("path to resources is: {}\n", resources_path);
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -67,9 +63,7 @@ TEST_CASE("PyObjectWrapper")
                                        .stepFinished = stepFinished,
                                        .componentEnvironment = nullptr};
 
-    fmi2Component c =
-        fmi2Instantiate("multiplier", fmi2Type::fmi2CoSimulation, "check?",
-                        resources_path, &callbacks, fmi2False, fmi2True);
+    fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_path_cstr, &callbacks, fmi2False, fmi2True);
 
     REQUIRE(c != nullptr);
 
@@ -100,5 +94,4 @@ TEST_CASE("PyObjectWrapper")
     REQUIRE(s == fmi2OK);
     REQUIRE(get_vals[0] == 50);
   }
-  */
 }

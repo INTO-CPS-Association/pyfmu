@@ -18,7 +18,8 @@ using namespace pyconfiguration;
 using namespace std;
 using namespace filesystem;
 
-namespace pythonfmu {
+namespace pythonfmu
+{
 
 /**
  * @brief Appends path of resources folder to the Python interpreter path. This
@@ -27,7 +28,8 @@ namespace pythonfmu {
  * @param resource_path path to the resources dir supplied when FMU is
  * initialized
  */
-void append_resources_folder_to_python_path(path &resource_path) {
+void append_resources_folder_to_python_path(path &resource_path)
+{
 
   ostringstream oss;
   oss << "import sys\n";
@@ -43,77 +45,66 @@ void append_resources_folder_to_python_path(path &resource_path) {
 }
 
 void PyObjectWrapper::instantiate_main_class(string module_name,
-                                             string main_class) {
+                                             string main_class)
+{
 
-  this->logger->log(
-      fmi2Status::fmi2OK, "Info",
-      format("importing Python module: {}, into the interpreter\n",
-             module_name));
+  logger->ok(format("importing Python module: {}, into the interpreter\n", module_name));
 
   pModule_ = PyImport_ImportModule(module_name.c_str());
 
-  if (pModule_ == NULL) {
+  if (pModule_ == NULL)
+  {
 
     auto pyErr = get_py_exception();
     auto msg = format("module could not be imported. Ensure that main script "
                       "defined inside the wrapper configuration matches a "
                       "Python script. Error from python was:\n{}",
                       pyErr);
-    logger->log(fmi2Status::fmi2Fatal, "Error", msg);
+    logger->fatal(msg);
     throw runtime_error(msg);
   }
 
-  this->logger->log(
-      fmi2Status::fmi2OK, "Info",
-      format("module: {} was successfully imported\n", module_name));
+  logger->ok(format("module: {} was successfully imported\n", module_name));
 
-  this->logger->log(fmi2Status::fmi2OK, "Info",
-                    format("attempting to read definition of main class: {} "
-                           "from the imported module\n",
-                           main_class));
+  logger->ok(format("attempting to read definition of main class: {} from the imported module\n", main_class));
 
   pClass_ = PyObject_GetAttrString(pModule_, main_class.c_str());
 
-  if (pClass_ == nullptr) {
+  if (pClass_ == nullptr)
+  {
     auto pyErr = get_py_exception();
-    auto msg =
-        format("Python module: {} was successfully loaded, but the defintion "
-               "of the main class {} could not be loaded. Ensure that the "
-               "specified module contains a definition of the class. Python error was:\n{}\n",
-               module_name, main_class, pyErr);
-    logger->log(fmi2Status::fmi2Fatal, "Error", msg);
+    auto msg = format("Python module: {} was successfully loaded, but the defintion "
+                      "of the main class {} could not be loaded. Ensure that the "
+                      "specified module contains a definition of the class. Python error was:\n{}\n",
+                      module_name, main_class, pyErr);
+    logger->fatal(msg);
     throw runtime_error(msg);
   }
 
-  this->logger->log(
-      fmi2Status::fmi2OK, "Info",
-      format("class definition was successfully read\n", main_class));
+  logger->ok(format("class definition of {} was successfully read\n", main_class));
 
-  this->logger->log(
-      fmi2Status::fmi2OK, "Info",
-      format("attempting to construct an instance of the class: {}\n", main_class));
+  logger->ok(format("attempting to construct an instance of the class: {}\n", main_class));
 
   pInstance_ = PyObject_CallFunctionObjArgs(pClass_, nullptr);
 
-  if (pInstance_ == nullptr) {
+  if (pInstance_ == nullptr)
+  {
     auto pyErr = get_py_exception();
-    auto msg = format("Failed to instantiate class: {}, ensure that the Python script is valid and that defines a parameterless constructor. Python error was:\n{}\n",main_class,pyErr);
-    this->logger->log(fmi2Status::fmi2Fatal,"Error",msg);
+    auto msg = format("Failed to instantiate class: {}, ensure that the Python script is valid and that defines a parameterless constructor. Python error was:\n{}\n", main_class, pyErr);
+    logger->fatal(msg);
     throw runtime_error(msg);
   }
 
-  this->logger->log(fmi2Status::fmi2OK, "Info", format("Sucessfully created an instance of class: {} defined in module: {}\n",main_class,module_name));
+  this->logger->ok(format("Sucessfully created an instance of class: {} defined in module: {}\n", main_class, module_name));
 }
 
-PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
-    : logger(move(logger)) {
+PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(logger)
+{
 
   PyGIL g;
 
-  if (!Py_IsInitialized()) {
-
-    this->logger->log(fmi2Status::fmi2Fatal, "Error", "Test error");
-
+  if (!Py_IsInitialized())
+  {
     throw runtime_error(
         "The Python object cannot be instantiated due to the python intrepeter "
         "not being instantiated. Ensure that Py_Initialize() is invoked "
@@ -136,61 +127,76 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, unique_ptr<Logger> logger)
                     format("Reading configuration file located at: {}\n",
                            config_path.string()));
 
-  auto config = read_configuration(config_path.string());
+  try
+  {
+    auto config = read_configuration(config_path.string(), logger);
 
-  this->logger->log(fmi2Status::fmi2OK, "Info",
-                    format("successfully read configuration file, specifying the following: main "
-                           "script is: {} and main class is: {}\n",
-                           config.main_script, config.main_class));
+    this->logger->log(fmi2Status::fmi2OK, "Info",
+                      format("successfully read configuration file, specifying the following: main "
+                             "script is: {} and main class is: {}\n",
+                             config.main_script, config.main_class));
 
-  string module_name =
-      (path(config.main_script).filename().replace_extension("")).string();
+    string module_name =
+        (path(config.main_script).filename().replace_extension("")).string();
 
-  instantiate_main_class(module_name, config.main_class);
-
+    instantiate_main_class(module_name, config.main_class);
+  }
+  catch (const exception &e)
+  {
+    logger->log(fmi2Status::fmi2Error, "Info", format("Failed to read configuration file, an expection was thrown:\n{}", e.what()));
+    throw;
+  }
 }
 
-PyObjectWrapper::PyObjectWrapper (PyObjectWrapper &&other) : pModule_(other.pModule_), pClass_(other.pClass_), pInstance_(other.pInstance_), logger(std::move(other.logger))
+PyObjectWrapper::PyObjectWrapper(PyObjectWrapper &&other) : pModule_(other.pModule_), pClass_(other.pClass_), pInstance_(other.pInstance_), logger(std::move(other.logger))
 {
 }
 
-void PyObjectWrapper::setupExperiment(double startTime) {
+void PyObjectWrapper::setupExperiment(double startTime)
+{
   PyGIL g;
   auto f =
       PyObject_CallMethod(pInstance_, "setup_experiment", "(d)", startTime);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 }
 
-void PyObjectWrapper::enterInitializationMode() {
+void PyObjectWrapper::enterInitializationMode()
+{
 
   PyGIL g;
   auto f =
       PyObject_CallMethod(pInstance_, "enter_initialization_mode", nullptr);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 }
 
-void PyObjectWrapper::exitInitializationMode() {
+void PyObjectWrapper::exitInitializationMode()
+{
   PyGIL g;
 
   auto f = PyObject_CallMethod(pInstance_, "exit_initialization_mode", nullptr);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 }
 
-bool PyObjectWrapper::doStep(double currentTime, double stepSize) {
+bool PyObjectWrapper::doStep(double currentTime, double stepSize)
+{
   PyGIL g;
 
   auto f =
       PyObject_CallMethod(pInstance_, "do_step", "(dd)", currentTime, stepSize);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   bool status = static_cast<bool>(PyObject_IsTrue(f));
@@ -198,45 +204,53 @@ bool PyObjectWrapper::doStep(double currentTime, double stepSize) {
   return status;
 }
 
-void PyObjectWrapper::reset() {
+void PyObjectWrapper::reset()
+{
   PyGIL g;
 
   auto f = PyObject_CallMethod(pInstance_, "reset", nullptr);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 }
 
-void PyObjectWrapper::terminate() {
+void PyObjectWrapper::terminate()
+{
   PyGIL g;
 
   auto f = PyObject_CallMethod(pInstance_, "terminate", nullptr);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 }
 
 void PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t nvr,
-                                 fmi2Integer *values) const {
+                                 fmi2Integer *values) const
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("i", 0));
   }
   auto f =
       PyObject_CallMethod(pInstance_, "__get_integer__", "(OO)", vrs, refs);
   Py_DECREF(vrs);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyObject *value = PyList_GetItem(refs, i);
     values[i] = static_cast<int>(PyLong_AsLong(value));
   }
@@ -245,24 +259,28 @@ void PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t nvr,
 }
 
 void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
-                              fmi2Real *values) const {
+                              fmi2Real *values) const
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("d", 0.0));
   }
 
   auto f = PyObject_CallMethod(pInstance_, "__get_real__", "(OO)", vrs, refs);
   Py_DECREF(vrs);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyObject *value = PyList_GetItem(refs, i);
     values[i] = PyFloat_AsDouble(value);
   }
@@ -271,24 +289,28 @@ void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
 }
 
 void PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t nvr,
-                                 fmi2Boolean *values) const {
+                                 fmi2Boolean *values) const
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("i", 0));
   }
   auto f =
       PyObject_CallMethod(pInstance_, "__get_boolean__", "(OO)", vrs, refs);
   Py_DECREF(vrs);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyObject *value = PyList_GetItem(refs, i);
     values[i] = PyObject_IsTrue(value);
   }
@@ -297,23 +319,27 @@ void PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t nvr,
 }
 
 void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
-                                fmi2String *values) const {
+                                fmi2String *values) const
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("s", ""));
   }
   auto f = PyObject_CallMethod(pInstance_, "__get_string__", "(OO)", vrs, refs);
   Py_DECREF(vrs);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyObject *value = PyList_GetItem(refs, i);
     values[i] = PyUnicode_AsUTF8(value);
   }
@@ -322,12 +348,14 @@ void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
 }
 
 void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
-                                 const fmi2Integer *values) {
+                                 const fmi2Integer *values)
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("i", values[i]));
   }
@@ -337,7 +365,8 @@ void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
   Py_DECREF(vrs);
   Py_DECREF(refs);
 
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
 
@@ -345,12 +374,14 @@ void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
 }
 
 void PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr,
-                              const fmi2Real *values) {
+                              const fmi2Real *values)
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("d", values[i]));
   }
@@ -359,7 +390,8 @@ void PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr,
   Py_DECREF(vrs);
   Py_DECREF(refs);
 
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     auto err = get_py_exception();
     ostringstream oss;
     oss << "Failed to set real values of the python instance. Ensure that the "
@@ -374,12 +406,14 @@ void PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr,
 }
 
 void PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t nvr,
-                                 const fmi2Boolean *values) {
+                                 const fmi2Boolean *values)
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, PyBool_FromLong(values[i]));
   }
@@ -388,19 +422,22 @@ void PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t nvr,
       PyObject_CallMethod(pInstance_, "__set_boolean__", "(OO)", vrs, refs);
   Py_DECREF(vrs);
   Py_DECREF(refs);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 }
 
 void PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr,
-                                const fmi2String *value) {
+                                const fmi2String *value)
+{
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
   PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++) {
+  for (int i = 0; i < nvr; i++)
+  {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("s", value[i]));
   }
@@ -408,13 +445,15 @@ void PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr,
   auto f = PyObject_CallMethod(pInstance_, "__set_string__", "(OO)", vrs, refs);
   Py_DECREF(vrs);
   Py_DECREF(refs);
-  if (f == nullptr) {
+  if (f == nullptr)
+  {
     handle_py_exception();
   }
   Py_DECREF(f);
 }
 
-PyObjectWrapper::~PyObjectWrapper() {
+PyObjectWrapper::~PyObjectWrapper()
+{
   PyGIL g;
 
   Py_XDECREF(pInstance_);
@@ -422,7 +461,7 @@ PyObjectWrapper::~PyObjectWrapper() {
   Py_XDECREF(pModule_);
 }
 
-PyObjectWrapper& PyObjectWrapper::operator=( PyObjectWrapper&& other)
+PyObjectWrapper &PyObjectWrapper::operator=(PyObjectWrapper &&other)
 {
   this->pClass_ = other.pClass_;
   this->pModule_ = other.pModule_;
@@ -430,6 +469,5 @@ PyObjectWrapper& PyObjectWrapper::operator=( PyObjectWrapper&& other)
   this->logger = move(other.logger);
   return *this;
 }
-
 
 } // namespace pythonfmu

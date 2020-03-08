@@ -27,7 +27,6 @@ def test_shared_library_can_be_loaded():
             lib_dir = Resources.get().binaries_dir / 'win64'
             lib_path = lib_dir / 'libpyfmu.dll'
 
-            #add_dll_directory(str(lib_dir.absolute()))
 
             p = str(lib_path.absolute())
 

@@ -22,7 +22,7 @@ std::filesystem::path getPathFromFileUri(std::string uri)
 
   auto u = Poco::URI(uri);
 
-  fmt::print("I was passed the URI: {}", uri);
+  fmt::print("I was passed the URI: {}\n", uri);
 
   auto s = u.getScheme();
 

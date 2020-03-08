@@ -1,14 +1,14 @@
 
 
-#include "Python.h"
-#include "Logger.hpp"
 #include <string>
 #include <memory>
 #include <filesystem>
 
+#include "Python.h"
+
+#include "Logger.hpp"
 #include "fmi/fmi2TypesPlatform.h"
 #include "pythonfmu/PyGIL.hpp"
-
 
 #ifndef PYTHONFMU_PYOBJECTWRAPPER_HPP
 #define PYTHONFMU_PYOBJECTWRAPPER_HPP
@@ -20,8 +20,7 @@ class PyObjectWrapper
 {
 
 public:
-
-    explicit PyObjectWrapper(const std::filesystem::path resources, std::unique_ptr<Logger> logger);
+    explicit PyObjectWrapper(const std::filesystem::path resources, Logger *logger);
 
     explicit PyObjectWrapper(PyObjectWrapper &&other);
 
@@ -55,14 +54,14 @@ public:
 
     ~PyObjectWrapper();
 
-    PyObjectWrapper& operator=(PyObjectWrapper&& rhs);
+    PyObjectWrapper &operator=(PyObjectWrapper &&rhs);
 
 private:
     PyObject *pModule_;
     PyObject *pClass_;
     PyObject *pInstance_;
 
-    std::unique_ptr<Logger> logger;
+    Logger *logger;
 
     /**
      * @brief Import and instantiate main class in the current Python interpreter.
@@ -78,7 +77,6 @@ private:
      * >> auto instance = instantiate_main_class('adder', 'Adder')
      */
     void instantiate_main_class(std::string module_name, std::string main_class);
-
 };
 
 } // namespace pythonfmu

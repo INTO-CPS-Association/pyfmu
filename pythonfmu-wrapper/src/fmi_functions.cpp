@@ -87,7 +87,9 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
     return NULL;
   }
 
-  auto logger = make_unique<Logger>(functions->componentEnvironment, functions->logger, instanceName);
+  //auto logger = make_unique<Logger>(functions->componentEnvironment, functions->logger, instanceName);
+
+  Logger *logger = new Logger(functions->componentEnvironment, functions->logger, instanceName);
 
   logger->log(fmi2Status::fmi2OK, "Info", "Instantiating FMU\n");
 
