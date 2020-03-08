@@ -3,50 +3,33 @@
 #include <filesystem>
 
 #include "catch2/catch.hpp"
+#include "fmt/format.h"
 
 #include "fmi/fmi2Functions.h"
 #include "example_finder.hpp"
-
-
 
 using namespace std;
 using namespace filesystem;
 namespace fs = std::filesystem;
 
 void logger(void *env, const char *str1, fmi2Status s, const char *str2,
-            const char *str3, ...) {}
+            const char *str3, ...)
+{
+  cout << str1 << std::endl;
+}
 
 void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status status)
 {
-
-}
-
-
-TEST_CASE("sandbox")
-{
-
-  auto p = fs::current_path();
-  setProjecsDirectory(p);
-
-  SECTION("temporary")
-  {
-
-    ExampleArchive a("Adder");
-
-    REQUIRE(true);
-  }
 }
 
 TEST_CASE("fmifunctions")
 {
   SECTION("fmi2instantiate_calledMultipleTimes_OK")
   {
-    path p = path("file:///home/clegaard/Desktop/python2fmu/pythonfmu-wrapper/examples/multiplier/resources");
 
-
-    char resources_path[300] = {'0'};
-    wctomb(resources_path, *p.c_str());
-    
+    std::string resources_path = get_resource_uri("Adder");
+    auto resources_path_cstr = resources_path.c_str();
+    fmt::print("path to resources is: {}\n", resources_path);
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -55,10 +38,10 @@ TEST_CASE("fmifunctions")
                                        .componentEnvironment = nullptr};
 
     fmi2Component a = fmi2Instantiate("a", fmi2Type::fmi2CoSimulation, "check?",
-                        resources_path, &callbacks, fmi2False, fmi2True);
+                                      resources_path_cstr, &callbacks, fmi2False, fmi2True);
 
     fmi2Component b = fmi2Instantiate("b", fmi2Type::fmi2CoSimulation, "check?",
-                        resources_path, &callbacks, fmi2False, fmi2True);
+                                      resources_path_cstr, &callbacks, fmi2False, fmi2True);
 
     REQUIRE(true);
   }
@@ -67,15 +50,16 @@ TEST_CASE("fmifunctions")
 TEST_CASE("PyObjectWrapper")
 {
 
-  SECTION("multiplier") {
+  /*
+  SECTION("multiplier")
+  {
     //auto p = path("examples") / "multiplier" / "resources";
 
     path p = path("file:///home/clegaard/Desktop/python2fmu/pythonfmu-wrapper/examples/multiplier/resources");
 
 
-    char resources_path[300] = { '0' };
-    wctomb(resources_path, *p.c_str());
 
+    auto p = get_resource_uri("Multiplier")
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -116,4 +100,5 @@ TEST_CASE("PyObjectWrapper")
     REQUIRE(s == fmi2OK);
     REQUIRE(get_vals[0] == 50);
   }
+  */
 }

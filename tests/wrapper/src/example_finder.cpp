@@ -4,6 +4,8 @@
 #include <iostream>
 
 #include <fmt/format.h>
+#include <Poco/URI.h>
+#include <Poco/Path.h>
 
 #include "example_finder.hpp"
 
@@ -61,6 +63,22 @@ ExampleArchive::ExampleArchive(std::string exampleName)
     //string exportCommand = fmt::format("python3 {} export ")
 
     //std::system(exportCommand);
+}
+
+std::string get_resource_uri(std::string example_name)
+{
+    if (!examples.contains(example_name))
+        throw std::runtime_error(fmt::format("Can not get path to resources of project {}, the project does not exist.", example_name));
+
+    Poco::Path p = Poco::Path(__FILE__).parent().parent().parent().append("examples").append("projects").append(example_name).append("resources");
+
+    //fmt::print("Path before URI conversion: {}\n", p.toString());
+
+    auto uri = Poco::URI(p);
+
+    //fmt::print("Path after URI conversion: {}\n", uri.toString());
+
+    return uri.toString();
 }
 
 fs::path ExampleArchive::getRoot()

@@ -19,13 +19,18 @@
 
 std::filesystem::path getPathFromFileUri(std::string uri)
 {
-  
+
   auto u = Poco::URI(uri);
+
+  fmt::print("I was passed the URI: {}", uri);
 
   auto s = u.getScheme();
 
-  if(s != "file")
-    throw std::invalid_argument(fmt::format("uri could not be converted to path, the scheme should be 'file', but was {}",s));
+  if (s.empty())
+    throw std::invalid_argument(fmt::format("URI could not be converted into a file path, the scheme of the specified URI could not be determined"));
+
+  else if (s != "file")
+    throw std::invalid_argument(fmt::format("uri could not be converted to path, the scheme should be 'file', but was {}", s));
 
   return u.getPath();
 }

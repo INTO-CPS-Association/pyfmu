@@ -5,8 +5,6 @@
 #include <filesystem>
 #include <tmpdir.hpp>
 
-
-
 /**
  * Defines the directory in which example projects are located.
  * Due to the fact that C++ is compiled, it has no notion of 'where' it is running from. 
@@ -14,6 +12,10 @@
 */
 void setProjecsDirectory(std::filesystem::path path);
 
+/**
+ * Returns the path to the resources folder of an example project
+*/
+std::string get_resource_uri(std::string example_name);
 
 /**
  * Defines the path to the tool export Python FMUs, py2fmu.py
@@ -22,18 +24,11 @@ void setBuilderPath(std::filesystem::path path);
 
 class ExampleArchive
 {
-    public:
-
-
+public:
     explicit ExampleArchive(std::string exampleName);
 
     std::filesystem::path getRoot();
 
-    private:
-    
-
+private:
     TmpDir td;
-
-
-  
 };
