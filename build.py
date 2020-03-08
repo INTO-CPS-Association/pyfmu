@@ -3,6 +3,7 @@
 import subprocess
 from pathlib import Path
 import os
+import platform
 import logging
 import sys
 from shutil import copy
@@ -12,6 +13,18 @@ from pybuilder.resources.resources import Resources
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 l = logging.getLogger(__file__)
 
+
+class cd:
+    """Context manager for changing the current working directory"""
+    def __init__(self, newPath):
+        self.newPath = os.path.expanduser(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
 
 def FMI2_binary_directory_from_hostname() -> Path:
     """Returns the name of the binaries subfolder. This can either be:
@@ -51,21 +64,33 @@ def _getLibraryNameForHost() -> str:
         raise NotImplementedError()
 
 
-def copy():
+def copy_binaries():
 
     bin_name = _getLibraryNameForHost()
 
-    binary_path = Path(__file__).parent / 'build' / \
-        'bin' / bin_name
+    binary_in = (Path(__file__).parent.resolve() / 'build' / \
+        'bin' / bin_name).resolve()
 
-    resources_dir = Resources.get().binaries_dir / \
-        FMI2_binary_directory_from_hostname() / bin_name
+    l.debug(f'Looking for compiled binary at path: {binary_in}')
+
+    if(not binary_in.is_file()):
+        raise RuntimeError(f'The compiled binary could not be found at: {binary_in}')
+
+    l.debug('Binaries were found.')
+
+    binary_out = (Resources.get().binaries_dir / \
+        FMI2_binary_directory_from_hostname() / bin_name)
 
     try:
-        os.makedirs(resources_dir, exist_ok=True)
-        copy(build_dir, resources_dir)
+        os.makedirs(binary_out.parent, exist_ok=True)
+
+        if(binary_out.is_file()):
+            os.remove(binary_out)
+
+        copy(binary_in, binary_out)
     except Exception as e:
-        raise RuntimeError("Failed to copy binaries into the resources") from e
+        raise RuntimeError(
+            f"Failed to copy binaries into the resources, an exception was thrown:\n{e}") from e
 
 
 def build():
@@ -91,48 +116,59 @@ def build():
 
         except Exception as e:
             raise RuntimeError('Failed to create build folder') from e
+        
+    # Do the following:
+    # 1. cd into build
+    # 2. configure cmake
+    # 3. build
+    # 4. cd back to original folder
+    with cd(build_dir):
+        # Cmake configure
+        try:
+            res = subprocess.run(['cmake', '..', '-DCMAKE_BUILD_TYPE=RELEASE'])
 
-    os.chdir(build_dir)
+            if(res.returncode != 0):
+                raise RuntimeError(
+                    'CMake configure was called, but returned error code different than 0.')
 
-    # Cmake configure
-    try:
-        res = subprocess.run(['cmake', '..', '-DCMAKE_BUILD_TYPE=RELEASE'])
+        except Exception as e:
+            raise RuntimeError(f'Calling CMake configure failed.') from e
 
-        if(res.returncode != 0):
+        # CMake build
+        try:
+            l.log(logging.DEBUG, 'Building project')
+            res = subprocess.run(
+                ['cmake', '--build', '.', '--config', 'Release'], shell=True)
+
+            if(res.returncode != 0):
+                raise RuntimeError(
+                    'CMake build was called, but returned error code different than 0.')
+
+        except Exception as e:
             raise RuntimeError(
-                'CMake configure was called, but returned error code different than 0.')
-
-    except Exception as e:
-        raise RuntimeError(f'Calling CMake configure failed.') from e
-
-    # CMake build
-    try:
-        l.log(logging.DEBUG, 'Building project')
-        res = subprocess.run(
-            ['cmake', '--build', '.', '--config', 'Release'], shell=True)
-
-        if(res.returncode != 0):
-            raise RuntimeError(
-                'CMake build was called, but returned error code different than 0.')
-
-    except Exception as e:
-        raise RuntimeError(
-            'Failed to build CMake project, exception was thrown') from e
+                'Failed to build CMake project, exception was thrown') from e
+            
 
 
 if __name__ == "__main__":
 
-    l.log(logging.DEBUG, 'Building project')
+    l.log(logging.DEBUG, 'Building project.')
     try:
         build()
     except Exception as e:
         l.log(logging.ERROR,
               'Failed building PyFMU, an exception was thrown:\n{e}')
+        sys.exit(-1)
 
-    l.log(logging.DEBUG, 'Copying build binaries to resource folder')
+    l.debug('Succesfully build project.')
+
+    l.debug('Copying the binaries to resource folder')
+    
     try:
-        copy()
-        test = 10
+        copy_binaries()
     except Exception as e:
         l.log(logging.ERROR,
               f'Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}')
+        sys.exit(-1)
+
+    l.debug('Binaries were sucessfully copied to resources.')
