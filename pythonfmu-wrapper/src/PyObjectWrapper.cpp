@@ -111,9 +111,9 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(lo
         "successfully prior to the invoking the constructor.");
   }
 
-  this->logger->ok(format("appending path of resource folder to Python "
-                          "Interpreter, the specified path is: {}\n",
-                          resource_path.string()));
+  logger->ok(format("appending path of resource folder to Python "
+                    "Interpreter, the specified path is: {}\n",
+                    resource_path.string()));
 
   append_resources_folder_to_python_path(resource_path);
 

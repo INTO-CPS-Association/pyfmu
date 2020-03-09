@@ -35,10 +35,16 @@ PyConfiguration read_configuration(const path &config_path, Logger *log)
 
     log->ok(format("Reading configuration file from: {}", config_path.string()));
 
-    ifstream is(config_path);
+    auto p = path("C:\\Users\\clega\\AppData\\Local\\Temp\\s7yo.0\\Adder\\resources\\slave_configuration.json");
+
+    ifstream is(p, ios::in);
 
     if (!is.is_open())
-        throw runtime_error("failed to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.");
+    {
+        auto err = strerror(errno);
+        std::string msg = format("Could not open to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.\n Inner error is: {}", err);
+        throw runtime_error(msg);
+    }
 
     log->ok("Sucessfully read file");
 

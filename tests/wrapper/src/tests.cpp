@@ -4,32 +4,38 @@
 
 #include "catch2/catch.hpp"
 #include "fmt/format.h"
+#include "spdlog/spdlog.h"
 
 #include "fmi/fmi2Functions.h"
 #include "example_finder.hpp"
+#include "utility/utils.hpp"
 
 using namespace std;
 using namespace filesystem;
+using namespace fmt;
 namespace fs = std::filesystem;
 
 void logger(void *env, const char *str1, fmi2Status s, const char *str2,
             const char *str3, ...)
 {
-  cout << str1 << std::endl;
+  spdlog::info(str1);
 }
 
 void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status status)
 {
 }
 
+/*
 TEST_CASE("fmifunctions")
 {
+  spdlog::set_level(spdlog::level::debug); // Set global log level to debug
+
   SECTION("fmi2instantiate_calledMultipleTimes_OK")
   {
 
-    std::string resources_path = get_resource_uri("Adder");
+    string resources_path = get_resource_uri("Adder");
     auto resources_path_cstr = resources_path.c_str();
-    fmt::print("path to resources is: {}\n", resources_path);
+    spdlog::info("path to resources is:\n{}\n", resources_path);
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -46,6 +52,7 @@ TEST_CASE("fmifunctions")
     REQUIRE(true);
   }
 }
+*/
 
 TEST_CASE("PyObjectWrapper")
 {
@@ -53,9 +60,13 @@ TEST_CASE("PyObjectWrapper")
   SECTION("adder")
   {
 
-    std::string resources_path = get_resource_uri("Adder");
-    auto resources_path_cstr = resources_path.c_str();
-    //fmt::print("path to resources is: {}\n", resources_path);
+    auto a = ExampleArchive("Adder");
+    spdlog::info("Exported example project Adder, to path: {}", a.getRoot().string());
+
+    string resources_uri = a.getResourcesURI();
+    const char *resources_cstr = resources_uri.c_str();
+
+    spdlog::info("resources as cstr {}", resources_cstr);
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -63,7 +74,7 @@ TEST_CASE("PyObjectWrapper")
                                        .stepFinished = stepFinished,
                                        .componentEnvironment = nullptr};
 
-    fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_path_cstr, &callbacks, fmi2False, fmi2True);
+    fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
 
     REQUIRE(c != nullptr);
 
@@ -95,3 +106,29 @@ TEST_CASE("PyObjectWrapper")
     REQUIRE(get_vals[0] == 50);
   }
 }
+
+#ifdef WIN32
+TEST_CASE("URI parsing on windows")
+{
+
+  SECTION("parses_valid_uri")
+  {
+    string uri = "file:///C:/somedir/resources";
+    string expected = "C:\\somedir\\resources";
+
+    string actual = getPathFromFileUri(uri).string();
+
+    REQUIRE(actual == expected);
+  }
+
+  SECTION("Does not accept other schemes than file")
+  {
+
+    REQUIRE_THROWS([]() {
+      string invalid_uri = "otherscheme:///C:/somedir/resources";
+
+      getPathFromFileUri(invalid_uri);
+    }());
+  }
+}
+#endif

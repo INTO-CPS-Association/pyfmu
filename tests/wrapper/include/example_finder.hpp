@@ -3,6 +3,7 @@
  * Provides functionality related to finding and instantiating example projects
 */
 #include <filesystem>
+
 #include <tmpdir.hpp>
 
 /**
@@ -28,7 +29,10 @@ public:
     explicit ExampleArchive(std::string exampleName);
 
     std::filesystem::path getRoot();
+    std::filesystem::path getResources();
+    std::string getResourcesURI();
 
 private:
     TmpDir td;
+    std::string exampleName;
 };

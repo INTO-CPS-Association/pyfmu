@@ -97,7 +97,7 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
   try
   {
-    pyInitializer = new PyInitializer();
+    pyInitializer = new PyInitializer(logger);
   }
   catch (exception)
   {

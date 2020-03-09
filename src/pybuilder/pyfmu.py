@@ -7,17 +7,14 @@ from pybuilder.builder.export import export_project
 from pybuilder.builder.validate import validate
 
 
-
-
-working_dir = normpath(dirname(realpath(__file__)))
-
-def config_generate_subprogram(subparser: argparse.ArgumentParser) -> None:
+def config_generate_subprogram(subparsers: argparse.ArgumentParser) -> None:
     parser_gen = subparsers.add_parser(
         'generate', help="Generate new Python projects from scratch or based on existing resources such as Model Descriptions and reference FMUs.")
 
     file_project_group = parser_gen.add_mutually_exclusive_group(required=True)
 
-    file_project_group.add_argument('--path', '-p', type=str, help="Path to the project that will be generated")
+    file_project_group.add_argument(
+        '--path', '-p', type=str, help="Path to the project that will be generated")
 
     file_project_group.add_argument(
         '--file', '-f', type=str, help="Path to either a model description file or a FMU archive")
@@ -25,17 +22,21 @@ def config_generate_subprogram(subparser: argparse.ArgumentParser) -> None:
     parser_gen.add_argument(
         '--name', '-n', type=str, required=False, help="Name of the project to be generated. If not specified this information will be extracted from either the path or a model description")
 
-def config_export_subprogram(parser: argparse.ArgumentParser) -> None:
+
+def config_export_subprogram(subparsers: argparse.ArgumentParser) -> None:
     parser_export = subparsers.add_parser(
         'export',
         help="Export Python projects as FMUs",
     )
 
-    parser_export.add_argument("--project","-p", required=True, help="path to Python project")
+    parser_export.add_argument(
+        "--project", "-p", required=True, help="path to Python project")
 
-    parser_export.add_argument("--output",'-o', required=True, help="output path of the exported archive")
+    parser_export.add_argument(
+        "--output", '-o', required=True, help="output path of the exported archive")
 
-    parser_export.add_argument('--overwrite','-ow',action='store_true', help='allow overwriting of existing files')
+    parser_export.add_argument(
+        '--overwrite', '-ow', action='store_true', help='allow overwriting of existing files')
 
     group_bundle = parser_export.add_argument_group('bundle')
 
@@ -57,42 +58,50 @@ def config_export_subprogram(parser: argparse.ArgumentParser) -> None:
     group_bundle.add_argument(
         "-bp", type=bool, default=False, help=help_prune_libs)
 
-def config_validate_subprogram(subparser: argparse.ArgumentParser) -> None:
-    
-    parser_validate = subparser.add_parser('validate',help="Static and functional verification of fmu archives")
-    parser_validate.add_argument('fmu',help='Path to the FMU. This may either be an zip archive or an uncompressed version of the archive')
-    parser_validate.add_argument('--fmpy',action='store_true', help='validate the fmu using fmpy')
-    parser_validate.add_argument('--vdmcheck',action='store_true',help='validate the fmu using vdmcheck')
+
+def config_validate_subprogram(subparsers: argparse.ArgumentParser) -> None:
+
+    parser_validate = subparsers.add_parser(
+        'validate', help="Static and functional verification of fmu archives")
+    parser_validate.add_argument(
+        'fmu', help='Path to the FMU. This may either be an zip archive or an uncompressed version of the archive')
+    parser_validate.add_argument(
+        '--fmpy', action='store_true', help='validate the fmu using fmpy')
+    parser_validate.add_argument(
+        '--vdmcheck', action='store_true', help='validate the fmu using vdmcheck')
+
 
 def handle_generate(args):
 
-    
     from os.path import join, curdir, dirname, basename, normpath
 
     if(args.file is not None):
         raise Exception("Currently generation from file is not supported")
-        
 
     project_path = join(curdir, args.path)
 
-    main_class_name = args.name if args.name is not None else basename(normpath(project_path))
+    main_class_name = args.name if args.name is not None else basename(
+        normpath(project_path))
 
     create_project(project_path, main_class_name)
 
+
 def handle_export(args):
-    
+
     project_path = args.project
 
     archive_path = args.output
 
-    export_project(project_path,archive_path)
+    export_project(project_path, archive_path)
+
 
 def handle_validate(args):
-    
+
     fmu = args.fmu
     validate(fmu)
 
-if __name__ == "__main__":
+
+def main():
 
     description_text = """Utility program to facility the development of Functional Mock-up Units (FMUs) using Python code.
     """

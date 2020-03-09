@@ -11,26 +11,28 @@ namespace pythonfmu
 class PyInitializer
 {
 public:
-    PyInitializer(std::wstring module_path = L"")
+    PyInitializer(Logger *log, std::wstring module_path = L"")
     {
+        log->ok("Setting up module path\n");
 
-        printf("Setting up module path\n");
         if (!module_path.empty())
         {
-            printf("Module path not empty\n");
+            log->ok("Using explicitly defined module path\n");
             Py_SetPath(module_path.c_str());
         }
 
         wchar_t *p = L"C:\\ProgramData\\Miniconda3\\Lib";
         Py_SetPath(p);
-        printf("initializing Python interpreter\n");
+        log->ok("initializing Python interpreter\n");
         Py_Initialize();
 
         if (!Py_IsInitialized())
         {
-            printf("Could not instantiate Python Interpreter");
+            log->ok("Failed to initialize Python Interpreter");
             throw std::runtime_error("Failed to initialize Python interpreter");
         }
+
+        log->ok("Python interpreter initialized");
     }
 
     ~PyInitializer()

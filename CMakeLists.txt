@@ -37,6 +37,7 @@ conan_cmake_run(REQUIRES
                 Poco/1.9.4@pocoproject/stable
                 catch2/2.5.0@bincrafters/stable
                 fmt/6.1.1
+                spdlog/[>=1.4.1]
                 nlohmann_json/3.7.3
                 
                 BASIC_SETUP 

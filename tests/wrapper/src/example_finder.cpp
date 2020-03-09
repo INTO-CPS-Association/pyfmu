@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <fmt/format.h>
+#include "spdlog/spdlog.h"
 #include <Poco/URI.h>
 #include <Poco/Path.h>
 
@@ -11,29 +12,27 @@
 
 using namespace std;
 using namespace fmt;
+using namespace spdlog;
 namespace fs = filesystem;
 
-constexpr char exporter_script_name[] = "py2fmu";
+//TODO make path platform invariant
+constexpr char exporter_script_name[] = "pyfmu";
 
 set<string> examples = {
     "Adder",
     "ConstantSignalGenerator",
     "SineGenerator"};
 
-fs::path projectPath;
-fs::path builderPath;
-
-void setProjecsDirectory(fs::path p)
+/**
+ * Returns the path to the example projects located in the test directory.
+**/
+fs::path getProjectsRoot()
 {
-    projectPath = p;
+    fs::path p = fs::path(__FILE__).parent_path().parent_path().parent_path() / "examples" / "projects";
+    return p;
 }
 
-void setBuilderPath(fs::path p)
-{
-    builderPath = p;
-}
-
-ExampleArchive::ExampleArchive(std::string exampleName)
+ExampleArchive::ExampleArchive(std::string exampleName) : exampleName(exampleName)
 {
     // Check if the example exists
     if (examples.find(exampleName) == examples.end())
@@ -42,7 +41,9 @@ ExampleArchive::ExampleArchive(std::string exampleName)
     }
 
     // Check if necessary tools for exporting Python FMU are available
-    int retValue = std::system("python -c 'import sys; found = 0 if (sys.version_info >= (3,0)) else -1; sys.exit(found)'");
+    info("Checking if a compatible Python interpreter is present");
+
+    int retValue = std::system("python -c \"import sys; found = 0 if (sys.version_info >= (3,0)) else -1; sys.exit(found)\"");
     int isPython3 = retValue >= 0;
 
     if (isPython3 < 0)
@@ -50,14 +51,16 @@ ExampleArchive::ExampleArchive(std::string exampleName)
         throw runtime_error("python3 program was not found in path");
     }
 
+    info("Compatible interpreter found");
+
     // Export to tmp directory
 
-    fs::path examplePath = projectPath / exampleName;
+    fs::path examplePath = getProjectsRoot() / exampleName;
     fs::path exportPath = this->getRoot();
 
-    string exportCommand = format("python {} export --project {} --out {}\n", exporter_script_name, examplePath.string(), exportPath.string());
+    string exportCommand = format("{} export --project {} --out {}", exporter_script_name, examplePath.string(), exportPath.string());
 
-    print(format("exporting example project {} using command:\n{}", exampleName, exportCommand));
+    info("exporting example project {} using command: {}", exampleName, exportCommand);
 
     int ret = std::system(exportCommand.c_str());
 
@@ -67,19 +70,21 @@ ExampleArchive::ExampleArchive(std::string exampleName)
     }
 }
 
-std::string get_resource_uri(std::string example_name)
+fs::path ExampleArchive::getRoot()
 {
-    if (!examples.contains(example_name))
-        throw std::runtime_error(fmt::format("Can not get path to resources of project {}, the project does not exist.", example_name));
+    return this->td.root / exampleName;
+}
 
-    Poco::Path p = Poco::Path(__FILE__).parent().parent().parent().append("examples").append("projects").append(example_name).append("resources");
+fs::path ExampleArchive::getResources()
+{
+    return getRoot() / "resources";
+}
+
+std::string ExampleArchive::getResourcesURI()
+{
+    Poco::Path p = Poco::Path(getResources().string());
 
     auto uri = Poco::URI(p);
 
     return uri.toString();
-}
-
-fs::path ExampleArchive::getRoot()
-{
-    return this->td.root;
 }
