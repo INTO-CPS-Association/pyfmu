@@ -1,5 +1,7 @@
 #include <string>
 #include <filesystem>
+#include <locale>
+#include <codecvt>
 
 #include <Poco/URI.h>
 #include <fmt/format.h>
@@ -43,4 +45,26 @@ std::filesystem::path getPathFromFileUri(std::string uri)
   auto p = std::filesystem::weakly_canonical(std::filesystem::path(path));
 
   return p;
+}
+
+/**
+ * Convert a string to a wide string
+**/
+std::wstring s2ws(const std::string &str)
+{
+  using convert_typeX = std::codecvt_utf8<wchar_t>;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+  return converterX.from_bytes(str);
+}
+
+/**
+ * Convert a wide string to a string
+**/
+std::string ws2s(const std::wstring &wstr)
+{
+  using convert_typeX = std::codecvt_utf8<wchar_t>;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+  return converterX.to_bytes(wstr);
 }
