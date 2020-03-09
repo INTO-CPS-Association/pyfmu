@@ -15,7 +15,6 @@ using namespace fmt;
 using namespace spdlog;
 namespace fs = filesystem;
 
-//TODO make path platform invariant
 constexpr char exporter_script_name[] = "pyfmu";
 
 set<string> examples = {

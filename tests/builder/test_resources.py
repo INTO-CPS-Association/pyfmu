@@ -21,14 +21,11 @@ def test_shared_library_can_be_loaded():
 
         with ExampleArchive(pname) as archive:
 
-            # lib_path = str((archive.binaries_dir / 'win64' /
-            #                 'libpyfmu.dll'))
-
+            # TODO load appropriate dll
             lib_dir = Resources.get().binaries_dir / 'win64'
             lib_path = lib_dir / 'libpyfmu.dll'
 
-
-            p = str(lib_path.absolute())
+            p = str(lib_path.resolve())
 
             lib_loaded = cdll.LoadLibrary(p)
 
@@ -40,12 +37,12 @@ def test_singleInstantiation_canSimulate():
     with ExampleArchive('Adder') as archive:
 
         # seems like fmpy does not accept Path objects
-        path = str(archive.root.absolute())
+        path = str(archive.root.resolve())
 
         simulate_fmu(path)
 
 
-def atest_multipleExports_canSimulate():
+def test_multipleExports_canSimulate():
 
     for pname in get_available_examples():
 
@@ -53,12 +50,12 @@ def atest_multipleExports_canSimulate():
 
             print(archive.model_description)
             # seems like fmpy does not accept Path objects
-            path = str(archive.root)
+            path = str(archive.root.resolve())
 
             simulate_fmu(path)
 
 
-def atest_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
+def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
 
     for idx, pname in enumerate(get_available_examples()):
 
@@ -89,7 +86,7 @@ def atest_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
             fmu_b.instantiate()
 
 
-def atest_identicalNamesSameTypes_throws():
+def test_identicalNamesSameTypes_throws():
 
     with pytest.raises(Exception):
         with ExampleArchive('Adder') as a, ExampleArchive('Adder') as b:
@@ -116,7 +113,7 @@ def atest_identicalNamesSameTypes_throws():
             fmu_b.instantiate()
 
 
-def atest_identicalNamesDifferentTypes_throws():
+def test_identicalNamesDifferentTypes_throws():
 
     with pytest.raises(Exception):
         with ExampleArchive('Adder') as a, ExampleArchive('ConstantSignalGenerator') as b:

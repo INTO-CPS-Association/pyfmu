@@ -16,6 +16,7 @@ l = logging.getLogger(__file__)
 
 class cd:
     """Context manager for changing the current working directory"""
+
     def __init__(self, newPath):
         self.newPath = os.path.expanduser(newPath)
 
@@ -25,6 +26,7 @@ class cd:
 
     def __exit__(self, etype, value, traceback):
         os.chdir(self.savedPath)
+
 
 def FMI2_binary_directory_from_hostname() -> Path:
     """Returns the name of the binaries subfolder. This can either be:
@@ -68,18 +70,19 @@ def copy_binaries():
 
     bin_name = _getLibraryNameForHost()
 
-    binary_in = (Path(__file__).parent.resolve() / 'build' / \
-        'bin' / bin_name).resolve()
+    binary_in = (Path(__file__).parent.resolve() / 'build' /
+                 'bin' / bin_name).resolve()
 
     l.debug(f'Looking for compiled binary at path: {binary_in}')
 
     if(not binary_in.is_file()):
-        raise RuntimeError(f'The compiled binary could not be found at: {binary_in}')
+        raise RuntimeError(
+            f'The compiled binary could not be found at: {binary_in}')
 
     l.debug('Binaries were found.')
 
-    binary_out = (Resources.get().binaries_dir / \
-        FMI2_binary_directory_from_hostname() / bin_name)
+    binary_out = (Resources.get().binaries_dir /
+                  FMI2_binary_directory_from_hostname() / bin_name)
 
     try:
         os.makedirs(binary_out.parent, exist_ok=True)
@@ -91,6 +94,13 @@ def copy_binaries():
     except Exception as e:
         raise RuntimeError(
             f"Failed to copy binaries into the resources, an exception was thrown:\n{e}") from e
+
+
+def export_projects():
+    """Exports all projects located in tests/examples/projects to resources/examples/exported
+    """
+    from tests.examples.export_all import export_all
+    export_all()
 
 
 def build():
@@ -116,7 +126,7 @@ def build():
 
         except Exception as e:
             raise RuntimeError('Failed to create build folder') from e
-        
+
     # Do the following:
     # 1. cd into build
     # 2. configure cmake
@@ -147,7 +157,6 @@ def build():
         except Exception as e:
             raise RuntimeError(
                 'Failed to build CMake project, exception was thrown') from e
-            
 
 
 if __name__ == "__main__":
@@ -163,7 +172,7 @@ if __name__ == "__main__":
     l.debug('Succesfully build project.')
 
     l.debug('Copying the binaries to resource folder')
-    
+
     try:
         copy_binaries()
     except Exception as e:
@@ -172,3 +181,13 @@ if __name__ == "__main__":
         sys.exit(-1)
 
     l.debug('Binaries were sucessfully copied to resources.')
+
+    l.debug('Exporting example projects')
+    try:
+        export_projects()
+    except Exception as e:
+        l.error(
+            f'Failed exporting example projects, an exception was thrown: {e}')
+        sys.exit(1)
+
+    l.debug('Sucessfully exported projects')
