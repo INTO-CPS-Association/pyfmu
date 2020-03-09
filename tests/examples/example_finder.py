@@ -114,7 +114,13 @@ class ExampleArchive():
 
     def __exit__(self, exception_type, exception_value, traceback):
 
-        import _ctypes
+        import platform
+
+        # TODO
+        # Currently the clean up mechanism does not work with FMPy on windows
+        # It seems like the dll is still loaded when the function is called, resulting in a windows "access denied" error when trying to delete it.
+        if(platform.system() == "Windows"):
+            return
 
         for root, dirs, files in os.walk(self.tmpdir, topdown=False):
             for name in files:
