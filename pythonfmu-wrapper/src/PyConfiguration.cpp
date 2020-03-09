@@ -35,9 +35,7 @@ PyConfiguration read_configuration(const path &config_path, Logger *log)
 
     log->ok(format("Reading configuration file from: {}", config_path.string()));
 
-    auto p = path("C:\\Users\\clega\\AppData\\Local\\Temp\\s7yo.0\\Adder\\resources\\slave_configuration.json");
-
-    ifstream is(p, ios::in);
+    ifstream is(config_path, ios::in);
 
     if (!is.is_open())
     {
