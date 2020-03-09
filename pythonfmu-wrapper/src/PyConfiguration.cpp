@@ -28,12 +28,12 @@ void from_json(const json &j, PyConfiguration &p)
 }
 }
 
-PyConfiguration read_configuration(const string &config_path, Logger *log)
+PyConfiguration read_configuration(const path &config_path, Logger *log)
 {
 
     PyConfiguration config;
 
-    log->ok(format("Reading configuration file from: {}", config_path));
+    log->ok(format("Reading configuration file from: {}", config_path.string()));
 
     ifstream is(config_path);
 

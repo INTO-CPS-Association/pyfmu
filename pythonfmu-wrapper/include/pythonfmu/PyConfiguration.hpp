@@ -1,4 +1,5 @@
 #include <string>
+#include <filesystem>
 
 #include <nlohmann/json.hpp> // pylint: disable=import-error
 
@@ -28,6 +29,6 @@ void from_json(const nlohmann::json &j, pyconfiguration::PyConfiguration &p);
  * @param config_path path to the configuration file
  * @return PyConfigruation 
  */
-pyconfiguration::PyConfiguration read_configuration(const std::string &config_path, Logger *logger);
+pyconfiguration::PyConfiguration read_configuration(const std::filesystem::path &config_path, Logger *logger);
 
 #endif // PYCONFIGURATION_HPP

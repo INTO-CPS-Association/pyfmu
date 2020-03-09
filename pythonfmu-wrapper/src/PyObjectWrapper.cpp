@@ -111,30 +111,25 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(lo
         "successfully prior to the invoking the constructor.");
   }
 
-  this->logger->log(fmi2Status::fmi2OK, "Info",
-                    format("appending path of resource folder to Python "
-                           "Interpreter, the specified path is: {}\n",
-                           resource_path.string()));
+  this->logger->ok(format("appending path of resource folder to Python "
+                          "Interpreter, the specified path is: {}\n",
+                          resource_path.string()));
 
   append_resources_folder_to_python_path(resource_path);
 
-  this->logger->log(fmi2Status::fmi2OK, "Info",
-                    format("Successfully appended resources directory to Python path\n"));
+  logger->ok(format("Successfully appended resources directory to Python path\n"));
 
-  auto config_path = path(resource_path) / "slave_configuration.json";
+  auto config_path = resource_path / "slave_configuration.json";
 
-  this->logger->log(fmi2Status::fmi2OK, "Info",
-                    format("Reading configuration file located at: {}\n",
-                           config_path.string()));
+  logger->ok(format("Reading configuration file located at: {}\n", config_path.string()));
 
   try
   {
-    auto config = read_configuration(config_path.string(), logger);
+    auto config = read_configuration(config_path, logger);
 
-    this->logger->log(fmi2Status::fmi2OK, "Info",
-                      format("successfully read configuration file, specifying the following: main "
-                             "script is: {} and main class is: {}\n",
-                             config.main_script, config.main_class));
+    logger->ok(format("successfully read configuration file, specifying the following: main "
+                      "script is: {} and main class is: {}\n",
+                      config.main_script, config.main_class));
 
     string module_name =
         (path(config.main_script).filename().replace_extension("")).string();
@@ -143,7 +138,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(lo
   }
   catch (const exception &e)
   {
-    logger->log(fmi2Status::fmi2Error, "Info", format("Failed to read configuration file, an expection was thrown:\n{}", e.what()));
+    logger->error(format("Failed to read configuration file, an expection was thrown:\n{}", e.what()));
     throw;
   }
 }

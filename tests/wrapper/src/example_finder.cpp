@@ -10,20 +10,15 @@
 #include "example_finder.hpp"
 
 using namespace std;
+using namespace fmt;
 namespace fs = filesystem;
 
-/**
- * Returns the path to the tool for generating and exporting Python FMUs
-*/
-/*std::filesystem path getPathToBuilder()
-{
-    return nullptr;
-}
-*/
+constexpr char exporter_script_name[] = "py2fmu";
 
 set<string> examples = {
     "Adder",
-};
+    "ConstantSignalGenerator",
+    "SineGenerator"};
 
 fs::path projectPath;
 fs::path builderPath;
@@ -47,7 +42,7 @@ ExampleArchive::ExampleArchive(std::string exampleName)
     }
 
     // Check if necessary tools for exporting Python FMU are available
-    int retValue = std::system("python3 -c 'import sys; found = 0 if (sys.version_info >= (3,0)) else -1; sys.exit(found)'");
+    int retValue = std::system("python -c 'import sys; found = 0 if (sys.version_info >= (3,0)) else -1; sys.exit(found)'");
     int isPython3 = retValue >= 0;
 
     if (isPython3 < 0)
@@ -60,9 +55,16 @@ ExampleArchive::ExampleArchive(std::string exampleName)
     fs::path examplePath = projectPath / exampleName;
     fs::path exportPath = this->getRoot();
 
-    //string exportCommand = fmt::format("python3 {} export ")
+    string exportCommand = format("python {} export --project {} --out {}\n", exporter_script_name, examplePath.string(), exportPath.string());
 
-    //std::system(exportCommand);
+    print(format("exporting example project {} using command:\n{}", exampleName, exportCommand));
+
+    int ret = std::system(exportCommand.c_str());
+
+    if (ret != 0)
+    {
+        throw runtime_error(format("Export of example project failed, command returned {}", ret));
+    }
 }
 
 std::string get_resource_uri(std::string example_name)
@@ -72,17 +74,12 @@ std::string get_resource_uri(std::string example_name)
 
     Poco::Path p = Poco::Path(__FILE__).parent().parent().parent().append("examples").append("projects").append(example_name).append("resources");
 
-    //fmt::print("Path before URI conversion: {}\n", p.toString());
-
     auto uri = Poco::URI(p);
-
-    //fmt::print("Path after URI conversion: {}\n", uri.toString());
 
     return uri.toString();
 }
 
 fs::path ExampleArchive::getRoot()
 {
-
     return this->td.root;
 }
