@@ -1,0 +1,33 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Build application
+
+on:
+  push:
+    branches: [win]
+  pull_request:
+    branches: [win]
+
+jobs: 
+    build_windows:
+      name: Builds the wrapper for windows
+      runs-on: windows-latest
+      
+      steps:
+        - uses: actions/checkout@v2
+        
+        - name: install Python 3.x
+          uses: actions/setup-python@v1
+          with:
+            python-version: 3.7
+            architecture: x64
+        
+        - name: install python packages
+          run:  |
+            pip install .    
+        
+        - name: Compile wrapper on windows
+        - shell: powershell
+          run: |
+            mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=RELEASE && cd ..
