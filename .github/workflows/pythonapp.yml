@@ -28,6 +28,6 @@ jobs:
             pip install .    
         
         - name: Compile wrapper on windows
-        - shell: powershell
+          shell: powershell
           run: |
             mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=RELEASE && cd ..
