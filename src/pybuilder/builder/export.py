@@ -36,6 +36,8 @@ class PyfmuArchive():
                  resources_dir: Path =  None,
                  slave_configuration_path : Path = None,
                  binaries_dir : Path = None,
+                 wrapper_win64 : Path = None,
+                 wrapper_linux64: Path = None,
                  main_script_path : Path = None,
                  model_description: Path = None,
                  model_description_path : Path = None,
@@ -61,6 +63,8 @@ class PyfmuArchive():
         self.main_script_path = main_script_path
         self.model_description_path = model_description_path
         self.binaries_dir = binaries_dir
+        self.wrapper_win64 = wrapper_win64
+        self.wrapper_linux64 = wrapper_linux64
         self.pyfmu_dir = pyfmu_dir
 
 
@@ -164,16 +168,26 @@ def _copy_pyfmu_lib_to_archive(archive: PyfmuArchive, project: PyfmuProject = No
     return archive
 
 def _copy_binaries_to_archive(archive: PyfmuArchive) -> PyfmuArchive:
+    """Copies the binaries to the archive.
     
+    Arguments:
+        archive {PyfmuArchive} -- The archive being exported
+    
+    Returns:
+        PyfmuArchive -- The archive being exported
+    """
+
     binaries_path = Resources.get().binaries_dir
 
 
     archive_binaries_path = archive.root / 'binaries'
 
-
     copytree(binaries_path,archive_binaries_path)
 
+    # paths
     archive.binaries_dir = archive_binaries_path
+    archive.wrapper_win64 = archive.binaries_dir / 'win64' / 'pyfmu.dll'
+    archive.wrapper_linux64 = archive.binaries_dir / 'linux64' / 'pyfmu.so'
 
     return archive
 

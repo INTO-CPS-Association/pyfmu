@@ -110,7 +110,7 @@ The model description for the adder project looks like:
 ``` XML
 <?xml version="1.0" ?>
 <fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-02-23T09:30:00Z" generationTool="pyfmu" guid="221df7a6-36d3-41f7-bc35-8489663bb7ae" modelName="Adder" variableNamingConvention="structured">
-   <CoSimulation modelIdentifier="libpyfmu" needsExecutionTool="true"/>
+   <CoSimulation modelIdentifier="pyfmu" needsExecutionTool="true"/>
    <ModelVariables>
       <!--Index of variable = "1"-->
       <ScalarVariable causality="output" initial="calculated" name="s" valueReference="0" variability="continuous">

@@ -37,10 +37,10 @@ std::filesystem::path getPathFromFileUri(std::string uri)
   auto test_path = std::filesystem::path(__FILE__).parent_path() / "tests" / "foo";
 
   std::string path = u.getPath();
-  if (WIN32)
-  {
+  
+  #ifdef WIN32
     path = path.substr(1);
-  }
+  #endif
 
   auto p = std::filesystem::weakly_canonical(std::filesystem::path(path));
 

@@ -39,8 +39,8 @@ PyConfiguration read_configuration(const path &config_path, Logger *log)
 
     if (!is.is_open())
     {
-        char err[100] = "";
-        strerror_s(err, sizeof(err), errno);
+           
+        char* err = strerror(errno);
         std::string msg = format("Could not open to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.\n Inner error is: {}", err);
         throw runtime_error(msg);
     }

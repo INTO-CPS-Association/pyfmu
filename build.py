@@ -58,20 +58,70 @@ def FMI2_binary_directory_from_hostname() -> Path:
     return identifier
 
 
-def _getLibraryNameForHost() -> str:
+def _get_input_binary_path_for_host() -> Path:
+    """Returns the path to the compiled binaries for the host.
+    The names of the binaries produced by CMake varies based on whether its an .dll or .so platform.
+    
+    For example library names on so platforms will be prefixed with 'lib' which is not the case on dll platforms.
+
+    Returns:
+        Path -- Path to the pyfmu library in the build folder.
+
+    Examples:
+
+    Windows:
+    build/bin/pyfmu.dll
+    
+    Linux:
+    build/lib/libpyfmu.so
+    """
+
     sys = platform.system()
+
+    build_path = Path(__file__).parent.resolve() / 'build'
+
     if(sys == 'Windows'):
-        return 'libpyfmu.dll'
+        return build_path / 'bin' /'libpyfmu.dll'
+    elif(sys == "Linux"):
+        return build_path / 'lib' / 'libpyfmu.so'
+    else: 
+        NotImplementedError(f"Not supported for platform {sys}")
+
+
+
+def _get_output_binary_path_for_host() -> Path:
+    """Returns the path to the subdirectory of the resources used by the pyfmu command line tool.
+
+    The binaries for different platforms are stored in individual folders.
+    Note that a FMU is distributed with binaries for all platforms it may run on.
+    For example when exporting on windows a wrapper for Windows, Linux and MacOS will be included.
+
+    Returns:
+        Path -- Path to the resources folder matching the host
+
+    Examples:
+    
+    Windows:
+    src/pyfmu/resources/wrapper/win64/pyfmu.dll
+
+    Linux:
+    src/pyfmu/resources/wrapper/linux64/pyfmu.so
+    """
+
+    sys = platform.system()
+
+    wrapper_dir = Resources.get().binaries_dir
+    if(sys == 'Windows'):
+        return wrapper_dir / 'win64' / 'pyfmu.dll'
+    elif(sys == 'Linux'):
+        return wrapper_dir / 'linux64' / 'pyfmu.so'
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f'Not implmented for {sys}')
 
 
 def copy_binaries():
 
-    bin_name = _getLibraryNameForHost()
-
-    binary_in = (Path(__file__).parent.resolve() / 'build' /
-                 'bin' / bin_name).resolve()
+    binary_in = _get_input_binary_path_for_host()
 
     l.debug(f'Looking for compiled binary at path: {binary_in}')
 
@@ -81,8 +131,9 @@ def copy_binaries():
 
     l.debug('Binaries were found.')
 
-    binary_out = (Resources.get().binaries_dir /
-                  FMI2_binary_directory_from_hostname() / bin_name)
+    binary_out = _get_output_binary_path_for_host()
+
+    
 
     try:
         os.makedirs(binary_out.parent, exist_ok=True)
@@ -136,6 +187,7 @@ def build():
         # Cmake configure
         try:
             res = subprocess.run(['cmake', '..', '-DCMAKE_BUILD_TYPE=RELEASE'])
+            #res = subprocess.run(['cmake', '..'])
 
             if(res.returncode != 0):
                 raise RuntimeError(
@@ -148,7 +200,7 @@ def build():
         try:
             l.log(logging.DEBUG, 'Building project')
             res = subprocess.run(
-                ['cmake', '--build', '.', '--config', 'Release'], shell=True)
+                ['cmake', '--build', '.'])
 
             if(res.returncode != 0):
                 raise RuntimeError(
@@ -166,7 +218,7 @@ if __name__ == "__main__":
         build()
     except Exception as e:
         l.log(logging.ERROR,
-              'Failed building PyFMU, an exception was thrown:\n{e}')
+              f'Failed building PyFMU, an exception was thrown:\n{e}')
         sys.exit(-1)
 
     l.debug('Succesfully build project.')

@@ -3,6 +3,7 @@ from pathlib import Path
 
 _resources = None
 
+_wrapper_name = 'pyfmu'
 
 class Resources:
     """Singleton object representing static resources.
@@ -34,6 +35,8 @@ class Resources:
 
         # binaries
         self.binaries_dir: Path = self.root / 'wrapper' / 'binaries'
+        self.wrapper_win64 = self.binaries_dir / 'win64' / (_wrapper_name + '.dll')
+        self.wrapper_linux64 = self.binaries_dir / 'linux64' / (_wrapper_name + '.so')
 
         # VDMCheck
         self.vdmcheck_fmi2_ps = self.root / 'validation' / \

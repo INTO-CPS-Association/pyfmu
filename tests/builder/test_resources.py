@@ -1,35 +1,41 @@
-#from os import add_dll_directory
+"""This file contains tests related to how the Python FMU manages resources.
+
+For ease of testing fmpy is used as a cosimulation engine.
+"""
 from ctypes import cdll
+import platform
 
 from fmpy.simulation import simulate_fmu, FMU2Slave
 from fmpy.model_description import read_model_description
 
 from ..examples.example_finder import get_available_examples, ExampleArchive
+
+
 from pybuilder.resources.resources import Resources
 
 import pytest
 
-"""This file contains tests related to how the Python FMU manages resources.
-
-For ease of testing fmpy is used as a cosimulation engine.
-"""
 
 
 def test_shared_library_can_be_loaded():
 
+    sys = platform.system()
+
     for pname in get_available_examples():
 
         with ExampleArchive(pname) as archive:
+            
 
-            # TODO load appropriate dll
-            lib_dir = Resources.get().binaries_dir / 'win64'
-            lib_path = lib_dir / 'libpyfmu.dll'
-
-            p = str(lib_path.resolve())
+            if(sys == 'Windows'):
+                p = archive.wrapper_win64
+            elif(sys == 'Linux'):
+                p = archive.wrapper_linux64
+            else:
+                raise NotImplementedError(f'Not implemented for platform {sys}')
+            
+            p = str(p.resolve())
 
             lib_loaded = cdll.LoadLibrary(p)
-
-            test = 10
 
 
 def test_singleInstantiation_canSimulate():

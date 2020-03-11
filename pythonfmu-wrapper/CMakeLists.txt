@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(libpyfmu LANGUAGES C CXX)
+project(pyfmu LANGUAGES C CXX)
 
 
 # Force to use stable Python ABI https://docs.python.org/3/c-api/stable.html
@@ -25,9 +25,6 @@ target_include_directories(${PROJECT_NAME}
 
 target_compile_features(${PROJECT_NAME} PUBLIC "cxx_std_20")
 
-message(STATUS ${Python3_LIBRARIES})
-message(STATUS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
-
 target_link_libraries(${PROJECT_NAME} 
         PUBLIC 
         ${Python3_LIBRARIES}
@@ -35,9 +32,3 @@ target_link_libraries(${PROJECT_NAME}
         ${CONAN_LIBS}
         )
 
-
-
-
-# we are trying to link to the static Python library py3x.lib
-#set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-#set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Release>:Release>")

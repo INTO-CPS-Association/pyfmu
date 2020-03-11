@@ -32,8 +32,8 @@ class TestExport():
 
 
             assert a.binaries_dir.is_dir()
-            assert (a.binaries_dir / 'win64' / 'libpyfmu.dll').is_file()
-            assert (a.binaries_dir / 'linux64' / 'libpyfmu.so').is_file()
+            assert (a.binaries_dir / 'win64' / 'pyfmu.dll').is_file()
+            assert (a.binaries_dir / 'linux64' / 'pyfmu.so').is_file()
 
     def test_export_validProject_libCopied(self):
         with ExampleArchive('Adder') as a:
