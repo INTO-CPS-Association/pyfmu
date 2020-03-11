@@ -34,22 +34,23 @@ param(
 	[string] $fmu
 )
 
+
+
 # Taken from https://stackoverflow.com/questions/34559553/create-a-temporary-directory-in-powershell
 function New-TemporaryDirectory {
-    $parent = [System.IO.Path]::GetTempPath()
-    [string] $name = [System.Guid]::NewGuid()
+	$parent = [System.IO.Path]::GetTempPath()
+	[string] $name = [System.Guid]::NewGuid()
 	$newFolderPath = Join-Path $parent $name
-    New-Item -Path $newFolderPath -ItemType Directory -Force
+	New-Item -Path $newFolderPath -ItemType Directory -Force
 	return $newFolderPath
 }
 
 # Taken from https://stackoverflow.com/questions/27768303/how-to-unzip-a-file-in-powershell
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-function Unzip
-{
-    param([string]$zipfile, [string]$outpath)
+function Unzip {
+	param([string]$zipfile, [string]$outpath)
 
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($zipfile, $outpath)
+	[System.IO.Compression.ZipFile]::ExtractToDirectory($zipfile, $outpath)
 }
 
 if ($fmu -eq $null) {
@@ -64,11 +65,11 @@ $fmuExtension = [IO.Path]::GetExtension($fmu)
 $unzipDir = ""
 
 if ($fmuExtension -eq ".fmu") {
-    $unzipDir = New-TemporaryDirectory
+	$unzipDir = New-TemporaryDirectory
 	$targetZipFile = Join-Path $unzipDir "fmu.zip"
-    Copy-item $fmu -Destination $targetZipFile[0] -Force
+	Copy-item $fmu -Destination $targetZipFile[0] -Force
 	Expand-Archive $targetZipFile[0] -DestinationPath $unzipDir[0]
-    $xmlFile = (Join-Path $unzipDir "modelDescription.xml")[0]
+	$xmlFile = (Join-Path $unzipDir "modelDescription.xml")[0]
 }
 
 $vdm_file = "vdm_sl_model.vdmsl"
@@ -77,14 +78,22 @@ $vdm_var = "vdm_sl_model"
 java -jar fmi2vdm-0.0.2.jar $xmlFile $vdm_var | out-file $vdm_file -Encoding ascii
 
 # See https://stackoverflow.com/questions/219585/including-all-the-jars-in-a-directory-within-the-java-classpath
-java -Xmx1g -cp "vdmj-4.3.0.jar;annotations-1.0.0.jar;annotations2-1.0.0.jar" com.fujitsu.vdmj.VDMJ -vdmsl -q -annotations -e "isValidFMIModelDescription($vdm_var)" model $vdm_file
+$res = java -Xmx1g -cp "vdmj-4.3.0.jar;annotations-1.0.0.jar;annotations2-1.0.0.jar" com.fujitsu.vdmj.VDMJ -vdmsl -q -annotations -e "isValidFMIModelDescription($vdm_var)" model $vdm_file
 
 if (!($unzipDir -eq "")) {
-	Remove-Item �path $unzipDir[0] �recurse -force
+	Remove-Item -path $unzipDir[0] -recurse -force
 }
 
 if ($v -eq "") {
-	Remove-Item �path $vdm_file -force
-} else {
-	Rename-Item �path $vdm_file $v
+	Remove-Item -path $vdm_file -force
+}
+else {
+	Rename-Item -path $vdm_file $v
+}
+
+if ($res -eq 'true') {
+	return "No errors found."
+}
+else {
+	return "Errors found."
 }

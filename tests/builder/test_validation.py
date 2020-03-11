@@ -9,10 +9,10 @@ from fmpy import simulate_fmu
 
 
 def test_validate_md_VDMCheck(tmpdir):
-    
+
     for pname in get_available_examples():
-        
+
         with ExampleArchive(pname) as archive:
-            results = validate_modelDescription(archive.model_description, use_vdmcheck=True)
+            results = validate_modelDescription(
+                archive.model_description, use_vdmcheck=True)
             assert(results.valid == True)
-        
