@@ -267,24 +267,24 @@ void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
   }
 
   auto f = PyObject_CallMethod(pInstance_, "__get_real__", "(OO)", vrs, refs);
-  bool call_successful = f != nullptr;
+  bool call_successful = (f != nullptr);
 
   Py_DECREF(vrs);
 
   if (call_successful)
   {
-    std::string py_err_msg = get_py_exception();
-    logger->error(py_err_msg);
-  }
-  else
-  {
-    Py_DECREF(f);
+      Py_DECREF(f);
 
     for (int i = 0; i < nvr; i++)
     {
       PyObject *value = PyList_GetItem(refs, i);
       values[i] = PyFloat_AsDouble(value);
     }
+  }
+  else
+  {
+    std::string py_err_msg = get_py_exception();
+    logger->error(py_err_msg);
   }
 
   Py_DECREF(refs);
@@ -470,6 +470,25 @@ PyObjectWrapper &PyObjectWrapper::operator=(PyObjectWrapper &&other)
   this->pInstance_ = other.pInstance_;
   this->logger = move(other.logger);
   return *this;
+}
+
+void PyObjectWrapper::propagate_python_log_messages()
+{
+  PyGIL g;
+
+  auto f = PyObject_CallMethod(pInstance_, "__get_log_size__", "()");
+  bool call_successful = f != nullptr;
+
+  if (call_successful)
+  { 
+    long test = PyLong_AsLong(f);  
+  }
+  else
+  {
+    std::string py_err_msg = get_py_exception();
+    logger->error(py_err_msg);
+  }
+  Py_DECREF(f);
 }
 
 } // namespace pythonfmu

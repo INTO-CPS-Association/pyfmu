@@ -4,7 +4,7 @@
 #include <memory>
 #include <filesystem>
 
-#include "Python.h"
+#include <Python.h>
 
 #include "Logger.hpp"
 #include "fmi/fmi2TypesPlatform.h"
@@ -77,6 +77,9 @@ private:
      * >> auto instance = instantiate_main_class('adder', 'Adder')
      */
     void instantiate_main_class(std::string module_name, std::string main_class);
+
+    
+    void propagate_python_log_messages();
 };
 
 } // namespace pythonfmu

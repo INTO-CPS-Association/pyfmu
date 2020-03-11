@@ -64,6 +64,23 @@ class Fmi2Slave:
         if(define_attribute):
             self._define_variable(var)    
 
+    def register_log_category(self, name : str):
+        """Registers a new log category.
+        This information is used by co-simulation engines to filter messages
+        
+        Arguments:
+            name {str} -- name of the category.
+
+        Examples:
+
+        ```
+        self.register_log_category('runtime validation')
+
+        ```
+        """
+
+        pass
+
     def setup_experiment(self, start_time: float):
         pass
 
@@ -73,7 +90,6 @@ class Fmi2Slave:
     def exit_initialization_mode(self):
         pass
 
-    @abstractmethod
     def do_step(self, current_time: float, step_size: float) -> bool:
         pass
 
@@ -82,6 +98,17 @@ class Fmi2Slave:
 
     def terminate(self):
         pass
+    
+    def __pop_log_message__(self) -> str:
+        pass
+
+    def __get_log_size(self) -> int:
+        """Returns the number of log messages that are currently on the log stack.
+
+        Returns:
+            int -- [description]
+        """
+        return 10
 
     def __get_integer__(self, vrs, refs):
         for i in range(len(vrs)):
