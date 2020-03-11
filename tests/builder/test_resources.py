@@ -8,7 +8,7 @@ import platform
 from fmpy.simulation import simulate_fmu, FMU2Slave
 from fmpy.model_description import read_model_description
 
-from ..examples.example_finder import get_available_examples, ExampleArchive
+from ..examples.example_finder import get_all_examples,get_correct_examples,get_incorrect_examples, ExampleArchive
 
 
 from pybuilder.resources.resources import Resources
@@ -21,7 +21,7 @@ def test_shared_library_can_be_loaded():
 
     sys = platform.system()
 
-    for pname in get_available_examples():
+    for pname in get_all_examples():
 
         with ExampleArchive(pname) as archive:
             
@@ -50,7 +50,7 @@ def test_singleInstantiation_canSimulate():
 
 def test_multipleExports_canSimulate():
 
-    for pname in get_available_examples():
+    for pname in get_correct_examples():
 
         with ExampleArchive(pname) as archive:
 
@@ -63,7 +63,7 @@ def test_multipleExports_canSimulate():
 
 def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
 
-    for idx, pname in enumerate(get_available_examples()):
+    for idx, pname in enumerate(get_correct_examples()):
 
         with ExampleArchive(pname) as archive:
 

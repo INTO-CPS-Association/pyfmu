@@ -9,7 +9,7 @@ from pybuilder.builder.generate import create_project, PyfmuProject
 
 import pytest
 
-from ..examples.example_finder import get_example_project, ExampleProject, ExampleArchive, get_available_examples
+from ..examples.example_finder import get_example_project, ExampleProject, ExampleArchive, get_all_examples
 
 def get_empty_archive(root : Path) -> PyfmuArchive:
     return PyfmuArchive(root,"")
@@ -61,7 +61,7 @@ class TestExport():
     def test_export_multipleInRow_modelDescriptionCorrect(self):
         
         
-        fnames = get_available_examples()
+        fnames = get_all_examples()
         mds = []
         for f in fnames:
             with ExampleArchive(f) as a:

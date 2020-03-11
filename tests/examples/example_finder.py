@@ -9,23 +9,48 @@ import stat
 from pybuilder.builder.export import export_project, PyfmuProject, PyfmuArchive
 
 
-def get_available_examples():
-    """Returns the set of available examples.
+
+_correct_example = {
+    'Adder',
+    'ConstantSignalGenerator',
+    'SineGenerator'
+}
+
+_incorrect_examples = {
+    'NoneReturner'
+}
+
+def get_incorrect_examples():
+    """Returns the set of examples that are expected to fail
 
     Returns:
-        [Set] -- The set of available examples
+        [Set] -- The set of all examples which are designed to cause faults.
     """
-    return {
-        'Adder',
-        'ConstantSignalGenerator',
-        'SineGenerator'
-    }
+
+    return _incorrect_examples
+
+def get_correct_examples():
+    """Returns the set of examples that are expected to work correctly.
+
+    Returns:
+        [Set] -- The set of all examples which should function correctly.
+    """
+    return _correct_example
+
+def get_all_examples():
+    """Returns the set of all available examples including the ones that are expected to fail.
+
+    Returns:
+        [Set] -- The set of all available examples
+    """
+    return get_correct_examples() | get_incorrect_examples()
+
 
 
 def get_example_project(name: str) -> Path:
     """ Gets the path to a specific example project, to get an fmu use get_example_fmu(...)
     """
-    if(name not in get_available_examples()):
+    if(name not in get_all_examples()):
         raise ValueError(
             f'Failed to resolve the path to the example project. The project {name} does not exist.')
 
@@ -65,7 +90,7 @@ class ExampleProject():
 
     def __init__(self, project_name: str):
 
-        if(project_name not in get_available_examples()):
+        if(project_name not in get_all_examples()):
             raise ValueError(
                 f'Unable to read the example project. The specified project {project_name} could not be found.')
 
