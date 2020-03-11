@@ -25,7 +25,7 @@ class PyfmuProject():
                  project_configuration_path: Path = None,
                  pyfmu_dir: Path = None,
                  ):
-        
+
         self.main_class = main_class
         self.main_script = main_script
         self.main_script_path = main_script_path
@@ -45,10 +45,12 @@ class PyfmuProject():
             p = Path(p)
 
         except Exception:
-            raise RuntimeError('Unable to load project. The specified argument could not be converted to a path')
-        
+            raise RuntimeError(
+                'Unable to load project. The specified argument could not be converted to a path')
+
         if(not p.is_dir()):
-                raise FileNotFoundError(f'Unable to load project. The specified argument does not appear to be a directory')
+            raise FileNotFoundError(
+                f'Unable to load project. The specified argument does not appear to be a directory')
 
         # Verify that path points to a valid pyfmu project.
 
@@ -181,8 +183,7 @@ def _write_templateScript_to_project(project: PyfmuProject):
 
 def _write_projectConfig_to_project(project: PyfmuProject):
 
-    project_configuration_path = project.root / \
-        'resources' / 'project.json'
+    project_configuration_path = project.root / 'project.json'
 
     config = {
         "main_class": project.main_class,
@@ -197,7 +198,23 @@ def _write_projectConfig_to_project(project: PyfmuProject):
 
 
 def create_project(project_path: str, main_class_name: str, overwrite=True) -> PyfmuProject:
+    """Creates a new PyFMU project at the specified path.
 
+    Parameters
+    ----------
+    project_path : str
+        output path of the project
+    main_class_name : str
+        name of the main script 
+    overwrite : bool, optional
+        if true overwrite any existing files at the specified output path, by default True
+
+    Returns
+    -------
+    PyfmuProject
+        An object representing the exported project. 
+        This may be used to access the paths of the various project artifacts.
+    """
     project_path = Path(project_path)
 
     if(overwrite and exists(project_path)):

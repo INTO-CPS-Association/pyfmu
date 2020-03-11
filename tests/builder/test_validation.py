@@ -8,7 +8,7 @@ from pybuilder.builder.validate import validate, validate_modelDescription
 from fmpy import simulate_fmu
 
 
-def test_validate_md_VDMCheck(tmpdir):
+def atest_validate_md_VDMCheck(tmpdir):
 
     for pname in get_available_examples():
 

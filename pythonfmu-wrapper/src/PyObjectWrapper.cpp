@@ -267,17 +267,24 @@ void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
   }
 
   auto f = PyObject_CallMethod(pInstance_, "__get_real__", "(OO)", vrs, refs);
-  Py_DECREF(vrs);
-  if (f == nullptr)
-  {
-    handle_py_exception();
-  }
-  Py_DECREF(f);
+  bool call_successful = f != nullptr;
 
-  for (int i = 0; i < nvr; i++)
+  Py_DECREF(vrs);
+
+  if (call_successful)
   {
-    PyObject *value = PyList_GetItem(refs, i);
-    values[i] = PyFloat_AsDouble(value);
+    std::string py_err_msg = get_py_exception();
+    logger->error(py_err_msg);
+  }
+  else
+  {
+    Py_DECREF(f);
+
+    for (int i = 0; i < nvr; i++)
+    {
+      PyObject *value = PyList_GetItem(refs, i);
+      values[i] = PyFloat_AsDouble(value);
+    }
   }
 
   Py_DECREF(refs);
