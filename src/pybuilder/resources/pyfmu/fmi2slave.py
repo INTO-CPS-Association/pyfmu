@@ -1,10 +1,15 @@
 from abc import ABC, abstractmethod
+from typing import List, Iterable
 from uuid import uuid4
-from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability
-from .fmi2variables import ScalarVariable
-
 import logging
 
+from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
+from .fmi2logging import Fmi2StdLogCats, FMI2LogMessage
+from .fmi2variables import ScalarVariable
+from .fmi2logging import FMI2Logger
+
+
+_internal_log_catergory = 'pyfmu'
 
 log = logging.getLogger('fmu')
 
@@ -23,6 +28,8 @@ class Fmi2Slave:
         self.version = version
         self.value_reference_counter = 0
         self.used_value_references = {}
+
+        self.logger = Fmi2Logger()
 
     def register_variable(self,
                           name: str,
@@ -98,17 +105,84 @@ class Fmi2Slave:
 
     def terminate(self):
         pass
-    
-    def __pop_log_message__(self) -> str:
+
+    def __set_debug_logging__(self, logging_on : bool, categories : Iterable[str]) -> None:
+        """Defines the set of active log categories for which log messages will logged.
+        Messages logged to any other categories will be ignored.
+
+
+        This function is called by the tool though the fmi2SetDebugLogging function.
+
+        Note that the tool can only "see" categories registered in the model description using the register_log_category.
+
+        
+        Arguments:
+            categories {Iterable[str]} -- a set of categories which are set to be active
+            logging_on {bool} -- if true, enable the categories, otherwise disable them
+        
+        Defaults category mapping:
+            FMI2 specifies several standardized categories.
+
+            * logEvents                 : Log all events (during initialization and simulation).
+            * logSingularLinearSystems  : Log the solution of linear systems of equations if the solution is singular
+                                          (and the tool picked one solution of the infinitely many solutions).
+            * logNonlinearSystems       : Log the solution of nonlinear systems of equations.
+            * logDynamicStateSelection  : Log the dynamic selection of states.
+            * logStatusWarning          : Log messages when returning fmi2Warning status from any function.
+            * logStatusDiscard          : Log messages when returning fmi2Discard status from any function.
+            * logStatusError            : Log messages when returning fmi2Error status from any function.
+            * logStatusFatal            : Log messages when returning fmi2Fatal status from any function.
+            * logStatusPending          : Log messages when returning fmi2Pending status from any function.
+            * logAll                    : Log all messages.
+
+            The standard standard leaves it up to the implementation to decide which "categories" map to each of the log-categories.
+
+            ``` Python
+            self.log(Fmi2Status.OK,"events","initialized FMU")
+            ```
+
+        Examples:
+        ``` Python
+            # standard logging
+            fmu = MyFMU()
+            fmu.register_standard_log_catgories()
+            fmu.__set_debug_logging__({'LogAll'})
+
+            fmu.log(Fmi2Status.ok,'logEvents',)
+
+        ```
+        """
+
+       
+        
+    def log(self, message : str, category : str,status: Fmi2Status) -> None:
+        """Logs a message to the fmi interface.
+
+        Note that only categories which are set as active using the __set_debug_logging__, are propageted to the tool.
+        The function is called by the tool using with the categories which the user wishes to be active.
+        
+        Arguments:
+            status {Fmi2Status} -- The current status of the FMU.
+            category {str} -- The category of the log message.
+            message {str} -- The log message itself.
+
+        Logging categories mappings:
+
+
+        """
+
+        self.logger.log(status,category,message)
+            
+    def __get_log_messages__(self):
         pass
 
-    def __get_log_size(self) -> int:
+    def __get_log_size__(self) -> int:
         """Returns the number of log messages that are currently on the log stack.
 
         Returns:
             int -- [description]
         """
-        return 10
+        return None
 
     def __get_integer__(self, vrs, refs):
         for i in range(len(vrs)):

@@ -1,17 +1,16 @@
-
-#include "fmi/fmi2TypesPlatform.h"
-#include "pythonfmu/PyConfiguration.hpp"
-#include <pythonfmu/PyException.hpp>
-#include <pythonfmu/PyObjectWrapper.hpp>
-
-#include <fmt/format.h>
-
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
+
+#include <fmt/format.h>
+
+#include "fmi/fmi2TypesPlatform.h"
+#include "pythonfmu/PyConfiguration.hpp"
+#include <pythonfmu/PyException.hpp>
+#include <pythonfmu/PyObjectWrapper.hpp>
 
 using namespace fmt;
 using namespace pyconfiguration;
@@ -267,11 +266,12 @@ void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
   }
 
   auto f = PyObject_CallMethod(pInstance_, "__get_real__", "(OO)", vrs, refs);
-  bool call_successful = (f != nullptr);
+  propagate_python_log_messages();
+  bool call_failed = (f != nullptr);
 
   Py_DECREF(vrs);
 
-  if (call_successful)
+  if (call_failed)
   {
       Py_DECREF(f);
 
@@ -472,23 +472,34 @@ PyObjectWrapper &PyObjectWrapper::operator=(PyObjectWrapper &&other)
   return *this;
 }
 
-void PyObjectWrapper::propagate_python_log_messages()
+void PyObjectWrapper::propagate_python_log_messages() const
 {
   PyGIL g;
 
   auto f = PyObject_CallMethod(pInstance_, "__get_log_size__", "()");
-  bool call_successful = f != nullptr;
+  bool call_failed = (f == nullptr);
 
-  if (call_successful)
+  if (call_failed)
   { 
-    long test = PyLong_AsLong(f);  
+    std::string py_err_msg = get_py_exception();
+    logger->error(format("Failed to read log messages from the Python instance. Call to __get_log_size__ failed due to:\n{}", py_err_msg));
+    return;
   }
-  else
+
+  long number_of_messages = PyLong_AsLong(f);
+  Py_DECREF(f);
+
+  bool failed_to_parse = (number_of_messages == -1);
+  if(failed_to_parse)
   {
     std::string py_err_msg = get_py_exception();
-    logger->error(py_err_msg);
+    logger->error(format("Failed to read log messages from the Python instance. Call to __get_log_size__ returned invalid type:\n{}", py_err_msg));
+    return;
   }
-  Py_DECREF(f);
+
+  
+  int a = 10;
+  
 }
 
 } // namespace pythonfmu
