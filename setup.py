@@ -9,7 +9,8 @@ setup(
     install_requires=["numpy", "pandas", "pytest", "Sphinx",
                       "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi", "conan", "fmpy"],
 
-
+    python_requires='>=3',
+    
     entry_points={'console_scripts': ['pyfmu=pybuilder.pyfmu:main']}
 
 

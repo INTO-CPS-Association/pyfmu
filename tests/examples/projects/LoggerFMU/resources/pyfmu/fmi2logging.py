@@ -213,18 +213,3 @@ class Fmi2Logger():
 
         self._categories_to_predicates = {**self._categories_to_predicates,**predicate_matches}
 
-    def register_all_standard_categories(self) -> None:
-        """Convenience method used to register all standard FMI2 log categories
-        """
-        self.register_standard_categories([
-            Fmi2StdLogCats.logEvents,
-            Fmi2StdLogCats.logSingularLinearSystems,
-            Fmi2StdLogCats.logNonlinearSystems,
-            Fmi2StdLogCats.logDynamicStateSelection,
-            Fmi2StdLogCats.logStatusWarning,
-            Fmi2StdLogCats.logStatusWarning,
-            Fmi2StdLogCats.logStatusError,
-            Fmi2StdLogCats.logStatusFatal,
-            Fmi2StdLogCats.logStatusPending,
-            Fmi2StdLogCats.logAll,
-        ])

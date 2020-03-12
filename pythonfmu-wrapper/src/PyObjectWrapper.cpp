@@ -266,12 +266,14 @@ void PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
   }
 
   auto f = PyObject_CallMethod(pInstance_, "__get_real__", "(OO)", vrs, refs);
-  propagate_python_log_messages();
-  bool call_failed = (f != nullptr);
-
   Py_DECREF(vrs);
+  propagate_python_log_messages();
+  
+  bool call_failed = (f == nullptr);
 
-  if (call_failed)
+  
+
+  if (!call_failed)
   {
       Py_DECREF(f);
 

@@ -144,3 +144,32 @@ def atest_identicalNamesDifferentTypes_throws():
 
             fmu_a.instantiate()
             fmu_b.instantiate()
+
+
+def test_Adder():
+    with ExampleArchive('Adder') as a:
+
+        md_a = read_model_description(str(a.root))
+
+        instance_a = 'a'
+
+        fmu_a = FMU2Slave(guid=md_a.guid,
+                            unzipDirectory=a.root,
+                            modelIdentifier=md_a.coSimulation.modelIdentifier,
+                            instanceName=instance_a,
+                            fmiCallLogger=None)
+
+        
+        fmu_a.instantiate()
+        # set input a
+        fmu_a.setReal([1],[1])
+        # set input b
+        fmu_a.setReal([2],[2])
+
+        fmu_a.doStep(0,1)
+
+        # read output
+        s = fmu_a.getReal([0])[0]
+        assert s == 3
+
+

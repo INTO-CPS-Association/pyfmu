@@ -20,7 +20,9 @@ constexpr char exporter_script_name[] = "pyfmu";
 set<string> examples = {
     "Adder",
     "ConstantSignalGenerator",
-    "SineGenerator"};
+    "SineGenerator",
+    "LoggerFMU"
+    };
 
 /**
  * Returns the path to the example projects located in the test directory.

@@ -54,6 +54,8 @@ TEST_CASE("fmifunctions")
 }
 */
 
+
+
 TEST_CASE("PyObjectWrapper")
 {
 
@@ -103,7 +105,28 @@ TEST_CASE("PyObjectWrapper")
 
     s = fmi2GetReal(c, get_refs, 1, get_vals);
     REQUIRE(s == fmi2OK);
-    REQUIRE(get_vals[0] == 50);
+    REQUIRE(get_vals[0] == 15);
+  }
+}
+
+TEST_CASE("Logging")
+{
+  SECTION("LoggerFMU")
+  {
+    ExampleArchive a("LoggerFMU");
+
+    string resources_uri = a.getResourcesURI();
+    const char *resources_cstr = resources_uri.c_str();
+
+    spdlog::info("resources as cstr {}", resources_cstr);
+
+    fmi2CallbackFunctions callbacks = {.logger = logger,
+                                       .allocateMemory = calloc,
+                                       .freeMemory = free,
+                                       .stepFinished = stepFinished,
+                                       .componentEnvironment = nullptr};
+
+    fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
   }
 }
 
