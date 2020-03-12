@@ -504,7 +504,26 @@ void PyObjectWrapper::propagate_python_log_messages() const
   }
 
   
-  int a = 10;
+  f = PyObject_CallMethod(pInstance_,"__pop_log_messages__","(i)",number_of_messages);
+
+  PyObject *messages = PyList_New(number_of_messages);
+
+
+  for(int i = 0; i < number_of_messages; ++i)
+  {
+    PyObject *value = PyList_GetItem(messages, i);
+    
+    char status[100] = {0};
+    char category[100] = {0};
+    char message[100] = {0};
+
+    // PyArg_UnpackTuple(value,"s|s|s",status,category,message);
+
+    //values[i] = PyObject_IsTrue(value);
+  }
+   
+    
+
   
 }
 

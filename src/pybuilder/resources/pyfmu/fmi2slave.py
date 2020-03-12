@@ -195,10 +195,14 @@ class Fmi2Slave:
         """
         if(n > len(self.logger)):
             self.log(f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
+            return None
 
         messages = self.logger.pop_messages(n)
 
-        return messages
+        # for convenience we convert the object into tuples
+        messages_tuples = [(m.status,m.category,m.message) for m in messages]
+
+        return messages_tuples
 
         
 
