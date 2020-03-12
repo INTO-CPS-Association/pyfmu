@@ -87,14 +87,15 @@ TEST_CASE("PyObjectWrapper")
     fmi2Status s;
 
     s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True, end_time);
+    fmi2ExitInitializationMode(c);
     REQUIRE(s == fmi2OK);
 
-    unsigned int set_refs[] = {0, 1};
+    unsigned int set_refs[] = {1, 2};
     double set_vals[] = {5, 10};
     s = fmi2SetReal(c, set_refs, 2, set_vals);
     REQUIRE(s == fmi2OK);
 
-    unsigned int get_refs[] = {2};
+    unsigned int get_refs[] = {0};
     double get_vals[] = {0};
     s = fmi2GetReal(c, get_refs, 1, get_vals);
     REQUIRE(s == fmi2OK);
@@ -127,6 +128,8 @@ TEST_CASE("Logging")
                                        .componentEnvironment = nullptr};
 
     fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
+
+    fmi2DoStep(c,0,1,false);
   }
 }
 

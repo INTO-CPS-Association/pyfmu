@@ -45,7 +45,6 @@ class Fmi2Slave:
         if(standard_log_categories):
             self.logger.register_all_standard_categories()
         
-
     def register_variable(self,
                           name: str,
                           data_type: Fmi2DataTypes,
@@ -188,8 +187,20 @@ class Fmi2Slave:
 
         self.logger.log(message,category,status)
             
-    def __get_log_messages__(self):
-        pass
+    def __pop_log_messages__(self,n : int) -> List[Fmi2LogMessage]:
+        """Function called by the wrapper to fetch log messages
+        
+        Arguments:
+            n {int} -- Number of messages to fetch
+        """
+        if(n > len(self.logger)):
+            self.log(f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
+
+        messages = self.logger.pop_messages(n)
+
+        return messages
+
+        
 
     def __get_log_size__(self) -> int:
         """Returns the number of log messages that are currently on the log stack.

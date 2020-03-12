@@ -277,3 +277,54 @@ def test_logDefaultCategory_loggedWithEvent():
     logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logEvents])
     logger.log('test')
+
+
+# message stack
+
+def test_len_logIncreasesLength():
+    logger = Fmi2Logger()
+    logger.register_standard_categories([Fmi2StdLogCats.logAll])
+
+    assert(len(logger) == 0)
+
+    logger.log('test')
+
+    assert(len(logger) == 1)
+
+    logger.log('test')
+
+    assert(len(logger) == 2)
+
+def test_len_popDecreasesLength():
+    logger = Fmi2Logger()
+    logger.register_standard_categories([Fmi2StdLogCats.logAll])
+
+    assert(len(logger) == 0)
+
+    logger.log('test')
+
+    assert(len(logger) == 1)
+
+    logger.log('test')
+
+    assert(len(logger) == 2)
+
+    logger.pop_messages(1)
+
+    assert(len(logger) == 1)
+
+    logger.pop_messages(1)
+
+    assert(len(logger) == 0)
+
+def test_pop_returnsMessagesFifo():
+    logger = Fmi2Logger()
+    logger.register_standard_categories([Fmi2StdLogCats.logAll])
+
+    logger.log("a")
+    logger.log("b")
+
+    messages = logger.pop_messages(2)
+    messages = [m.message for m in messages]
+    
+    assert(messages == ['a','b'])

@@ -187,12 +187,16 @@ bool PyObjectWrapper::doStep(double currentTime, double stepSize)
 {
   PyGIL g;
 
-  auto f =
-      PyObject_CallMethod(pInstance_, "do_step", "(dd)", currentTime, stepSize);
+  auto f = PyObject_CallMethod(pInstance_, "do_step", "(dd)", currentTime, stepSize);
+
   if (f == nullptr)
   {
-    handle_py_exception();
+    std::string err = get_py_exception();
+    logger->error(format("FMI2 do step failed due to Python error:\n{}",err));
   }
+
+  propagate_python_log_messages();
+
   bool status = static_cast<bool>(PyObject_IsTrue(f));
   Py_DECREF(f);
   return status;

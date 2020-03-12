@@ -1,7 +1,7 @@
 """Defines logging related functionality
 """
 from enum import Enum
-from typing import Iterable
+from typing import Iterable,List
 
 from .fmi2types import Fmi2Status
 
@@ -61,7 +61,7 @@ class Fmi2Logger():
     def __init__(self, callback = None):
         
         self._callback = callback
-        self._log_stack = []
+        self._log_stack : List[Fmi2LogMessage] = []
         self._categories_to_predicates = {}
         self._active_log_categories = set()
 
@@ -97,9 +97,9 @@ class Fmi2Logger():
             """
         
         if(logging_on):
-            self.a_active_log_categoriesctive_log_categories = self.a_active_log_categoriesctive_log_categories.union(categories)
+            self._active_categories = self._active_categories.union(categories)
         else:
-            self.a_active_log_categoriesctive_log_categories = self.a_active_log_categoriesctive_log_categories.difference(categories)
+            self._active_categories = self._active_categories.difference(categories)
 
     def register_log_category(self,category : str, aliases = None, predicate = None) -> None:
         """Registers a new log category
@@ -214,6 +214,7 @@ class Fmi2Logger():
         self._categories_to_predicates = {**self._categories_to_predicates,**predicate_matches}
 
     def register_all_standard_categories(self) -> None:
+
         """Convenience method used to register all standard FMI2 log categories
         """
         self.register_standard_categories([
@@ -228,3 +229,21 @@ class Fmi2Logger():
             Fmi2StdLogCats.logStatusPending,
             Fmi2StdLogCats.logAll,
         ])
+
+    def pop_messages(self, n : int) -> List[Fmi2LogMessage]:
+        """Pops the top n messages of the message stack
+        
+        Arguments:
+            n {int} -- number of messages to pop
+        
+        Returns:
+            List[Fmi2LogMessage] -- List of messages
+        """
+
+        messages = self._log_stack[-n:]
+        self._log_stack = self._log_stack[:-n]
+        
+        return messages
+
+    def __len__(self):
+        return len(self._log_stack)
