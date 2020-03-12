@@ -7,6 +7,8 @@ from .fmi2types import Fmi2Status
 
 # log category which the pyfmu framework logs to
 _internal_log_catergory = 'pyfmu'
+# default parameter for events
+_default_category = 'events'
 
 class Fmi2StdLogCats(Enum):
     """Standard log categories defined in the FMI2 specification.
@@ -60,6 +62,7 @@ class FMI2Logger():
         
         self._callback = callback
         self._log_stack = []
+        self._categories_to_predicates = {}
         self._active_log_categories = set()
 
     def set_active_log_categories(self, logging_on: bool, categories : Iterable[str]):
@@ -108,21 +111,105 @@ class FMI2Logger():
             aliases {[type]} -- [description] (default: {None})
             predicate {[type]} -- [description] (default: {None})
         """
-        pass
+        
+        if(aliases != None and predicate != None):
+            raise ValueError('Unable to register log category, both a set of aliases and predicate were supplied.')
+        
+        # if neither aliases or predicate is registed log category and category are assocaited
+        if(aliases == None and predicate == None):
+            def default_predicated(msg : FMI2LogMessage):
+                nonlocal category
+                return msg.category == category
+            
+            predicate = default_predicated
 
-    
-    def log(self,message : str,  category : str, status = Fmi2Status.ok) -> None:
+
+        if(aliases != None):
+
+            def alias_predicate(msg : FMI2LogMessage):
+                nonlocal aliases
+                return msg.category in aliases
+
+            predicate = alias_predicate
+        
+
+        self._categories_to_predicates[category] = predicate
+
+    def log(self,message : str,  category : str = _default_category, status = Fmi2Status.ok) -> None:
         
         msg = FMI2LogMessage(status,category,message)
         
         
         has_callback = (self._callback != None)
-        if(has_callback):
-            self._callback(msg)
-    
-        self._log_stack.append(msg)
+        
 
+        for p in self._categories_to_predicates.values():
+            if(p(msg) == True):
+                self._log_stack.append(msg)
 
+                # testing callback
+                if(has_callback): 
+                    self._callback(msg)
 
-    def _register_standard_categories(self) -> None:
-        pass
+    def register_standard_categories(self, categories : Iterable[Fmi2StdLogCats]) -> None:
+        
+        try:
+            categories = set(categories)
+        except Exception as e:
+            raise ValueError(f'Unable to register standard log categories. The specified categories could not be converted to a set.') from e
+
+        def events_predicate(msg : FMI2LogMessage):
+            c = msg.category.lower()
+            matches = {'event', 'events'}
+            return c in matches
+
+        def sls_predicate(msg: FMI2LogMessage):
+            c = msg.category.lower()
+            matches = {'singularlinearsystem'}
+            return c in matches
+
+        def nls_predicate(msg: FMI2LogMessage):
+            c = msg.category.lower()
+            matches = {'nonlinearsystems'}
+            return c in matches
+        
+        def dss_predicate(msg: FMI2LogMessage):
+            c = msg.category.lower()
+            matches = {'dynamicstateselection'}
+            return c in matches
+
+        def warning_predicate(msg: FMI2LogMessage):
+            return msg.status == Fmi2Status.warning
+
+        def discard_predicate(msg: FMI2LogMessage):
+            return msg.status == Fmi2Status.discard
+
+        def error_predicate(msg: FMI2LogMessage):
+            return msg.status == Fmi2Status.error
+
+        def fatal_predicate(msg: FMI2LogMessage):
+            return msg.status == Fmi2Status.fatal
+
+        def pending_predicate(msg: FMI2LogMessage):
+            return msg.status == Fmi2Status.pending
+
+        def all_predicate(_: FMI2LogMessage):
+            return True
+
+        predicates = {
+            Fmi2StdLogCats.logEvents : events_predicate,
+            Fmi2StdLogCats.logSingularLinearSystems : sls_predicate,
+            Fmi2StdLogCats.logNonlinearSystems : nls_predicate,
+            Fmi2StdLogCats.logNonlinearSystems : dss_predicate,
+            Fmi2StdLogCats.logStatusWarning : warning_predicate,
+            Fmi2StdLogCats.logStatusDiscard : discard_predicate,
+            Fmi2StdLogCats.logStatusError   : error_predicate,
+            Fmi2StdLogCats.logStatusFatal : fatal_predicate,
+            Fmi2StdLogCats.logStatusPending : pending_predicate,
+            Fmi2StdLogCats.logAll : all_predicate
+        }
+
+        predicate_matches = {cat : pred for cat,pred in predicates.items() if cat in categories }
+
+        self._categories_to_predicates = {**self._categories_to_predicates,**predicate_matches}
+
