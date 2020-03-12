@@ -165,17 +165,17 @@ class FMI2Logger():
 
         def sls_predicate(msg: FMI2LogMessage):
             c = msg.category.lower()
-            matches = {'singularlinearsystem'}
+            matches = {'singularlinearsystem','singularlinearsystems','sls'}
             return c in matches
 
         def nls_predicate(msg: FMI2LogMessage):
             c = msg.category.lower()
-            matches = {'nonlinearsystems'}
+            matches = {'nonlinearsystem','nonlinearsystems','nls'}
             return c in matches
         
         def dss_predicate(msg: FMI2LogMessage):
             c = msg.category.lower()
-            matches = {'dynamicstateselection'}
+            matches = {'dynamicstateselection','dss'}
             return c in matches
 
         def warning_predicate(msg: FMI2LogMessage):
@@ -200,7 +200,7 @@ class FMI2Logger():
             Fmi2StdLogCats.logEvents : events_predicate,
             Fmi2StdLogCats.logSingularLinearSystems : sls_predicate,
             Fmi2StdLogCats.logNonlinearSystems : nls_predicate,
-            Fmi2StdLogCats.logNonlinearSystems : dss_predicate,
+            Fmi2StdLogCats.logDynamicStateSelection : dss_predicate,
             Fmi2StdLogCats.logStatusWarning : warning_predicate,
             Fmi2StdLogCats.logStatusDiscard : discard_predicate,
             Fmi2StdLogCats.logStatusError   : error_predicate,

@@ -71,6 +71,96 @@ def test_logAllPredicate_allLogged():
 
 # standard categories
 
+def test_registerEvents_logEvent_logged():
+    count = 0
+
+    def logging_callback(msg):
+        nonlocal count
+        count += 1
+
+    logger = FMI2Logger(callback=logging_callback)
+    logger.register_standard_categories([Fmi2StdLogCats.logEvents])
+    
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    
+    assert(count == 6)
+
+def test_registerSingularLinearSystems_logSls_logged():
+    count = 0
+
+    def logging_callback(msg):
+        nonlocal count
+        count += 1
+
+    logger = FMI2Logger(callback=logging_callback)
+    logger.register_standard_categories([Fmi2StdLogCats.logSingularLinearSystems])
+    
+    logger.log('test',category="SingularLinearSystem")
+    logger.log('test',category="singularlinearsystem")
+    logger.log('test',category="sls")
+
+
+
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    
+    assert(count == 3)
+
+def test_registerNonLinearSystems_lognls_logged():
+    count = 0
+
+    def logging_callback(msg):
+        nonlocal count
+        count += 1
+
+    logger = FMI2Logger(callback=logging_callback)
+    logger.register_standard_categories([Fmi2StdLogCats.logNonlinearSystems])
+    
+    logger.log('test',category="NonLinearSystems")
+    logger.log('test',category="nonlinearsystems")
+    logger.log('test',category="nls")
+
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    
+    assert(count == 3)
+
+def test_registerLogDynamicStateSelection_logDss_logged():
+    count = 0
+
+    def logging_callback(msg):
+        nonlocal count
+        count += 1
+
+    logger = FMI2Logger(callback=logging_callback)
+    logger.register_standard_categories([Fmi2StdLogCats.logDynamicStateSelection])
+    
+    logger.log('test',category="DynamicStateSelection")
+    logger.log('test',category="dynamicstateselection")
+    logger.log('test',category="dss")
+    
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    
+    assert(count == 3)
+
 def test_registerWarning_logWarning_logged():
 
     count = 0
