@@ -4,9 +4,8 @@ from uuid import uuid4
 import logging
 
 from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
-from .fmi2logging import Fmi2StdLogCats, FMI2LogMessage
+from .fmi2logging import Fmi2StdLogCats, Fmi2LogMessage, Fmi2Logger
 from .fmi2variables import ScalarVariable
-from .fmi2logging import FMI2Logger
 
 
 _internal_log_catergory = 'pyfmu'

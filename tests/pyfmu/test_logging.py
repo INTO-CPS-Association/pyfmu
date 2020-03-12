@@ -1,15 +1,15 @@
-from pybuilder.resources.pyfmu.fmi2logging import FMI2Logger, FMI2LogMessage, Fmi2StdLogCats
+from pybuilder.resources.pyfmu.fmi2logging import Fmi2Logger, Fmi2LogMessage, Fmi2StdLogCats
 from pybuilder.resources.pyfmu.fmi2types import Fmi2Status
 
 def test_categoryNotRegistered_notLogged():
     
     logged = False
 
-    def logging_callback(msg : FMI2LogMessage):
+    def logging_callback(msg : Fmi2LogMessage):
         nonlocal logged 
         logged = True
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.log("test")
 
     assert(not logged)
@@ -18,11 +18,11 @@ def test_customCategoryRegistered_logged():
 
     logged = False
 
-    def logging_callback(msg : FMI2LogMessage):
+    def logging_callback(msg : Fmi2LogMessage):
         nonlocal logged 
         logged = True
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_log_category('a')
     logger.log("hello world!",'a')
 
@@ -36,7 +36,7 @@ def test_registerAlias_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_log_category('ab',aliases={'a','b'})
     logger.log('test','a')
     logger.log('test','b')
@@ -56,7 +56,7 @@ def test_logAllPredicate_allLogged():
     def log_all_predicate(category : str) -> bool:
         return True
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_log_category('all',predicate=log_all_predicate)
     
     # different categories
@@ -78,7 +78,7 @@ def test_registerEvents_logEvent_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logEvents])
     
     logger.log('test',status=Fmi2Status.ok)
@@ -97,7 +97,7 @@ def test_registerSingularLinearSystems_logSls_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logSingularLinearSystems])
     
     logger.log('test',category="SingularLinearSystem")
@@ -122,7 +122,7 @@ def test_registerNonLinearSystems_lognls_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logNonlinearSystems])
     
     logger.log('test',category="NonLinearSystems")
@@ -145,7 +145,7 @@ def test_registerLogDynamicStateSelection_logDss_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logDynamicStateSelection])
     
     logger.log('test',category="DynamicStateSelection")
@@ -169,7 +169,7 @@ def test_registerWarning_logWarning_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logStatusWarning])
     
     logger.log('test',status=Fmi2Status.ok)
@@ -189,7 +189,7 @@ def test_registerError_logError_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logStatusError])
     
     
@@ -210,7 +210,7 @@ def test_registerFatal_logFatal_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logStatusError])
     
     
@@ -231,7 +231,7 @@ def test_registerPending_logPending_logged():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logStatusPending])
     
     
@@ -244,6 +244,29 @@ def test_registerPending_logPending_logged():
     
     assert(count == 1)
 
+def test_registerall_logsAll():
+
+    count = 0
+
+    def logging_callback(msg):
+        nonlocal count
+        count += 1
+
+    logger = Fmi2Logger(callback=logging_callback)
+    logger.register_standard_categories([Fmi2StdLogCats.logAll])
+    
+    
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    
+    assert(count == 6)
+
+# defaults
+
 def test_logDefaultCategory_loggedWithEvent():
     count = 0
 
@@ -251,6 +274,6 @@ def test_logDefaultCategory_loggedWithEvent():
         nonlocal count
         count += 1
 
-    logger = FMI2Logger(callback=logging_callback)
+    logger = Fmi2Logger(callback=logging_callback)
     logger.register_standard_categories([Fmi2StdLogCats.logEvents])
     logger.log('test')
