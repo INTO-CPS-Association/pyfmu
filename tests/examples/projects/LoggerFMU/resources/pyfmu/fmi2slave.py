@@ -151,9 +151,7 @@ class Fmi2Slave:
 
         ```
         """
-
-       
-        
+ 
     def log(self, message : str, category = 'event', status = Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
 

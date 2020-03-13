@@ -1,6 +1,8 @@
 from pybuilder.resources.pyfmu.fmi2logging import Fmi2Logger, Fmi2LogMessage, Fmi2StdLogCats
 from pybuilder.resources.pyfmu.fmi2types import Fmi2Status
 
+from pybuilder.resources.pyfmu.fmi2slave import Fmi2Slave
+
 def test_categoryNotRegistered_notLogged():
     
     logged = False
@@ -16,48 +18,38 @@ def test_categoryNotRegistered_notLogged():
 
 def test_customCategoryRegistered_logged():
 
-    logged = False
+    c = "test"
 
-    def logging_callback(msg : Fmi2LogMessage):
-        nonlocal logged 
-        logged = True
+    logger = Fmi2Logger()
+    logger.register_log_category(c)
+    logger.set_active_log_categories(True,[c])
+    
+    assert(len(logger) == 0)
+    
+    logger.log("hello world!",category=c)
 
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_log_category('a')
-    logger.log("hello world!",'a')
-
-    assert(logged)
+    assert(len(logger) == 1)
 
 def test_registerAlias_logged():
     
-    count = 0
-
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
-
-    logger = Fmi2Logger(callback=logging_callback)
+    logger = Fmi2Logger()
     logger.register_log_category('ab',aliases={'a','b'})
+    logger.set_active_log_categories(True,['ab'])
+
     logger.log('test','a')
     logger.log('test','b')
     
-    assert(count == 2)
-
-
+    assert(len(logger) == 2)
 
 def test_logAllPredicate_allLogged():
 
-    count = 0
-
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
-    
+   
     def log_all_predicate(category : str) -> bool:
         return True
 
-    logger = Fmi2Logger(callback=logging_callback)
+    logger = Fmi2Logger()
     logger.register_log_category('all',predicate=log_all_predicate)
+    logger.set_active_log_categories(True,['all'])
     
     # different categories
     logger.log('test','a')
@@ -67,20 +59,19 @@ def test_logAllPredicate_allLogged():
     logger.log('test',status=Fmi2Status.ok)
     logger.log('test',status=Fmi2Status.warning)
 
-    assert(count == 4)
+    assert(len(logger))
 
 # standard categories
 
-def test_registerEvents_logEvent_logged():
-    count = 0
+def test_logEvent():
 
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
+    cs = [Fmi2StdLogCats.logEvents]
 
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logEvents])
-    
+    logger = Fmi2Logger()
+    logger.set_active_log_categories(True,cs)
+    logger.register_standard_categories(cs)
+
+    # every log message is treated as an event?
     logger.log('test',status=Fmi2Status.ok)
     logger.log('test',status=Fmi2Status.warning)
     logger.log('test',status=Fmi2Status.error)
@@ -88,24 +79,22 @@ def test_registerEvents_logEvent_logged():
     logger.log('test',status=Fmi2Status.fatal)
     logger.log('test',status=Fmi2Status.pending)
     
-    assert(count == 6)
+    assert(len(logger) == 6)
 
-def test_registerSingularLinearSystems_logSls_logged():
-    count = 0
+def test_logSingularLinearSystems():
+   
+    cs = [Fmi2StdLogCats.logSingularLinearSystems]
 
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
 
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logSingularLinearSystems])
-    
+    # category aliases
     logger.log('test',category="SingularLinearSystem")
     logger.log('test',category="singularlinearsystem")
     logger.log('test',category="sls")
 
-
-
+    # ignore everything else
     logger.log('test',status=Fmi2Status.ok)
     logger.log('test',status=Fmi2Status.warning)
     logger.log('test',status=Fmi2Status.error)
@@ -113,22 +102,22 @@ def test_registerSingularLinearSystems_logSls_logged():
     logger.log('test',status=Fmi2Status.fatal)
     logger.log('test',status=Fmi2Status.pending)
     
-    assert(count == 3)
+    assert(len(logger))
 
-def test_registerNonLinearSystems_lognls_logged():
-    count = 0
-
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
-
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logNonlinearSystems])
+def test_logNonLinearSystems():
     
+    cs = [Fmi2StdLogCats.logNonlinearSystems]
+
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
+
+    # category aliases
     logger.log('test',category="NonLinearSystems")
     logger.log('test',category="nonlinearsystems")
     logger.log('test',category="nls")
 
+    # ignore everything else
     logger.log('test',status=Fmi2Status.ok)
     logger.log('test',status=Fmi2Status.warning)
     logger.log('test',status=Fmi2Status.error)
@@ -136,17 +125,15 @@ def test_registerNonLinearSystems_lognls_logged():
     logger.log('test',status=Fmi2Status.fatal)
     logger.log('test',status=Fmi2Status.pending)
     
-    assert(count == 3)
+    assert(len(logger) == 3)
 
-def test_registerLogDynamicStateSelection_logDss_logged():
-    count = 0
+def test_logDynamicStateSelection():
 
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
+    cs = [Fmi2StdLogCats.logDynamicStateSelection]
 
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logDynamicStateSelection])
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
     
     logger.log('test',category="DynamicStateSelection")
     logger.log('test',category="dynamicstateselection")
@@ -159,18 +146,105 @@ def test_registerLogDynamicStateSelection_logDss_logged():
     logger.log('test',status=Fmi2Status.fatal)
     logger.log('test',status=Fmi2Status.pending)
     
-    assert(count == 3)
+    assert(len(logger) == 3)
 
-def test_registerWarning_logWarning_logged():
+def test_logWarning():
 
-    count = 0
+    cs = [Fmi2StdLogCats.logStatusWarning]
 
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
 
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logStatusWarning])
+    logger.log('test',status=Fmi2Status.ok)
+    assert(len(logger) == 0)
+    logger.log('test',status=Fmi2Status.warning)
+    assert(len(logger) == 1)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    assert(len(logger) == 1)
+
+def test_logError():
+
+    cs = [Fmi2StdLogCats.logStatusError]
+
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
+
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    assert(len(logger) == 0)
+    logger.log('test',status=Fmi2Status.error)
+    assert(len(logger) == 1)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    assert(len(logger) == 1)
+
+def test_logDiscard():
+
+    cs = [Fmi2StdLogCats.logStatusDiscard]
+
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
+
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    assert(len(logger) == 0)
+    logger.log('test',status=Fmi2Status.discard)
+    assert(len(logger) == 1)
+    logger.log('test',status=Fmi2Status.fatal)
+    logger.log('test',status=Fmi2Status.pending)
+    assert(len(logger) == 1)
+
+def test_logFatal():
+
+    cs = [Fmi2StdLogCats.logStatusFatal]
+
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
+
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    assert(len(logger) == 0)
+    logger.log('test',status=Fmi2Status.fatal)
+    assert(len(logger) == 1)
+    logger.log('test',status=Fmi2Status.pending)
+    assert(len(logger) == 1)
+
+def test_logPending():
+
+    cs = [Fmi2StdLogCats.logStatusPending]
+
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
+
+    logger.log('test',status=Fmi2Status.ok)
+    logger.log('test',status=Fmi2Status.warning)
+    logger.log('test',status=Fmi2Status.error)
+    logger.log('test',status=Fmi2Status.discard)
+    logger.log('test',status=Fmi2Status.fatal)
+    assert(len(logger) == 0)
+    logger.log('test',status=Fmi2Status.pending)
+    assert(len(logger) == 1)
+
+def test_logAll():
+
+    cs = [Fmi2StdLogCats.logAll]
+
+    logger = Fmi2Logger()
+    logger.set_active_log_categories(True,cs)
+    logger.register_standard_categories(cs)
+    
     
     logger.log('test',status=Fmi2Status.ok)
     logger.log('test',status=Fmi2Status.warning)
@@ -179,111 +253,32 @@ def test_registerWarning_logWarning_logged():
     logger.log('test',status=Fmi2Status.fatal)
     logger.log('test',status=Fmi2Status.pending)
     
-    assert(count == 1)
-
-def test_registerError_logError_logged():
-
-    count = 0
-
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
-
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logStatusError])
-    
-    
-    logger.log('test',status=Fmi2Status.ok)
-    logger.log('test',status=Fmi2Status.warning)
-    logger.log('test',status=Fmi2Status.error)
-    logger.log('test',status=Fmi2Status.discard)
-    logger.log('test',status=Fmi2Status.fatal)
-    logger.log('test',status=Fmi2Status.pending)
-    
-    assert(count == 1)
-
-def test_registerFatal_logFatal_logged():
-
-    count = 0
-
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
-
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logStatusError])
-    
-    
-    logger.log('test',status=Fmi2Status.ok)
-    logger.log('test',status=Fmi2Status.warning)
-    logger.log('test',status=Fmi2Status.error)
-    logger.log('test',status=Fmi2Status.discard)
-    logger.log('test',status=Fmi2Status.fatal)
-    logger.log('test',status=Fmi2Status.pending)
-    
-    assert(count == 1)
-
-def test_registerPending_logPending_logged():
-
-    count = 0
-
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
-
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logStatusPending])
-    
-    
-    logger.log('test',status=Fmi2Status.ok)
-    logger.log('test',status=Fmi2Status.warning)
-    logger.log('test',status=Fmi2Status.error)
-    logger.log('test',status=Fmi2Status.discard)
-    logger.log('test',status=Fmi2Status.fatal)
-    logger.log('test',status=Fmi2Status.pending)
-    
-    assert(count == 1)
-
-def test_registerall_logsAll():
-
-    count = 0
-
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
-
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logAll])
-    
-    
-    logger.log('test',status=Fmi2Status.ok)
-    logger.log('test',status=Fmi2Status.warning)
-    logger.log('test',status=Fmi2Status.error)
-    logger.log('test',status=Fmi2Status.discard)
-    logger.log('test',status=Fmi2Status.fatal)
-    logger.log('test',status=Fmi2Status.pending)
-    
-    assert(count == 6)
+    assert(len(logger) == 6)
 
 # defaults
 
 def test_logDefaultCategory_loggedWithEvent():
-    count = 0
 
-    def logging_callback(msg):
-        nonlocal count
-        count += 1
+    cs = [Fmi2StdLogCats.logEvents]
 
-    logger = Fmi2Logger(callback=logging_callback)
-    logger.register_standard_categories([Fmi2StdLogCats.logEvents])
+    logger = Fmi2Logger()
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
+
+    assert(len(logger) == 0)
     logger.log('test')
+    assert(len(logger) == 1)
 
 
 # message stack
 
 def test_len_logIncreasesLength():
+    
+    cs = [Fmi2StdLogCats.logAll]
+
     logger = Fmi2Logger()
-    logger.register_standard_categories([Fmi2StdLogCats.logAll])
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
 
     assert(len(logger) == 0)
 
@@ -296,8 +291,11 @@ def test_len_logIncreasesLength():
     assert(len(logger) == 2)
 
 def test_len_popDecreasesLength():
+    cs = [Fmi2StdLogCats.logAll]
+    
     logger = Fmi2Logger()
-    logger.register_standard_categories([Fmi2StdLogCats.logAll])
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
 
     assert(len(logger) == 0)
 
@@ -318,8 +316,12 @@ def test_len_popDecreasesLength():
     assert(len(logger) == 0)
 
 def test_pop_returnsMessagesFifo():
+
+    cs = [Fmi2StdLogCats.logAll]
+
     logger = Fmi2Logger()
-    logger.register_standard_categories([Fmi2StdLogCats.logAll])
+    logger.register_standard_categories(cs)
+    logger.set_active_log_categories(True,cs)
 
     logger.log("a")
     logger.log("b")
@@ -328,3 +330,10 @@ def test_pop_returnsMessagesFifo():
     messages = [m.message for m in messages]
     
     assert(messages == ['a','b'])
+
+
+
+
+
+
+

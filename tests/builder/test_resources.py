@@ -40,12 +40,15 @@ def test_shared_library_can_be_loaded():
 
 def test_singleInstantiation_canSimulate():
 
-    with ExampleArchive('Adder') as archive:
 
-        # seems like fmpy does not accept Path objects
-        path = str(archive.root.resolve())
+    for pname in get_correct_examples():
 
-        simulate_fmu(path)
+        with ExampleArchive(pname) as archive:
+
+            # seems like fmpy does not accept Path objects
+            path = str(archive.root.resolve())
+
+            simulate_fmu(path)
 
 
 def test_multipleExports_canSimulate():

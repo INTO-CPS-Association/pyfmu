@@ -1,7 +1,7 @@
 """Defines logging related functionality
 """
 from enum import Enum
-from typing import Iterable,List
+from typing import Iterable, List
 
 from .fmi2types import Fmi2Status
 
@@ -9,6 +9,7 @@ from .fmi2types import Fmi2Status
 _internal_log_catergory = 'pyfmu'
 # default parameter for events
 _default_category = 'events'
+
 
 class Fmi2StdLogCats(Enum):
     """Standard log categories defined in the FMI2 specification.
@@ -24,12 +25,14 @@ class Fmi2StdLogCats(Enum):
     logStatusPending = "logStatusPending"
     logAll = "logAll"
 
+
 class Fmi2LogMessage:
     """Represents an log message as defined by FMI2
     """
-    def __init__(self,status : Fmi2Status, category: str, message : str):
+
+    def __init__(self, status: Fmi2Status, category: str, message: str):
         """Creates a new log message
-        
+
         Arguments:
             status {Fmi2Status} -- status of the FMU when the logging was performed.
             category {str} -- category of the log message.
@@ -44,29 +47,28 @@ class Fmi2LogMessage:
         if(not isinstance(status, Fmi2Status)):
             raise RuntimeError("")
 
-        if(not isinstance(category,str)):
+        if(not isinstance(category, str)):
             raise RuntimeError("")
 
-        if(not isinstance(message,str)):
+        if(not isinstance(message, str)):
             raise RuntimeError()
 
-        self.status : Fmi2Status = status
-        self.category : str = category
-        self.message : str = message
-        
+        self.status: Fmi2Status = status
+        self.category: str = category
+        self.message: str = message
 
 
 class Fmi2Logger():
-    
-    def __init__(self, callback = None):
-        
-        self._callback = callback
-        self._log_stack : List[Fmi2LogMessage] = []
-        self._categories_to_predicates = {}
-        self._active_log_categories = set()
 
-    def set_active_log_categories(self, logging_on: bool, categories : Iterable[str]):
-        
+    def __init__(self, callback=None):
+
+        self._callback = callback
+        self._log_stack: List[Fmi2LogMessage] = []
+        self._categories_to_predicates = {}
+        self._active_categories = set()
+
+    def set_active_log_categories(self, logging_on: bool, categories: Iterable[str]):
+
         try:
             categories = set(categories)
 
@@ -76,18 +78,18 @@ class Fmi2Logger():
             Exception thrown by python was:
             {e}
             """
-            self.log(Fmi2Status.warning,_internal_log_catergory,msg)
+            self.log(Fmi2Status.warning, _internal_log_catergory, msg)
             return Fmi2Status.warning
 
         is_empty = (len(categories) == 0)
         if(is_empty):
             msg = "Failed setting debug categories, list of categories is empty."
-            self.log(Fmi2Status.warning,_internal_log_catergory,msg)
+            self.log(Fmi2Status.warning, _internal_log_catergory, msg)
 
-        not_strings = [c for c in categories if not isinstance(c,str)]
+        not_strings = [c for c in categories if not isinstance(c, str)]
         strings = categories.difference(not_strings)
-        
-        is_all_strings = not_strings.empty()
+
+        is_all_strings = (len(not_strings) == 0)
 
         if(not is_all_strings):
             msg = f"""Not all elements of argument categories are strings.
@@ -95,87 +97,90 @@ class Fmi2Logger():
             string values are: {strings}
             Continuing using only valid categories.
             """
-        
+
         if(logging_on):
             self._active_categories = self._active_categories.union(categories)
         else:
-            self._active_categories = self._active_categories.difference(categories)
+            self._active_categories = self._active_categories.difference(
+                categories)
 
-    def register_log_category(self,category : str, aliases = None, predicate = None) -> None:
+    def register_log_category(self, category: str, aliases=None, predicate=None) -> None:
         """Registers a new log category
-        
+
         Arguments:
             category {str} -- [description]
-        
+
         Keyword Arguments:
             aliases {[type]} -- [description] (default: {None})
             predicate {[type]} -- [description] (default: {None})
         """
-        
+
         if(aliases != None and predicate != None):
-            raise ValueError('Unable to register log category, both a set of aliases and predicate were supplied.')
-        
+            raise ValueError(
+                'Unable to register log category, both a set of aliases and predicate were supplied.')
+
         # if neither aliases or predicate is registed log category and category are assocaited
         if(aliases == None and predicate == None):
-            def default_predicated(msg : Fmi2LogMessage):
+            def default_predicated(msg: Fmi2LogMessage):
                 nonlocal category
                 return msg.category == category
-            
+
             predicate = default_predicated
 
+        if(aliases):
 
-        if(aliases != None):
-
-            def alias_predicate(msg : Fmi2LogMessage):
+            def alias_predicate(msg: Fmi2LogMessage):
                 nonlocal aliases
                 return msg.category in aliases
 
             predicate = alias_predicate
-        
 
         self._categories_to_predicates[category] = predicate
 
-    def log(self,message : str,  category : str = _default_category, status = Fmi2Status.ok) -> None:
-        
-        msg = Fmi2LogMessage(status,category,message)
-        
-        
-        has_callback = (self._callback != None)
-        
+    def log(self, message: str,  category: str = _default_category, status=Fmi2Status.ok) -> None:
 
-        for p in self._categories_to_predicates.values():
+        msg = Fmi2LogMessage(status, category, message)
+        
+        # log only for the active categories
+        self.activate_categories_to_predicates = { c:p for c,p in self._categories_to_predicates.items() if c in self._active_categories}
+
+        for p in self.activate_categories_to_predicates.values():
+            
             if(p(msg) == True):
                 self._log_stack.append(msg)
 
                 # testing callback
-                if(has_callback): 
+                if(self._callback):
                     self._callback(msg)
 
-    def register_standard_categories(self, categories : Iterable[Fmi2StdLogCats]) -> None:
-        
+                break
+
+    def register_standard_categories(self, categories: Iterable[Fmi2StdLogCats]) -> None:
+
         try:
             categories = set(categories)
         except Exception as e:
-            raise ValueError(f'Unable to register standard log categories. The specified categories could not be converted to a set.') from e
+            raise ValueError(
+                f'Unable to register standard log categories. The specified categories could not be converted to a set.') from e
 
-        def events_predicate(msg : Fmi2LogMessage):
+        def events_predicate(msg: Fmi2LogMessage):
             c = msg.category.lower()
             matches = {'event', 'events'}
             return c in matches
 
         def sls_predicate(msg: Fmi2LogMessage):
             c = msg.category.lower()
-            matches = {'singularlinearsystem','singularlinearsystems','sls'}
+            matches = {'singularlinearsystem', 'singularlinearsystems', 'sls'}
             return c in matches
 
         def nls_predicate(msg: Fmi2LogMessage):
             c = msg.category.lower()
-            matches = {'nonlinearsystem','nonlinearsystems','nls'}
+            matches = {'nonlinearsystem', 'nonlinearsystems', 'nls'}
             return c in matches
-        
+
         def dss_predicate(msg: Fmi2LogMessage):
             c = msg.category.lower()
-            matches = {'dynamicstateselection','dss'}
+            matches = {'dynamicstateselection', 'dss'}
             return c in matches
 
         def warning_predicate(msg: Fmi2LogMessage):
@@ -197,24 +202,25 @@ class Fmi2Logger():
             return True
 
         predicates = {
-            Fmi2StdLogCats.logEvents : events_predicate,
-            Fmi2StdLogCats.logSingularLinearSystems : sls_predicate,
-            Fmi2StdLogCats.logNonlinearSystems : nls_predicate,
-            Fmi2StdLogCats.logDynamicStateSelection : dss_predicate,
-            Fmi2StdLogCats.logStatusWarning : warning_predicate,
-            Fmi2StdLogCats.logStatusDiscard : discard_predicate,
-            Fmi2StdLogCats.logStatusError   : error_predicate,
-            Fmi2StdLogCats.logStatusFatal : fatal_predicate,
-            Fmi2StdLogCats.logStatusPending : pending_predicate,
-            Fmi2StdLogCats.logAll : all_predicate
+            Fmi2StdLogCats.logEvents: events_predicate,
+            Fmi2StdLogCats.logSingularLinearSystems: sls_predicate,
+            Fmi2StdLogCats.logNonlinearSystems: nls_predicate,
+            Fmi2StdLogCats.logDynamicStateSelection: dss_predicate,
+            Fmi2StdLogCats.logStatusWarning: warning_predicate,
+            Fmi2StdLogCats.logStatusDiscard: discard_predicate,
+            Fmi2StdLogCats.logStatusError: error_predicate,
+            Fmi2StdLogCats.logStatusFatal: fatal_predicate,
+            Fmi2StdLogCats.logStatusPending: pending_predicate,
+            Fmi2StdLogCats.logAll: all_predicate
         }
 
-        predicate_matches = {cat : pred for cat,pred in predicates.items() if cat in categories }
+        predicate_matches = {cat: pred for cat,
+                             pred in predicates.items() if cat in categories}
 
-        self._categories_to_predicates = {**self._categories_to_predicates,**predicate_matches}
+        self._categories_to_predicates = {
+            **self._categories_to_predicates, **predicate_matches}
 
     def register_all_standard_categories(self) -> None:
-
         """Convenience method used to register all standard FMI2 log categories
         """
         self.register_standard_categories([
@@ -230,19 +236,19 @@ class Fmi2Logger():
             Fmi2StdLogCats.logAll,
         ])
 
-    def pop_messages(self, n : int) -> List[Fmi2LogMessage]:
+    def pop_messages(self, n: int) -> List[Fmi2LogMessage]:
         """Pops the top n messages of the message stack
-        
+
         Arguments:
             n {int} -- number of messages to pop
-        
+
         Returns:
             List[Fmi2LogMessage] -- List of messages
         """
 
         messages = self._log_stack[-n:]
         self._log_stack = self._log_stack[:-n]
-        
+
         return messages
 
     def __len__(self):

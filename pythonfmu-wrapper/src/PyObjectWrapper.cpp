@@ -492,10 +492,10 @@ void PyObjectWrapper::propagate_python_log_messages() const
     return;
   }
 
-  long number_of_messages = PyLong_AsLong(f);
+  long n_messages = PyLong_AsLong(f);
   Py_DECREF(f);
 
-  bool failed_to_parse = (number_of_messages == -1);
+  bool failed_to_parse = (n_messages == -1);
   if(failed_to_parse)
   {
     std::string py_err_msg = get_py_exception();
@@ -503,23 +503,39 @@ void PyObjectWrapper::propagate_python_log_messages() const
     return;
   }
 
+  if(n_messages == 0)
+    return;
   
-  f = PyObject_CallMethod(pInstance_,"__pop_log_messages__","(i)",number_of_messages);
+  f = PyObject_CallMethod(pInstance_,"__pop_log_messages__","(i)",n_messages);
 
-  PyObject *messages = PyList_New(number_of_messages);
+  // PyObject *messages = PyList_New(n_messages);
 
-
-  for(int i = 0; i < number_of_messages; ++i)
+  
+  for(int i = 0; i < n_messages; ++i)
   {
-    PyObject *value = PyList_GetItem(messages, i);
+    PyObject *value = PyList_GetItem(f, i);
     
-    char status[100] = {0};
-    char category[100] = {0};
-    char message[100] = {0};
+    if(value == nullptr)
+    {
+      logger->warning("Failed to parse read log message");
+      return;
+    }
 
-    // PyArg_UnpackTuple(value,"s|s|s",status,category,message);
+    PyObject* py_status = PyTuple_GetItem(value,0);
+    PyObject* py_category = PyTuple_GetItem(value,1);
+    PyObject* py_message = PyTuple_GetItem(value,2);
 
-    //values[i] = PyObject_IsTrue(value);
+    if(py_status == nullptr || py_category == nullptr || py_message == nullptr)
+    {
+      auto msg = "Failed to read log messages, unable to unpack message tuples";
+      logger->warning(msg);
+    }
+
+    const char* status = PyUnicode_AsUTF8(py_status);
+    const char* category = PyUnicode_AsUTF8(py_status);
+    const char* message = PyUnicode_AsUTF8(py_message);
+
+    logger->log(fmi2Status::fmi2OK,category,message);
   }
    
     

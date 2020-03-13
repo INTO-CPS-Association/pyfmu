@@ -13,7 +13,8 @@ from pybuilder.builder.export import export_project, PyfmuProject, PyfmuArchive
 _correct_example = {
     'Adder',
     'ConstantSignalGenerator',
-    'SineGenerator'
+    'SineGenerator',
+    'LoggerFMU'
 }
 
 _incorrect_examples = {

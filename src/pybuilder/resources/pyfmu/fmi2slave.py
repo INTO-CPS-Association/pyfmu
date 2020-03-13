@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Iterable
+from typing import List, Iterable, Tuple
 from uuid import uuid4
 import logging
 
@@ -167,7 +167,8 @@ class Fmi2Slave:
         ```
         """
 
-        self.logger.standard_categories()
+
+        self.logger.set_active_log_categories(logging_on,categories)
        
     def log(self, message : str, category = 'event', status = Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
@@ -187,7 +188,7 @@ class Fmi2Slave:
 
         self.logger.log(message,category,status)
             
-    def __pop_log_messages__(self,n : int) -> List[Fmi2LogMessage]:
+    def __pop_log_messages__(self,n : int) -> Tuple[str,str,str]:
         """Function called by the wrapper to fetch log messages
         
         Arguments:
@@ -204,15 +205,13 @@ class Fmi2Slave:
 
         return messages_tuples
 
-        
-
     def __get_log_size__(self) -> int:
         """Returns the number of log messages that are currently on the log stack.
 
         Returns:
             int -- [description]
         """
-        return 0
+        return len(self.logger)
 
     def __get_integer__(self, vrs, refs):
         for i in range(len(vrs)):

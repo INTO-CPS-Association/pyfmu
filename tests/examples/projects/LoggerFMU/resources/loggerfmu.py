@@ -22,7 +22,9 @@ class LoggerFMU(Fmi2Slave):
         self.register_variable("my_parameter", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.parameter, start=0)
         """
         
-        self.log("hello world!")
+        self.register_variable('a',data_type = Fmi2DataTypes.real, causality = Fmi2Causality.input,start=0)
+
+        #self.log("hello world!")
 
     def setup_experiment(self, start_time: float):
         pass
