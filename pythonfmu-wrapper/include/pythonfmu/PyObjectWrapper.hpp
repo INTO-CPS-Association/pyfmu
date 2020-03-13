@@ -44,6 +44,8 @@ public:
 
     void getBoolean(const fmi2ValueReference *vr, std::size_t nvr, fmi2Boolean *value) const;
 
+    void setDebugLogging(bool loggingOn, size_t nCategories, const char* const categories[]) const;
+
     void setReal(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Real *value);
 
     void setInteger(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Integer *value);

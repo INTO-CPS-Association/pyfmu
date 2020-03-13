@@ -132,6 +132,18 @@ fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,
                                size_t nCategories,
                                const fmi2String categories[])
 {
+  
+  auto cc = reinterpret_cast<PyObjectWrapper *>(c);
+
+  try
+  {
+    const char* arr[] = {"test"};
+    cc->setDebugLogging(true,1,categories);
+  }
+  catch (const exception)
+  {
+    return fmi2Error;
+  }
 
   return fmi2OK;
 }

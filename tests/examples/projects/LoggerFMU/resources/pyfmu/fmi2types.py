@@ -30,9 +30,9 @@ class Fmi2Variability(Enum):
 class Fmi2Status(Enum):
     """Represents the status of the FMU or the results of function calls.
     """
-    ok = "OK"
-    warning = "Warning"
-    discard = "Discard"
-    error = "Error"
-    fatal = "Fatal"
-    pending = "Pending"
+    ok = 0
+    warning = 1
+    discard = 2
+    error = 3
+    fatal = 4
+    pending = 5

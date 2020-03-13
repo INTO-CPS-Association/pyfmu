@@ -201,7 +201,7 @@ class Fmi2Slave:
         messages = self.logger.pop_messages(n)
 
         # for convenience we convert the object into tuples
-        messages_tuples = [(m.status,m.category,m.message) for m in messages]
+        messages_tuples = [(m.status.value,m.category,m.message) for m in messages]
 
         return messages_tuples
 

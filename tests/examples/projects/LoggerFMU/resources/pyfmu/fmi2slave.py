@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Iterable
+from typing import List, Iterable, Tuple
 from uuid import uuid4
 import logging
 
@@ -15,7 +15,20 @@ log = logging.getLogger('fmu')
 class Fmi2Slave:
     
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description=""):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True):
+        """Constructs a FMI2
+        
+        Arguments:
+            modelName {str} -- [description]
+        
+        Keyword Arguments:
+            author {str} -- [description] (default: {""})
+            copyright {str} -- [description] (default: {""})
+            version {str} -- [description] (default: {""})
+            description {str} -- [description] (default: {""})
+            standard_log_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
+        """
+
 
         self.author = author
         self.copyright = copyright
@@ -29,7 +42,9 @@ class Fmi2Slave:
         self.used_value_references = {}
 
         self.logger = Fmi2Logger()
-
+        if(standard_log_categories):
+            self.logger.register_all_standard_categories()
+        
     def register_variable(self,
                           name: str,
                           data_type: Fmi2DataTypes,
@@ -144,14 +159,17 @@ class Fmi2Slave:
         ``` Python
             # standard logging
             fmu = MyFMU()
-            fmu.register_standard_log_catgories()
+            fmu.standard_log_catgories()
             fmu.__set_debug_logging__({'LogAll'})
 
             fmu.log(Fmi2Status.ok,'logEvents',)
 
         ```
         """
- 
+
+
+        self.logger.set_active_log_categories(logging_on,categories)
+       
     def log(self, message : str, category = 'event', status = Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
 
@@ -170,8 +188,22 @@ class Fmi2Slave:
 
         self.logger.log(message,category,status)
             
-    def __get_log_messages__(self):
-        pass
+    def __pop_log_messages__(self,n : int) -> Tuple[str,str,str]:
+        """Function called by the wrapper to fetch log messages
+        
+        Arguments:
+            n {int} -- Number of messages to fetch
+        """
+        if(n > len(self.logger)):
+            self.log(f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
+            return None
+
+        messages = self.logger.pop_messages(n)
+
+        # for convenience we convert the object into tuples
+        messages_tuples = [(m.status.value,m.category,m.message) for m in messages]
+
+        return messages_tuples
 
     def __get_log_size__(self) -> int:
         """Returns the number of log messages that are currently on the log stack.
@@ -179,7 +211,7 @@ class Fmi2Slave:
         Returns:
             int -- [description]
         """
-        return None
+        return len(self.logger)
 
     def __get_integer__(self, vrs, refs):
         for i in range(len(vrs)):

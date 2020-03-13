@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 void logger(void *env, const char *str1, fmi2Status s, const char *str2,
             const char *str3, ...)
 {
-  spdlog::info(str1);
+  //spdlog::info(str1);
 }
 
 void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status status)
@@ -63,6 +63,8 @@ TEST_CASE("PyObjectWrapper")
   {
 
     auto a = ExampleArchive("Adder");
+    
+
     spdlog::info("Exported example project Adder, to path: {}", a.getRoot().string());
 
     string resources_uri = a.getResourcesURI();
@@ -114,7 +116,7 @@ TEST_CASE("Logging")
 {
   SECTION("LoggerFMU")
   {
-    ExampleArchive a("LoggerFMU");
+    auto a = ExampleArchive("LoggerFMU");
 
     string resources_uri = a.getResourcesURI();
     const char *resources_cstr = resources_uri.c_str();
@@ -127,8 +129,19 @@ TEST_CASE("Logging")
                                        .stepFinished = stepFinished,
                                        .componentEnvironment = nullptr};
 
-    fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
+    fmi2Component c = fmi2Instantiate("logger", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
 
+    REQUIRE(c != nullptr);
+
+    fmi2Real start_time = 0;
+    fmi2Real end_time = 10;
+    fmi2Real step_size = 0.1;
+
+    int s = 0;
+    const char* categories[] = {"logAll"};
+
+    s = fmi2SetDebugLogging(c,true,1,categories);
+    REQUIRE(s == fmi2OK);
     fmi2DoStep(c,0,1,false);
   }
 }

@@ -94,14 +94,15 @@ def test__get_log_size__():
 def test__get_log_messages__():
 
     fmu = Fmi2Slave("logger", standard_log_categories=True)
-
+    fmu.__set_debug_logging__(True,[Fmi2StdLogCats.logAll])
 
     fmu.log("test",category="a",status=Fmi2Status.ok)
 
     ms = fmu.__pop_log_messages__(1)
 
-    (status,cateogry,message) = ms[0]
+    (status,category,message) = ms[0]
 
-    assert(status == 0)
-    assert(cateogry == 'a')
+    assert(status == Fmi2Status.ok.value)
+    assert(isinstance(status,int))
+    assert(category == "a")
     assert(message == 'test')

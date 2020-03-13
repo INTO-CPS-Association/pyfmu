@@ -355,6 +355,29 @@ void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
   Py_DECREF(refs);
 }
 
+void PyObjectWrapper::setDebugLogging(bool loggingOn, size_t nCategories, const char* const categories[]) const
+{
+  auto py_categories = PyList_New(nCategories);
+
+  for(int i = 0; i < nCategories; ++i)
+  {
+    PyList_SetItem(py_categories,i,Py_BuildValue("s", categories[i]));
+  }
+
+  auto f = PyObject_CallMethod(pInstance_,"__set_debug_logging__","(BIO)", loggingOn, nCategories, py_categories);
+  propagate_python_log_messages();
+
+  if(f == nullptr)
+  {
+    std::string py_err_msg = get_py_exception();
+    logger->error(format("Failed to to set debug categories. Call to __set_debug_categories__ failed:\n{}", py_err_msg));
+  }
+
+  Py_DecRef(f);
+  Py_DECREF(py_categories);
+  
+}
+
 void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
                                  const fmi2Integer *values)
 {
@@ -483,9 +506,8 @@ void PyObjectWrapper::propagate_python_log_messages() const
   PyGIL g;
 
   auto f = PyObject_CallMethod(pInstance_, "__get_log_size__", "()");
-  bool call_failed = (f == nullptr);
 
-  if (call_failed)
+  if (f == nullptr)
   { 
     std::string py_err_msg = get_py_exception();
     logger->error(format("Failed to read log messages from the Python instance. Call to __get_log_size__ failed due to:\n{}", py_err_msg));
@@ -508,9 +530,6 @@ void PyObjectWrapper::propagate_python_log_messages() const
   
   f = PyObject_CallMethod(pInstance_,"__pop_log_messages__","(i)",n_messages);
 
-  // PyObject *messages = PyList_New(n_messages);
-
-  
   for(int i = 0; i < n_messages; ++i)
   {
     PyObject *value = PyList_GetItem(f, i);
