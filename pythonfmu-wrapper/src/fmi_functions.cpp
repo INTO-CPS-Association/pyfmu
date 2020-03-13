@@ -89,9 +89,9 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
 
   Logger *logger = new Logger(functions->componentEnvironment, functions->logger, instanceName);
 
-  logger->log(fmi2Status::fmi2OK, "Info", "Instantiating FMU\n");
+  logger->log(fmi2Status::fmi2OK, "wrapper", "Instantiating FMU\n");
 
-  logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python interpreter\n");
+  logger->log(fmi2Status::fmi2OK, "wrapper", "Initializing Python interpreter\n");
 
   try
   {
@@ -103,10 +103,10 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
     return NULL;
   }
 
-  logger->log(fmi2Status::fmi2OK, "Info",
+  logger->log(fmi2Status::fmi2OK, "wrapper",
               "Successfully initialized Python interpreter\n");
 
-  logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python FMU wrapper\n");
+  logger->log(fmi2Status::fmi2OK, "wrapper", "Initializing Python FMU wrapper\n");
 
   auto fmuResourceLocationPath = getPathFromFileUri(fmuResourceLocation);
 
@@ -135,17 +135,18 @@ fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,
   
   auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
+  fmi2Status status = fmi2OK;
+
   try
   {
-    const char* arr[] = {"test"};
-    cc->setDebugLogging(true,1,categories);
+    status = cc->setDebugLogging(true,nCategories,categories);
   }
   catch (const exception)
   {
     return fmi2Error;
   }
 
-  return fmi2OK;
+  return status;
 }
 
 fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,

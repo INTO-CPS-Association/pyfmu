@@ -4,7 +4,7 @@ from uuid import uuid4
 import logging
 
 from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
-from .fmi2logging import Fmi2LogMessage, Fmi2Logger
+from .fmi2logging import Fmi2StdLogCats, Fmi2LogMessage, Fmi2Logger
 from .fmi2variables import ScalarVariable
 
 
@@ -167,17 +167,9 @@ class Fmi2Slave:
         ```
         """
 
+
         self.logger.set_active_log_categories(logging_on,categories)
-
-    def add_msg(self):
-        
-        #self.logger._log_stack.append(Fmi2LogMessage(Fmi2Status.ok,"test","Hello world!"))
-        self.log("hello world!")
-
-    def __get_test__(self, a,b):
-
-        return 10
-
+       
     def log(self, message : str, category = 'event', status = Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
 
@@ -209,7 +201,7 @@ class Fmi2Slave:
         messages = self.logger.pop_messages(n)
 
         # for convenience we convert the object into tuples
-        messages_tuples = [(m.status.value, m.category, m.message) for m in messages]
+        messages_tuples = [(m.status.value,m.category,m.message) for m in messages]
 
         return messages_tuples
 

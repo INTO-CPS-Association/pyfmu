@@ -56,7 +56,7 @@ TEST_CASE("fmifunctions")
 
 
 
-TEST_CASE("PyObjectWrapper")
+/* TEST_CASE("PyObjectWrapper")
 {
 
   SECTION("adder")
@@ -87,9 +87,18 @@ TEST_CASE("PyObjectWrapper")
     fmi2Real step_size = 0.1;
 
     fmi2Status s;
+    const char* categories[] = {"logAll"};
+    
 
     s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True, end_time);
-    fmi2ExitInitializationMode(c);
+    REQUIRE(s == fmi2OK);
+    s = fmi2EnterInitializationMode(c);
+    REQUIRE(s == fmi2OK);
+    s = fmi2ExitInitializationMode(c);
+    REQUIRE(s == fmi2OK);
+    //s = fmi2SetDebugLogging(c,true,1,categories);
+    //REQUIRE(s == fmi2OK);
+    fmi2DoStep(c,0,1,false);
     REQUIRE(s == fmi2OK);
 
     unsigned int set_refs[] = {1, 2};
@@ -110,13 +119,13 @@ TEST_CASE("PyObjectWrapper")
     REQUIRE(s == fmi2OK);
     REQUIRE(get_vals[0] == 15);
   }
-}
+} */
 
 TEST_CASE("Logging")
 {
   SECTION("LoggerFMU")
   {
-    auto a = ExampleArchive("LoggerFMU");
+    ExampleArchive a("LoggerFMU");
 
     string resources_uri = a.getResourcesURI();
     const char *resources_cstr = resources_uri.c_str();
@@ -138,11 +147,13 @@ TEST_CASE("Logging")
     fmi2Real step_size = 0.1;
 
     int s = 0;
-    const char* categories[] = {"logAll"};
-
+    const char* categories[] = {"logAll","test"};
     s = fmi2SetDebugLogging(c,true,1,categories);
     REQUIRE(s == fmi2OK);
     fmi2DoStep(c,0,1,false);
+    REQUIRE(s == fmi2OK);
+    fmi2DoStep(c,0,1,false);
+    REQUIRE(s == fmi2OK);
   }
 }
 

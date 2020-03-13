@@ -65,7 +65,8 @@ def test_logAllPredicate_allLogged():
 
 def test_logEvent():
 
-    cs = [Fmi2StdLogCats.logEvents]
+
+    cs = ["logEvents"]
 
     logger = Fmi2Logger()
     logger.set_active_log_categories(True,cs)
@@ -83,7 +84,7 @@ def test_logEvent():
 
 def test_logSingularLinearSystems():
    
-    cs = [Fmi2StdLogCats.logSingularLinearSystems]
+    cs = ["logSingularLinearSystems"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -106,7 +107,7 @@ def test_logSingularLinearSystems():
 
 def test_logNonLinearSystems():
     
-    cs = [Fmi2StdLogCats.logNonlinearSystems]
+    cs = ["logNonlinearSystems"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -129,7 +130,7 @@ def test_logNonLinearSystems():
 
 def test_logDynamicStateSelection():
 
-    cs = [Fmi2StdLogCats.logDynamicStateSelection]
+    cs = ["logDynamicStateSelection"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -150,7 +151,7 @@ def test_logDynamicStateSelection():
 
 def test_logWarning():
 
-    cs = [Fmi2StdLogCats.logStatusWarning]
+    cs = ["logStatusWarning"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -168,7 +169,7 @@ def test_logWarning():
 
 def test_logError():
 
-    cs = [Fmi2StdLogCats.logStatusError]
+    cs = ["logStatusError"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -186,7 +187,7 @@ def test_logError():
 
 def test_logDiscard():
 
-    cs = [Fmi2StdLogCats.logStatusDiscard]
+    cs = ["logStatusDiscard"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -204,7 +205,7 @@ def test_logDiscard():
 
 def test_logFatal():
 
-    cs = [Fmi2StdLogCats.logStatusFatal]
+    cs = ["logStatusFatal"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -222,7 +223,7 @@ def test_logFatal():
 
 def test_logPending():
 
-    cs = [Fmi2StdLogCats.logStatusPending]
+    cs = ["logStatusPending"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -239,7 +240,7 @@ def test_logPending():
 
 def test_logAll():
 
-    cs = [Fmi2StdLogCats.logAll]
+    cs = ["logAll"]
 
     logger = Fmi2Logger()
     logger.set_active_log_categories(True,cs)
@@ -259,7 +260,7 @@ def test_logAll():
 
 def test_logDefaultCategory_loggedWithEvent():
 
-    cs = [Fmi2StdLogCats.logEvents]
+    cs = ["logEvents"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -274,7 +275,7 @@ def test_logDefaultCategory_loggedWithEvent():
 
 def test_len_logIncreasesLength():
     
-    cs = [Fmi2StdLogCats.logAll]
+    cs = ["logAll"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -291,7 +292,7 @@ def test_len_logIncreasesLength():
     assert(len(logger) == 2)
 
 def test_len_popDecreasesLength():
-    cs = [Fmi2StdLogCats.logAll]
+    cs = ["logAll"]
     
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)
@@ -317,7 +318,7 @@ def test_len_popDecreasesLength():
 
 def test_pop_returnsMessagesFifo():
 
-    cs = [Fmi2StdLogCats.logAll]
+    cs = ["logAll"]
 
     logger = Fmi2Logger()
     logger.register_standard_categories(cs)

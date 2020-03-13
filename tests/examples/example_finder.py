@@ -99,7 +99,7 @@ class ExampleProject():
 
         # copy project to temporary directory
         self.tmpdir = mkdtemp()
-        outdir = Path(self.tmpdir) / project_name
+        outdir = (Path(self.tmpdir) / project_name)
         copytree(project_path, outdir)
 
         # instantiate object representation of project

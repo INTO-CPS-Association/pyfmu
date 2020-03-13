@@ -2,7 +2,7 @@ from os.path import join, basename, isdir, isfile, realpath
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
+from shutil import rmtree
 
 from pybuilder.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive, _copy_sources_to_archive
 from pybuilder.builder.generate import create_project, PyfmuProject
@@ -124,3 +124,21 @@ class TestPyfmuProject():
 
         with pytest.raises(ValueError):
             _ = PyfmuProject.from_existing(tmpdir)
+
+
+def test_freshPyFmuLibCopied(tmpdir):
+
+    with ExampleProject('Adder') as p:
+
+        assert(p.pyfmu_dir.is_dir())
+
+        rmtree(p.pyfmu_dir)
+
+        assert( not p.pyfmu_dir.is_dir())
+
+
+        outdir = tmpdir / 'Adder'
+        a = export_project(p,outdir)
+        assert(a.pyfmu_dir.is_dir())
+        
+

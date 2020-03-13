@@ -75,6 +75,7 @@ class PyfmuProject():
         main_script_path = p / 'resources' / main_script
         project_configuration_path = p / 'project.json'
         project_configuration = project_json
+        pyfmu_dir = p / 'resources' / 'pyfmu'
 
         # 3. Should contain resources folder
         has_resources = (p / 'resources').is_dir()
@@ -97,7 +98,8 @@ class PyfmuProject():
                                main_class=main_class,
                                main_script_path=main_script_path,
                                project_configuration=project_configuration,
-                               project_configuration_path=project_configuration_path
+                               project_configuration_path=project_configuration_path,
+                               pyfmu_dir=pyfmu_dir
                                )
 
         return project

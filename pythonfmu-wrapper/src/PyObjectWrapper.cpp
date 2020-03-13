@@ -94,6 +94,7 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
     throw runtime_error(msg);
   }
 
+  propagate_python_log_messages();
   this->logger->ok(format("Sucessfully created an instance of class: {} defined in module: {}\n", main_class, module_name));
 }
 
@@ -151,6 +152,7 @@ void PyObjectWrapper::setupExperiment(double startTime)
   PyGIL g;
   auto f =
       PyObject_CallMethod(pInstance_, "setup_experiment", "(d)", startTime);
+      propagate_python_log_messages();
   if (f == nullptr)
   {
     handle_py_exception();
@@ -355,7 +357,7 @@ void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
   Py_DECREF(refs);
 }
 
-void PyObjectWrapper::setDebugLogging(bool loggingOn, size_t nCategories, const char* const categories[]) const
+fmi2Status PyObjectWrapper::setDebugLogging(bool loggingOn, size_t nCategories, const char* const categories[]) const
 {
   auto py_categories = PyList_New(nCategories);
 
@@ -364,18 +366,20 @@ void PyObjectWrapper::setDebugLogging(bool loggingOn, size_t nCategories, const 
     PyList_SetItem(py_categories,i,Py_BuildValue("s", categories[i]));
   }
 
-  auto f = PyObject_CallMethod(pInstance_,"__set_debug_logging__","(BIO)", loggingOn, nCategories, py_categories);
-  propagate_python_log_messages();
-
-  if(f == nullptr)
-  {
-    std::string py_err_msg = get_py_exception();
-    logger->error(format("Failed to to set debug categories. Call to __set_debug_categories__ failed:\n{}", py_err_msg));
-  }
-
-  Py_DecRef(f);
+  auto f = PyObject_CallMethod(pInstance_,"__set_debug_logging__","(iO)", loggingOn, py_categories);
   Py_DECREF(py_categories);
   
+  if(f == nullptr)
+  {
+    auto msg = get_py_exception();
+    logger->error(format("Failed to set debug logging categories, due to python error:\n{}",msg));
+    return fmi2Error;
+  }
+  propagate_python_log_messages();
+
+  Py_DECREF(f);
+
+  return fmi2OK;
 }
 
 void PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
@@ -505,6 +509,8 @@ void PyObjectWrapper::propagate_python_log_messages() const
 {
   PyGIL g;
 
+  auto h = PyObject_CallMethod(pInstance_,"add_msg","()");
+
   auto f = PyObject_CallMethod(pInstance_, "__get_log_size__", "()");
 
   if (f == nullptr)
@@ -513,9 +519,9 @@ void PyObjectWrapper::propagate_python_log_messages() const
     logger->error(format("Failed to read log messages from the Python instance. Call to __get_log_size__ failed due to:\n{}", py_err_msg));
     return;
   }
-
-  long n_messages = PyLong_AsLong(f);
   Py_DECREF(f);
+  long n_messages = PyLong_AsLong(f);
+  
 
   bool failed_to_parse = (n_messages == -1);
   if(failed_to_parse)
@@ -550,11 +556,11 @@ void PyObjectWrapper::propagate_python_log_messages() const
       logger->warning(msg);
     }
 
-    const char* status = PyUnicode_AsUTF8(py_status);
-    const char* category = PyUnicode_AsUTF8(py_status);
+    fmi2Status status = (fmi2Status)(_PyLong_AsInt(py_status));
+    const char* category = PyUnicode_AsUTF8(py_category);
     const char* message = PyUnicode_AsUTF8(py_message);
 
-    logger->log(fmi2Status::fmi2OK,category,message);
+    logger->log(status,category,message);
   }
    
     

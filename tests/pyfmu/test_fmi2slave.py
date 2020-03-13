@@ -70,7 +70,7 @@ def test_setDebugLogging():
     
     assert(fmu.__get_log_size__() == 0)
 
-    fmu.__set_debug_logging__(True,[Fmi2StdLogCats.logAll])
+    fmu.__set_debug_logging__(True,["logAll"])
 
     fmu.log("test")
 
@@ -80,7 +80,7 @@ def test_setDebugLogging():
 def test__get_log_size__():
     
     fmu = Fmi2Slave("logger",standard_log_categories=True)
-    fmu.__set_debug_logging__(True,[Fmi2StdLogCats.logAll])
+    fmu.__set_debug_logging__(True,["logAll"])
 
     fmu.log("test 1")
     
@@ -94,7 +94,7 @@ def test__get_log_size__():
 def test__get_log_messages__():
 
     fmu = Fmi2Slave("logger", standard_log_categories=True)
-    fmu.__set_debug_logging__(True,[Fmi2StdLogCats.logAll])
+    fmu.__set_debug_logging__(True,["logAll"])
 
     fmu.log("test",category="a",status=Fmi2Status.ok)
 
