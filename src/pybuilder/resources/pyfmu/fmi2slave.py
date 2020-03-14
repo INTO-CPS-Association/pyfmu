@@ -169,15 +169,6 @@ class Fmi2Slave:
 
         self.logger.set_active_log_categories(logging_on,categories)
 
-    def add_msg(self):
-        
-        #self.logger._log_stack.append(Fmi2LogMessage(Fmi2Status.ok,"test","Hello world!"))
-        self.log("hello world!")
-
-    def __get_test__(self, a,b):
-
-        return 10
-
     def log(self, message : str, category = 'event', status = Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
 

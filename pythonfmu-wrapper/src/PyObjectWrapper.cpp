@@ -509,8 +509,6 @@ void PyObjectWrapper::propagate_python_log_messages() const
 {
   PyGIL g;
 
-  auto h = PyObject_CallMethod(pInstance_,"add_msg","()");
-
   auto f = PyObject_CallMethod(pInstance_, "__get_log_size__", "()");
 
   if (f == nullptr)

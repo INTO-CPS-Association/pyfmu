@@ -25,52 +25,21 @@ void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status stat
 {
 }
 
-/*
-TEST_CASE("fmifunctions")
+
+
+
+
+TEST_CASE("PyObjectWrapper")
 {
   spdlog::set_level(spdlog::level::debug); // Set global log level to debug
-
-  SECTION("fmi2instantiate_calledMultipleTimes_OK")
-  {
-
-    string resources_path = get_resource_uri("Adder");
-    auto resources_path_cstr = resources_path.c_str();
-    spdlog::info("path to resources is:\n{}\n", resources_path);
-
-    fmi2CallbackFunctions callbacks = {.logger = logger,
-                                       .allocateMemory = calloc,
-                                       .freeMemory = free,
-                                       .stepFinished = stepFinished,
-                                       .componentEnvironment = nullptr};
-
-    fmi2Component a = fmi2Instantiate("a", fmi2Type::fmi2CoSimulation, "check?",
-                                      resources_path_cstr, &callbacks, fmi2False, fmi2True);
-
-    fmi2Component b = fmi2Instantiate("b", fmi2Type::fmi2CoSimulation, "check?",
-                                      resources_path_cstr, &callbacks, fmi2False, fmi2True);
-
-    REQUIRE(true);
-  }
-}
-*/
-
-
-
-/* TEST_CASE("PyObjectWrapper")
-{
 
   SECTION("adder")
   {
 
     auto a = ExampleArchive("Adder");
-    
-
-    spdlog::info("Exported example project Adder, to path: {}", a.getRoot().string());
-
     string resources_uri = a.getResourcesURI();
     const char *resources_cstr = resources_uri.c_str();
 
-    spdlog::info("resources as cstr {}", resources_cstr);
 
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
@@ -96,8 +65,8 @@ TEST_CASE("fmifunctions")
     REQUIRE(s == fmi2OK);
     s = fmi2ExitInitializationMode(c);
     REQUIRE(s == fmi2OK);
-    //s = fmi2SetDebugLogging(c,true,1,categories);
-    //REQUIRE(s == fmi2OK);
+    s = fmi2SetDebugLogging(c,true,1,categories);
+    REQUIRE(s == fmi2OK);
     fmi2DoStep(c,0,1,false);
     REQUIRE(s == fmi2OK);
 
@@ -119,8 +88,20 @@ TEST_CASE("fmifunctions")
     REQUIRE(s == fmi2OK);
     REQUIRE(get_vals[0] == 15);
   }
-} */
 
+  
+
+}
+
+/**
+ * @brief Tests the logging mechanism implemented in the wrapper.
+ * 
+ * The two main areas are:
+ * 
+ * 1. Only messages the active log categories are logged
+ * 2. Errors from originating from failure in the c-to-python call interface are logged.
+ * 3. Errors originating from inside the FMU are also logged.
+ */
 TEST_CASE("Logging")
 {
   SECTION("LoggerFMU")
@@ -157,15 +138,62 @@ TEST_CASE("Logging")
   }
 }
 
-#ifdef WIN32
-TEST_CASE("URI parsing on windows")
+/**
+ * @brief 
+ * Tests related to the initialisation and deallocation of FMUs.
+ * 
+ * @details The targets are the fmi functions used to allocate and deallocate FMUs:
+ * * fmi2Instantiate
+ * * fmi2FreeInstance
+ * * fmi2FreeState
+ */
+TEST_CASE("Instantiation and Deallocation")
 {
+  SECTION("fmi2instantiate_calledMultipleTimesWithDifferentInstanceNames_OK")
+  {
+    auto archive = ExampleArchive("Adder");
+    string resources_uri = archive.getResourcesURI();
+    const char *resources_cstr = resources_uri.c_str();
+
+    fmi2CallbackFunctions callbacks = {.logger = logger,
+                                       .allocateMemory = calloc,
+                                       .freeMemory = free,
+                                       .stepFinished = stepFinished,
+                                       .componentEnvironment = nullptr};
+
+    fmi2Component a = fmi2Instantiate("a", fmi2Type::fmi2CoSimulation, "check?",
+                                      resources_cstr, &callbacks, fmi2False, fmi2True);
+
+    fmi2Component b = fmi2Instantiate("b", fmi2Type::fmi2CoSimulation, "check?",
+                                      resources_cstr, &callbacks, fmi2False, fmi2True);
+
+    REQUIRE(true);
+  }
+}
+
+
+/**
+ * @brief Tests the URI parsing on different platforms.
+ * 
+ */
+TEST_CASE("URI Parsing")
+{
+
 
   SECTION("parses_valid_uri")
   {
+    
+    
+    #ifdef WIN32
+    // Windows uses drive letters, e.g. C:
     string uri = "file:///C:/somedir/resources";
     string expected = "C:\\somedir\\resources";
-
+    #else
+    // Linux does not use drive letters
+    string uri = "file:///somedir/resources";
+    string expected = "/somedir/resources";
+    #endif
+    
     string actual = getPathFromFileUri(uri).string();
 
     REQUIRE(actual == expected);
@@ -180,5 +208,5 @@ TEST_CASE("URI parsing on windows")
       getPathFromFileUri(invalid_uri);
     }());
   }
+
 }
-#endif
