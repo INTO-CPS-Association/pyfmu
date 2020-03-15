@@ -76,19 +76,25 @@ class ScalarVariable(ABC):
             s = "must be defined" if not is_defined else "may not be defined"
             return f"Start values {s} for this combination of variability: {variability}, causality: {causality} and intial: {initial}"
 
+
+        if(must_be_defined):
+
+            allowed_types = {
+                Fmi2DataTypes.real : ({int,float},int.__init__),
+                Fmi2DataTypes.boolean : ({bool},bool.__init__),
+                Fmi2DataTypes.integer : ({int},int.__init__),
+                Fmi2DataTypes.string : ({str},str.__init__),
+            }
+
+
+            types,_ = allowed_types[data_type]
         
-        type_to_ctor = {
-            Fmi2DataTypes.real : float.__init__,
-            Fmi2DataTypes.boolean : bool.__init__,
-            Fmi2DataTypes.integer : int.__init__,
-            Fmi2DataTypes.string : str.__init__,
-        }
-
-        try:
-            _ = type_to_ctor[data_type](start)
-        except Exception as e:
-            raise TypeError('Illegal combination of data type and start value. Start value could not be converted to the appropriate type.')
-
+            valid_conversion = any([isinstance(start,t) for t in types])
+            
+            if(not valid_conversion):        
+                raise TypeError(f'Illegal combination of data type and start value. Type is {data_type} start is {start}.')
+        
+        
         return None
 
     @staticmethod

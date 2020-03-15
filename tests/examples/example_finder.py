@@ -14,7 +14,8 @@ _correct_example = {
     'Adder',
     'ConstantSignalGenerator',
     'SineGenerator',
-    'LoggerFMU'
+    'LoggerFMU',
+    "bicycle_model"
 }
 
 _incorrect_examples = {

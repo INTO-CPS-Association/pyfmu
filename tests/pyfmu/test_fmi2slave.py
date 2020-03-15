@@ -75,7 +75,22 @@ def test_registerVariable_infersDataTypeFromStart():
     raise NotImplementedError()
 
 
-# test logging functions used by the wrapper
+def test_registerVariable_defaultStarts():
+
+    #slave = Fmi2Slave("")
+
+    # reals should have 0 as default
+    #slave.register_variable('a','real')
+
+    # bools should have false as default
+    #slave.register_variable('b','boolean')
+
+    # strings hould have empty string as default
+    
+
+    pass
+
+    # test logging functions used by the wrapper
 
 
 def test_setDebugLogging():
