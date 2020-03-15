@@ -50,7 +50,7 @@ class Fmi_Callbacks(Structure):
     ]
 
 
-lib = "build/wrapper/libpyfmu.so"
+lib = "build/wrapper/pyfmu.so"
 
 
 instanceName = b"m"

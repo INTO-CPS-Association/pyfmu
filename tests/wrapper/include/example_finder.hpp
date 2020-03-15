@@ -3,9 +3,8 @@
  * Provides functionality related to finding and instantiating example projects
 */
 #include <filesystem>
+
 #include <tmpdir.hpp>
-
-
 
 /**
  * Defines the directory in which example projects are located.
@@ -14,6 +13,10 @@
 */
 void setProjecsDirectory(std::filesystem::path path);
 
+/**
+ * Returns the path to the resources folder of an example project
+*/
+std::string get_resource_uri(std::string example_name);
 
 /**
  * Defines the path to the tool export Python FMUs, py2fmu.py
@@ -22,18 +25,14 @@ void setBuilderPath(std::filesystem::path path);
 
 class ExampleArchive
 {
-    public:
-
-
+public:
     explicit ExampleArchive(std::string exampleName);
 
     std::filesystem::path getRoot();
+    std::filesystem::path getResources();
+    std::string getResourcesURI();
 
-    private:
-    
-
+private:
     TmpDir td;
-
-
-  
+    std::string exampleName;
 };

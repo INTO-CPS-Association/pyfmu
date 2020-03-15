@@ -9,7 +9,8 @@
  * @brief Wrapper class for FMI2 logging callback
  *
  */
-class Logger {
+class Logger
+{
 public:
   /**
    * @brief Constructs a wrapper around the FMI2 standards callback function
@@ -18,7 +19,7 @@ public:
    * @param loggerCallback callback supplied when fmu was instantiated.
    * @param instanceName name of the fmu instance to which the logger is associated
    */
-  explicit Logger(fmi2ComponentEnvironment componentEnvironment,fmi2CallbackLogger loggerCallback,std::string instanceName);
+  explicit Logger(fmi2ComponentEnvironment componentEnvironment, fmi2CallbackLogger loggerCallback, std::string instanceName);
 
   /**
    * @brief Logs message from FMU instance in a specific category
@@ -30,10 +31,16 @@ public:
   void log(fmi2Status status, std::string category,
            std::string message);
 
+  void ok(std::string message);
+  void warning(std::string message);
+  void discard(std::string message);
+  void error(std::string message);
+  void fatal(std::string message);
+
 private:
- std::string instanceName;
- fmi2CallbackLogger loggerCallback;
- fmi2ComponentEnvironment componentEnvironment;
+  std::string instanceName;
+  fmi2CallbackLogger loggerCallback;
+  fmi2ComponentEnvironment componentEnvironment;
 };
 
 #endif // LOGGER_HPP

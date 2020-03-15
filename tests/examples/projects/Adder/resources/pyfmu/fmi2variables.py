@@ -6,8 +6,6 @@ from .fmi2types import Fmi2DataTypes, Fmi2Initial, Fmi2Causality, Fmi2Variabilit
 
 class ScalarVariable(ABC):
 
-    __vr_counter = 0
-
     def __init__(self,
                  name: str, 
                  data_type: Fmi2DataTypes,
@@ -15,7 +13,8 @@ class ScalarVariable(ABC):
                  causality=Fmi2Causality.local,
                  variability=Fmi2Variability.continuous,
                  start = None,
-                 description: str = ""):
+                 description: str = "",
+                 value_reference: int = None):
 
         err = validate_vc(
             variability, causality)
@@ -36,20 +35,20 @@ class ScalarVariable(ABC):
                 "Illegal combination of variabilty causality, see FMI2 spec p.49 for legal combinations")
 
 
+        is_valid_start = validate_start_value(variability,causality,initial,start)
+
+        if(is_valid_start != None):
+            raise Exception("Illegal start value\n")
+
         self.causality = causality
         self.data_type = data_type
         self.description = description
         self.initial = initial
         self.name = name
         self.variability = variability
-        self.value_reference = ScalarVariable.__get_and_increment_vr()
         self.start = start
+        self.value_reference = value_reference
         
-    @staticmethod
-    def __get_and_increment_vr():
-        vr = ScalarVariable.__vr_counter
-        ScalarVariable.__vr_counter += 1
-        return vr
 
     def is_real(self) -> bool:
         return self.data_type == Fmi2DataTypes.real

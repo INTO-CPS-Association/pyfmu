@@ -1,9 +1,12 @@
 import argparse
+import sys
+from os.path import join, dirname, realpath, normpath
+
 from pybuilder.builder.generate import create_project
 from pybuilder.builder.export import export_project
 from pybuilder.builder.validate import validate
 
-from os.path import join, dirname, realpath, normpath
+
 
 
 working_dir = normpath(dirname(realpath(__file__)))
@@ -68,6 +71,7 @@ def handle_generate(args):
 
     if(args.file is not None):
         raise Exception("Currently generation from file is not supported")
+        
 
     project_path = join(curdir, args.path)
 

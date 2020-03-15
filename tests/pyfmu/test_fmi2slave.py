@@ -1,5 +1,7 @@
 from pybuilder.resources.pyfmu.fmi2slave import Fmi2Slave
-from pybuilder.resources.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality, Fmi2Variability
+from pybuilder.resources.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality, Fmi2Variability, Fmi2Status
+
+from pybuilder.resources.pyfmu.fmi2logging import Fmi2StdLogCats
 
 class Adder(Fmi2Slave):
     
@@ -55,3 +57,52 @@ def test_parametersUseStartValue():
 
     d.__get_real__([vr],result)
     assert(result[0] == start)
+
+
+# test logging functions used by the wrapper
+
+
+def test_setDebugLogging():
+
+    fmu = Fmi2Slave("a")
+
+    fmu.log("test")
+    
+    assert(fmu.__get_log_size__() == 0)
+
+    fmu.__set_debug_logging__(True,["logAll"])
+
+    fmu.log("test")
+
+    assert(fmu.__get_log_size__() == 1)
+    
+
+def test__get_log_size__():
+    
+    fmu = Fmi2Slave("logger",standard_log_categories=True)
+    fmu.__set_debug_logging__(True,["logAll"])
+
+    fmu.log("test 1")
+    
+    assert(fmu.__get_log_size__() == 1)
+    
+    fmu.log("test 2")
+
+    assert(fmu.__get_log_size__() == 2)
+
+
+def test__get_log_messages__():
+
+    fmu = Fmi2Slave("logger", standard_log_categories=True)
+    fmu.__set_debug_logging__(True,["logAll"])
+
+    fmu.log("test",category="a",status=Fmi2Status.ok)
+
+    ms = fmu.__pop_log_messages__(1)
+
+    (status,category,message) = ms[0]
+
+    assert(status == Fmi2Status.ok.value)
+    assert(isinstance(status,int))
+    assert(category == "a")
+    assert(message == 'test')

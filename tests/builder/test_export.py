@@ -2,14 +2,14 @@ from os.path import join, basename, isdir, isfile, realpath
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
+from shutil import rmtree
 
 from pybuilder.builder.export import export_project, PyfmuProject, PyfmuArchive, _copy_pyfmu_lib_to_archive, _copy_sources_to_archive
 from pybuilder.builder.generate import create_project, PyfmuProject
 
 import pytest
 
-from ..examples.example_finder import get_example_project, ExampleProject, ExampleArchive, get_available_examples
+from ..examples.example_finder import get_example_project, ExampleProject, ExampleArchive, get_all_examples
 
 def get_empty_archive(root : Path) -> PyfmuArchive:
     return PyfmuArchive(root,"")
@@ -32,8 +32,8 @@ class TestExport():
 
 
             assert a.binaries_dir.is_dir()
-            assert (a.binaries_dir / 'win64' / 'libpyfmu.dll').is_file()
-            assert (a.binaries_dir / 'linux64' / 'libpyfmu.so').is_file()
+            assert (a.binaries_dir / 'win64' / 'pyfmu.dll').is_file()
+            assert (a.binaries_dir / 'linux64' / 'pyfmu.so').is_file()
 
     def test_export_validProject_libCopied(self):
         with ExampleArchive('Adder') as a:
@@ -61,7 +61,7 @@ class TestExport():
     def test_export_multipleInRow_modelDescriptionCorrect(self):
         
         
-        fnames = get_available_examples()
+        fnames = get_all_examples()
         mds = []
         for f in fnames:
             with ExampleArchive(f) as a:
@@ -124,3 +124,21 @@ class TestPyfmuProject():
 
         with pytest.raises(ValueError):
             _ = PyfmuProject.from_existing(tmpdir)
+
+
+def test_freshPyFmuLibCopied(tmpdir):
+
+    with ExampleProject('Adder') as p:
+
+        assert(p.pyfmu_dir.is_dir())
+
+        rmtree(p.pyfmu_dir)
+
+        assert( not p.pyfmu_dir.is_dir())
+
+
+        outdir = tmpdir / 'Adder'
+        a = export_project(p,outdir)
+        assert(a.pyfmu_dir.is_dir())
+        
+

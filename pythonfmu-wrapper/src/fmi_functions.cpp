@@ -3,10 +3,10 @@
 #include <memory>
 #include <map>
 #include <vector>
+#include <optional>
 
 #include "Python.h"
 #include "fmt/format.h"
-
 
 #include "fmi/fmi2Functions.h"
 #include "pythonfmu/Logger.hpp"
@@ -66,10 +66,8 @@ const char *fmi2GetVersion() { return "2.0"; }
 using namespace pythonfmu;
 using namespace std;
 
-
-
 vector<PyObjectWrapper> components;
-PyObjectWrapper* component = nullptr;
+PyObjectWrapper *component = nullptr;
 PyInitializer *pyInitializer = nullptr;
 
 bool loggingOn_ = false;
@@ -89,39 +87,36 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
     return NULL;
   }
 
-  auto logger = make_unique<Logger>(functions->componentEnvironment, functions->logger, instanceName);
+  Logger *logger = new Logger(functions->componentEnvironment, functions->logger, instanceName);
 
-  logger->log(fmi2Status::fmi2OK, "Info", "Instantiating FMU\n");
+  logger->log(fmi2Status::fmi2OK, "wrapper", "Instantiating FMU\n");
 
-  logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python interpreter\n");
+  logger->log(fmi2Status::fmi2OK, "wrapper", "Initializing Python interpreter\n");
 
   try
   {
-    pyInitializer = new PyInitializer();
+    pyInitializer = new PyInitializer(logger);
   }
-  catch (exception &e)
+  catch (exception)
   {
     logger->log(fmi2Status::fmi2Fatal, "error", "failed to initialize embedded Python interpreter\n");
     return NULL;
   }
 
-  logger->log(fmi2Status::fmi2OK, "Info",
+  logger->log(fmi2Status::fmi2OK, "wrapper",
               "Successfully initialized Python interpreter\n");
 
-  logger->log(fmi2Status::fmi2OK, "Info", "Initializing Python FMU wrapper\n");
+  logger->log(fmi2Status::fmi2OK, "wrapper", "Initializing Python FMU wrapper\n");
 
   auto fmuResourceLocationPath = getPathFromFileUri(fmuResourceLocation);
 
-  
-  
   try
-  { 
+  {
     component = new PyObjectWrapper(fmuResourceLocationPath, move(logger));
 
     return component;
-    
   }
-  catch (exception &e)
+  catch (exception)
   {
     //logger->log(fmi2Status::fmi2Fatal, "Error", "failed to load main script\n");
     return NULL;
@@ -137,8 +132,21 @@ fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,
                                size_t nCategories,
                                const fmi2String categories[])
 {
+  
+  auto cc = reinterpret_cast<PyObjectWrapper *>(c);
 
-  return fmi2OK;
+  fmi2Status status = fmi2OK;
+
+  try
+  {
+    status = cc->setDebugLogging(true,nCategories,categories);
+  }
+  catch (const exception)
+  {
+    return fmi2Error;
+  }
+
+  return status;
 }
 
 fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
@@ -152,7 +160,7 @@ fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
   {
     cc->setupExperiment(startTime);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -169,7 +177,7 @@ fmi2Status fmi2EnterInitializationMode(fmi2Component c)
   {
     cc->enterInitializationMode();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -186,7 +194,7 @@ fmi2Status fmi2ExitInitializationMode(fmi2Component c)
   {
     cc->exitInitializationMode();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -203,7 +211,7 @@ fmi2Status fmi2Terminate(fmi2Component c)
   {
     cc->terminate();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -220,7 +228,7 @@ fmi2Status fmi2Reset(fmi2Component c)
   {
     cc->reset();
   }
-  catch (const exception &e)
+  catch (const exception)
   {
     return fmi2Error;
   }
@@ -238,7 +246,7 @@ fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getReal(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -255,7 +263,7 @@ fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getInteger(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -272,7 +280,7 @@ fmi2Status fmi2GetBoolean(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getBoolean(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -289,7 +297,7 @@ fmi2Status fmi2GetString(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->getString(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -307,7 +315,7 @@ fmi2Status fmi2SetReal(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setReal(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -324,7 +332,7 @@ fmi2Status fmi2SetInteger(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setInteger(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -341,7 +349,7 @@ fmi2Status fmi2SetBoolean(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setBoolean(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -358,7 +366,7 @@ fmi2Status fmi2SetString(fmi2Component c, const fmi2ValueReference vr[],
   {
     cc->setString(vr, nvr, value);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }
@@ -427,7 +435,7 @@ fmi2Status fmi2DoStep(fmi2Component c, fmi2Real currentCommunicationPoint,
   {
     cc->doStep(currentCommunicationPoint, communicationStepSize);
   }
-  catch (exception &e)
+  catch (exception)
   {
     return fmi2Error;
   }

@@ -1,5 +1,9 @@
 #include <string>
+#include <filesystem>
+
 #include <nlohmann/json.hpp> // pylint: disable=import-error
+
+#include "Logger.hpp"
 
 #ifndef PYCONFIGURATION_HPP
 #define PYCONFIGURATION_HPP
@@ -8,14 +12,15 @@
 
 namespace pyconfiguration
 {
-    struct PyConfiguration {
-        std::string main_class;
-        std::string main_script;
-    };
+struct PyConfiguration
+{
+    std::string main_class;
+    std::string main_script;
+};
 
-    void to_json(nlohmann::json& j, const pyconfiguration::PyConfiguration& p);
+void to_json(nlohmann::json &j, const pyconfiguration::PyConfiguration &p);
 
-    void from_json(const nlohmann::json& j, pyconfiguration::PyConfiguration& p);
+void from_json(const nlohmann::json &j, pyconfiguration::PyConfiguration &p);
 }
 
 /**
@@ -24,6 +29,6 @@ namespace pyconfiguration
  * @param config_path path to the configuration file
  * @return PyConfigruation 
  */
-pyconfiguration::PyConfiguration read_configuration(const std::string &config_path);
+pyconfiguration::PyConfiguration read_configuration(const std::filesystem::path &config_path, Logger *logger);
 
 #endif // PYCONFIGURATION_HPP

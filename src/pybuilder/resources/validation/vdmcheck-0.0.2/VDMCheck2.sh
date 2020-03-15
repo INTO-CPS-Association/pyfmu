@@ -96,7 +96,7 @@ esac
 	
 	if ! java -jar fmi2vdm-0.0.2.jar "$XML" "$VAR" >$VDM
 	then
-		echo "Problem converting modelDescription.xml to VDM-SL?"
+		echo "Problem converting modelDescription.xml to VDM-SL? This might be caused by a spelling mistake."
 		exit 2
 	fi
 	

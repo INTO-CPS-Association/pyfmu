@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from uuid import uuid1
+from uuid import uuid4
 from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability
 from .fmi2variables import ScalarVariable
 
@@ -10,15 +10,19 @@ log = logging.getLogger('fmu')
 
 class Fmi2Slave:
     
+
     def __init__(self, modelName: str, author="", copyright="", version="", description=""):
 
         self.author = author
         self.copyright = copyright
         self.description = description
-        self.license = ""
         self.modelName = modelName
+        self.license = license
+        self.guid = uuid4()
         self.vars = []
         self.version = version
+        self.value_reference_counter = 0
+        self.used_value_references = {}
 
     def register_variable(self,
                           name: str,
@@ -28,7 +32,8 @@ class Fmi2Slave:
                           initial : Fmi2Initial = None,
                           start = None,
                           description: str = "",
-                          define_attribute: bool = True
+                          define_attribute: bool = True,
+                          value_reference: int = None
                           ):
         """Add a variable to the model such as an input, output or parameter.
         
@@ -45,8 +50,13 @@ class Fmi2Slave:
             define_attribute {bool} -- if true, automatically add the specified attribute to instance if it does not already exist. (default: {True})
         """      
 
+
+        # if not specified find an unused value reference
+        if(value_reference is None):
+            value_reference = self._acquire_unused_value_reference()
+
         var = ScalarVariable(name=name, data_type=Fmi2DataTypes.real, initial=initial, causality=causality,
-                             variability=variability, description=description, start = start)
+                             variability=variability, description=description, start = start, value_reference = value_reference)
 
         self.vars.append(var)
 
@@ -169,3 +179,13 @@ class Fmi2Slave:
             if(old != new):
                 log.warning("start value variable defined using the 'register_variable' function does not match initial value")
                 setattr(self,sv.name,new)
+
+    def _acquire_unused_value_reference(self) -> int:
+        """ Returns the an unused value reference
+        """
+        while(True):
+            vr = self.value_reference_counter
+            self.value_reference_counter += 1
+
+            if(vr not in self.used_value_references):
+                return vr

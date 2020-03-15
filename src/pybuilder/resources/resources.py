@@ -3,9 +3,11 @@ from pathlib import Path
 
 _resources = None
 
+_wrapper_name = 'pyfmu'
+
 class Resources:
     """Singleton object representing static resources.
-    
+
 
     For example to get path to pyfmu directory:
     ```
@@ -25,7 +27,6 @@ class Resources:
 
         return _resources
 
-
     def __init__(self):
         self.root = Path(__file__).parent
         self.pyfmu_dir = self.root / 'pyfmu'
@@ -33,11 +34,16 @@ class Resources:
         self.scriptTemplate_path = self.templates_dir / 'fmu.py.j2'
 
         # binaries
-        self.binaries_dir = self.root / 'wrapper' / 'binaries'
+        self.binaries_dir: Path = self.root / 'wrapper' / 'binaries'
+        self.wrapper_win64 = self.binaries_dir / 'win64' / (_wrapper_name + '.dll')
+        self.wrapper_linux64 = self.binaries_dir / 'linux64' / (_wrapper_name + '.so')
 
         # VDMCheck
-        self.vdmcheck_fmi2_ps = self.root / 'validation' / 'vdmcheck-0.0.2' / 'VDMCheck2.ps1'
-        self.vdmcheck_fmi2_sh = self.root / 'validation' / 'vdmcheck-0.0.2' / 'VDMCheck2.sh'
-        self.vdmcheck_fmi3_ps = self.root / 'validation' / 'vdmcheck-0.0.3' / 'VDMCheck3.ps1'
-        self.vdmcheck_fmi3_sh = self.root / 'validation' / 'vdmcheck-0.0.3' / 'VDMCheck2.sh'
-
+        self.vdmcheck_fmi2_ps = self.root / 'validation' / \
+            'vdmcheck-0.0.2' / 'VDMCheck2.ps1'
+        self.vdmcheck_fmi2_sh = self.root / 'validation' / \
+            'vdmcheck-0.0.2' / 'VDMCheck2.sh'
+        self.vdmcheck_fmi3_ps = self.root / 'validation' / \
+            'vdmcheck-0.0.3' / 'VDMCheck3.ps1'
+        self.vdmcheck_fmi3_sh = self.root / 'validation' / \
+            'vdmcheck-0.0.3' / 'VDMCheck2.sh'
