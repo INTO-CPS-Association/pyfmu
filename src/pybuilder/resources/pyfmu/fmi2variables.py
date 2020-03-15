@@ -1,6 +1,6 @@
 from abc import ABC
 
-from .fmi2validation import validate_vc, get_default_initial, get_possible_initial, validate_start_value
+from .fmi2validation import validate_vc, get_default_initial, get_possible_initial
 from .fmi2types import Fmi2DataTypes, Fmi2Initial, Fmi2Causality, Fmi2Variability
 
 
@@ -35,7 +35,12 @@ class ScalarVariable(ABC):
                 "Illegal combination of variabilty causality, see FMI2 spec p.49 for legal combinations")
 
 
-        is_valid_start = validate_start_value(variability,causality,initial,start)
+        is_valid_start = ScalarVariable.validate_start_value(
+            data_type=data_type,
+            causality=causality,
+            variability = variability,
+            initial=initial,
+            start=start)
 
         if(is_valid_start != None):
             raise Exception("Illegal start value\n")
@@ -61,3 +66,46 @@ class ScalarVariable(ABC):
 
     def is_string(self) -> bool:
         return self.data_type == Fmi2DataTypes.string
+
+    @staticmethod
+    def validate_start_value(data_type, causality, initial, variability, start):
+        must_be_defined = ScalarVariable.should_define_start(variability, causality, initial)
+
+        is_defined = start != None
+        if(must_be_defined ^ is_defined):
+            s = "must be defined" if not is_defined else "may not be defined"
+            return f"Start values {s} for this combination of variability: {variability}, causality: {causality} and intial: {initial}"
+
+        
+        type_to_ctor = {
+            Fmi2DataTypes.real : float.__init__,
+            Fmi2DataTypes.boolean : bool.__init__,
+            Fmi2DataTypes.integer : int.__init__,
+            Fmi2DataTypes.string : str.__init__,
+        }
+
+        try:
+            _ = type_to_ctor[data_type](start)
+        except Exception as e:
+            raise TypeError('Illegal combination of data type and start value. Start value could not be converted to the appropriate type.')
+
+        return None
+
+    @staticmethod
+    def should_define_start(variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial) -> bool:
+        """Returns true if the combination requires that a start value is defined, otherwise false.
+
+        For reference check the FMI2 specification p.54 for a description of which combination are allowed.
+        """
+        # see fmi2 spec p.54
+        must_define_start = (initial in {Fmi2Initial.exact, Fmi2Initial.approx}
+                            or causality in {Fmi2Causality.parameter, Fmi2Causality.input}
+                            or variability in {Fmi2Variability.constant})
+
+        can_not_define_start = (
+            initial == Fmi2Initial.calculated or causality == Fmi2Causality.independent)
+
+        # should be mutually exclusive
+        assert(must_define_start != can_not_define_start)
+
+        return must_define_start

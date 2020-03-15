@@ -1,5 +1,5 @@
 from pybuilder.resources.pyfmu.fmi2slave import Fmi2Slave
-from pybuilder.resources.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality, Fmi2Variability, Fmi2Status
+from pybuilder.resources.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality, Fmi2Variability, Fmi2Status,Fmi2Initial
 
 from pybuilder.resources.pyfmu.fmi2logging import Fmi2StdLogCats
 
@@ -57,6 +57,22 @@ def test_parametersUseStartValue():
 
     d.__get_real__([vr],result)
     assert(result[0] == start)
+
+def test_registerVariable_acceptsStrings():
+
+    slave = Fmi2Slave("")
+
+    valid_combinations = {
+        ('real','input','continuous',None),
+        ('real','output','continuous','exact')
+    }
+
+    for c in valid_combinations:
+        data_type,causality,variability,initial = c
+        slave.register_variable("a",data_type=data_type,causality=causality,variability=variability,initial=initial,start=0)
+
+def test_registerVariable_infersDataTypeFromStart():
+    raise NotImplementedError()
 
 
 # test logging functions used by the wrapper

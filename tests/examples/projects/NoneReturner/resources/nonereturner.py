@@ -20,9 +20,9 @@ class NoneReturner(Fmi2Slave):
     
         
         self.register_variable("real", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.output)
-        self.register_variable("integer", data_type=Fmi2DataTypes.integer, causality = Fmi2Causality.output)
-        self.register_variable("boolean", data_type=Fmi2DataTypes.boolean, causality = Fmi2Causality.output)
-        self.register_variable("string", data_type=Fmi2DataTypes.string, causality = Fmi2Causality.output)
+        self.register_variable("integer", data_type=Fmi2DataTypes.integer, causality = Fmi2Causality.output,variability=Fmi2Variability.discrete)
+        self.register_variable("boolean", data_type=Fmi2DataTypes.boolean, causality = Fmi2Causality.output,variability=Fmi2Variability.discrete)
+        self.register_variable("string", data_type=Fmi2DataTypes.string, causality = Fmi2Causality.output,variability=Fmi2Variability.discrete)
         
         
         # return None for all 

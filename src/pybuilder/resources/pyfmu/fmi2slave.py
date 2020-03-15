@@ -12,15 +12,15 @@ _internal_log_catergory = 'pyfmu'
 
 log = logging.getLogger('fmu')
 
+
 class Fmi2Slave:
-    
 
     def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True):
         """Constructs a FMI2
-        
+
         Arguments:
             modelName {str} -- [description]
-        
+
         Keyword Arguments:
             author {str} -- [description] (default: {""})
             copyright {str} -- [description] (default: {""})
@@ -28,7 +28,6 @@ class Fmi2Slave:
             description {str} -- [description] (default: {""})
             standard_log_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
         """
-
 
         self.author = author
         self.copyright = copyright
@@ -44,24 +43,24 @@ class Fmi2Slave:
         self.logger = Fmi2Logger()
         if(standard_log_categories):
             self.logger.register_all_standard_categories()
-        
+
     def register_variable(self,
                           name: str,
                           data_type: Fmi2DataTypes,
-                          causality = Fmi2Causality.local,
-                          variability = Fmi2Variability.continuous,
-                          initial : Fmi2Initial = None,
-                          start = None,
+                          causality=Fmi2Causality.local,
+                          variability=Fmi2Variability.continuous,
+                          initial: Fmi2Initial = None,
+                          start=None,
                           description: str = "",
                           define_attribute: bool = True,
                           value_reference: int = None
                           ):
         """Add a variable to the model such as an input, output or parameter.
-        
+
         Arguments:
             name {str} -- [description]
             data_type {Fmi2DataTypes} -- [description]
-        
+
         Keyword Arguments:
             causality {[type]} -- defines the type of the variable, such as input, output or parameter (default: {Fmi2Causality.local})
             variability {[type]} -- defines the time dependency of the variable. (default: {Fmi2Variability.continuous})
@@ -69,26 +68,32 @@ class Fmi2Slave:
             start {[type]} -- start value of the variable. (default: {None})
             description {str} -- a description of the variable which is added to the model description (default: {""})
             define_attribute {bool} -- if true, automatically add the specified attribute to instance if it does not already exist. (default: {True})
-        """      
+        """
 
+        # accept both enum values or strings representing them
+        try:
+            data_type, causality, initial, variability = Fmi2Slave._resolve_arguments(
+                data_type, causality, initial, variability)
+
+        except Exception as e:
+            raise ValueError(f'Unable to parse:\n{str(e)}')
 
         # if not specified find an unused value reference
         if(value_reference is None):
             value_reference = self._acquire_unused_value_reference()
 
-        var = ScalarVariable(name=name, data_type=Fmi2DataTypes.real, initial=initial, causality=causality,
-                             variability=variability, description=description, start = start, value_reference = value_reference)
+        var = ScalarVariable(name=name, data_type=data_type, initial=initial, causality=causality,
+                             variability=variability, description=description, start=start, value_reference=value_reference)
 
         self.vars.append(var)
 
-        
         if(define_attribute):
-            self._define_variable(var)    
+            self._define_variable(var)
 
-    def register_log_category(self, name : str):
+    def register_log_category(self, name: str):
         """Registers a new log category.
         This information is used by co-simulation engines to filter messages
-        
+
         Arguments:
             name {str} -- name of the category.
 
@@ -120,7 +125,7 @@ class Fmi2Slave:
     def terminate(self):
         pass
 
-    def __set_debug_logging__(self, logging_on : bool, categories : Iterable[str]) -> None:
+    def __set_debug_logging__(self, logging_on: bool, categories: Iterable[str]) -> None:
         """Defines the set of active log categories for which log messages will logged.
         Messages logged to any other categories will be ignored.
 
@@ -129,11 +134,11 @@ class Fmi2Slave:
 
         Note that the tool can only "see" categories registered in the model description using the register_log_category.
 
-        
+
         Arguments:
             categories {Iterable[str]} -- a set of categories which are set to be active
             logging_on {bool} -- if true, enable the categories, otherwise disable them
-        
+
         Defaults category mapping:
             FMI2 specifies several standardized categories.
 
@@ -167,14 +172,14 @@ class Fmi2Slave:
         ```
         """
 
-        self.logger.set_active_log_categories(logging_on,categories)
+        self.logger.set_active_log_categories(logging_on, categories)
 
-    def log(self, message : str, category = 'event', status = Fmi2Status.ok) -> None:
+    def log(self, message: str, category='event', status=Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
 
         Note that only categories which are set as active using the __set_debug_logging__, are propageted to the tool.
         The function is called by the tool using with the categories which the user wishes to be active.
-        
+
         Arguments:
             status {Fmi2Status} -- The current status of the FMU.
             category {str} -- The category of the log message.
@@ -185,22 +190,24 @@ class Fmi2Slave:
 
         """
 
-        self.logger.log(message,category,status)
-            
-    def __pop_log_messages__(self,n : int) -> Tuple[str,str,str]:
+        self.logger.log(message, category, status)
+
+    def __pop_log_messages__(self, n: int) -> Tuple[str, str, str]:
         """Function called by the wrapper to fetch log messages
-        
+
         Arguments:
             n {int} -- Number of messages to fetch
         """
         if(n > len(self.logger)):
-            self.log(f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
+            self.log(
+                f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
             return None
 
         messages = self.logger.pop_messages(n)
 
         # for convenience we convert the object into tuples
-        messages_tuples = [(m.status.value, m.category, m.message) for m in messages]
+        messages_tuples = [(m.status.value, m.category, m.message)
+                           for m in messages]
 
         return messages_tuples
 
@@ -292,22 +299,21 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type String!")
 
-    def _define_variable(self, sv : ScalarVariable):
-        
-        
-        if(not hasattr(self,sv.name)):
-            log.debug(f'adding')
-             
-            setattr(self,sv.name,sv.start)
+    def _define_variable(self, sv: ScalarVariable):
 
-            
+        if(not hasattr(self, sv.name)):
+            log.debug(f'adding')
+
+            setattr(self, sv.name, sv.start)
+
         else:
-            old = getattr(self,sv.name)
+            old = getattr(self, sv.name)
             new = sv.start
 
             if(old != new):
-                log.warning("start value variable defined using the 'register_variable' function does not match initial value")
-                setattr(self,sv.name,new)
+                log.warning(
+                    "start value variable defined using the 'register_variable' function does not match initial value")
+                setattr(self, sv.name, new)
 
     def _acquire_unused_value_reference(self) -> int:
         """ Returns the an unused value reference
@@ -318,3 +324,107 @@ class Fmi2Slave:
 
             if(vr not in self.used_value_references):
                 return vr
+
+    @staticmethod
+    def _resolve_arguments(data_type, causality, initial, variability):
+        """Attempt to resolve data type, causality, initial and variablity from the specified arguments.
+        
+        This allows them to be specified as strings, shorthands, types and more.
+ 
+        """
+        type_aliases = {
+
+            None: None,
+
+            Fmi2DataTypes.real: Fmi2DataTypes.real,
+            'real': Fmi2DataTypes.real,
+            float: Fmi2DataTypes.real,
+
+            Fmi2DataTypes.boolean: Fmi2DataTypes.boolean,
+            'bool': Fmi2DataTypes.boolean,
+            'boolean': Fmi2DataTypes.boolean,
+            bool: Fmi2DataTypes.boolean,
+
+            Fmi2DataTypes.integer: Fmi2DataTypes.integer,
+            'int': Fmi2DataTypes.integer,
+            'interger': Fmi2DataTypes.integer,
+            int: Fmi2DataTypes.integer,
+
+            Fmi2DataTypes.string: Fmi2DataTypes.string,
+            'string': Fmi2DataTypes.string,
+            'str': Fmi2DataTypes.string,
+            str: Fmi2DataTypes.string
+        }
+        initial_aliases = {
+            None: None,
+            Fmi2Initial.exact : Fmi2Initial.exact,
+            'exact': Fmi2Initial.exact,
+
+            Fmi2Initial.approx : Fmi2Initial.approx,
+            'approx': Fmi2Initial.approx,
+
+            Fmi2Initial.calculated : Fmi2Initial.calculated,
+            'calculated': Fmi2Initial.calculated
+        }
+        causality_aliases = {
+            None: None,
+
+            Fmi2Causality.parameter: Fmi2Causality.parameter,
+            'parameter': Fmi2Causality.parameter,
+            
+            Fmi2Causality.calculatedParameter: Fmi2Causality.calculatedParameter,
+            'calculatedparameter': Fmi2Causality.calculatedParameter,
+            
+            Fmi2Causality.input: Fmi2Causality.input,
+            'input': Fmi2Causality.input,
+            
+            Fmi2Causality.output : Fmi2Causality.output,
+            'output': Fmi2Causality.output,
+            
+            Fmi2Causality.local : Fmi2Causality.output,
+            'local': Fmi2Causality.local,
+            
+            'independent': Fmi2Causality.independent
+        }
+        variability_aliases = {
+            None: None,
+            Fmi2Variability.constant : Fmi2Variability.constant,
+            'constant': Fmi2Variability.constant,
+
+            Fmi2Variability.fixed : Fmi2Variability.fixed,
+            'fixed': Fmi2Variability.fixed,
+
+            Fmi2Variability.tunable : Fmi2Variability.tunable,
+            'tunable': Fmi2Variability.tunable,
+
+            Fmi2Variability.discrete : Fmi2Variability.discrete,
+            'discrete': Fmi2Variability.discrete,
+
+            Fmi2Variability.continuous : Fmi2Variability.continuous,
+            'continuous': Fmi2Variability.continuous
+        }
+
+        # convert all strings to lowercase
+        if isinstance(data_type, str):
+            data_type.lower()
+        if isinstance(causality, str):
+            causality.lower()
+        if isinstance(initial, str):
+            initial.lower()
+        if isinstance(variability, str):
+            variability.lower()
+
+        args = []
+        value_and_options = [(data_type, type_aliases, 'data type'),
+                             (causality, causality_aliases, 'causality'),
+                             (initial, initial_aliases, 'initial'),
+                             (variability, variability_aliases, 'variability')]
+
+        for (value, options, name) in value_and_options:
+            try:
+                value = options[value]
+                args.append(value)
+            except Exception as e:
+                raise RuntimeError(
+                    f'Invalid argument for {name}, specified value was {value}, possible values are:\n{options.keys()}') from e
+        return tuple(args)
