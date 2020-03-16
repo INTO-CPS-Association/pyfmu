@@ -1,6 +1,6 @@
 import sys
 from threading import Thread
-
+from math import sin
 
 from pyqtgraph.Qt import QtGui, QtCore
 from pyqtgraph import time
@@ -29,16 +29,17 @@ class LivePlotting(Fmi2Slave):
         self.y0 = 0
         self.interval = -1
         self.n_samples = -1
+        self.title = 'Robot position'
         self.register_variable('x0', 'real', 'input',
                                start=0, description='first variable')
         self.register_variable('y0', 'real', 'input',
                                start=0, description='second variable')
 
         self.register_variable('title', 'string', 'parameter', 'fixed',
-                               start='Parametric plot', description='title of the plot')
+                               start='Robot position', description='title of the plot')
 
         self.ts = -1
-        self.register_variable('ts','real','parameter','fixed',start=-1, description='sampling time')
+        self.register_variable('ts','real','parameter','fixed',start=-1, description='simulation time between refresh.')
         
 
 
@@ -54,13 +55,13 @@ class LivePlotting(Fmi2Slave):
 
         win = pg.GraphicsWindow(title="Basic plotting examples")
         win.resize(1000, 1000)
-        win.setWindowTitle('pyqtgraph example: Plotting')
+        win.setWindowTitle(self.title)
 
         # Enable antialiasing for prettier plots
         pg.setConfigOptions(antialias=False)
 
         #scatter_item = pg.ScatterPlotItem(x =1,2,3)
-        p1 = win.addPlot(title="title scatter",
+        p1 = win.addPlot(title="Parametric Plot",
                          x=[self.x0], y=[self.y0],symbolPen='w',autoDownsample=True)
 
         
@@ -88,16 +89,13 @@ class LivePlotting(Fmi2Slave):
 
         self._lastSimTime = current_time
 
-        self._measurements = np.append(self._measurements,[self.x0,self.y0])
-        self._nsamples += 1
+        self._measurements = np.vstack([self._measurements,[self.x0,self.y0]])
 
         self.curve.setData(self._measurements, pen='w')
 
         self.app.processEvents()
-        #self.p1.addPoints(x = [1,2,3],y = [1,2,3])
-        #self.p1.repaint()
 
-        # performance
+        # measure performance
         
         fps=None
         now = time()
@@ -118,12 +116,14 @@ if __name__ == "__main__":
     fmu = LivePlotting()
 
     fmu.enter_initialization_mode()
-    fmu.ts = 0.1
+    fmu.ts = 0.2
     fmu.exit_initialization_mode()
 
     n = 10000
     ts = 0.01
     for i in range(n):
+        fmu.x0 = i
+        fmu.y0 = sin(i*ts)
         fmu.do_step(i*ts, ts)
     
     a = 10
