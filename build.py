@@ -239,7 +239,7 @@ if __name__ == "__main__":
         export_projects()
     except Exception as e:
         l.error(
-            f'Failed exporting example projects, an exception was thrown: {e}')
+            f'Failed exporting example projects, an exception was thrown:\n{e}')
         sys.exit(1)
 
     l.debug('Sucessfully exported projects')

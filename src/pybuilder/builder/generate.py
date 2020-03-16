@@ -50,7 +50,7 @@ class PyfmuProject():
 
         if(not p.is_dir()):
             raise FileNotFoundError(
-                f'Unable to load project. The specified argument does not appear to be a directory')
+                f'Unable to load project. The specified path does not appear to be a directory: {p}')
 
         # Verify that path points to a valid pyfmu project.
 

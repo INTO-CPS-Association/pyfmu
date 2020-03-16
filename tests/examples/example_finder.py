@@ -15,7 +15,8 @@ _correct_example = {
     'ConstantSignalGenerator',
     'SineGenerator',
     'LoggerFMU',
-    "BicycleKinematic"
+    "BicycleKinematic",
+    "LivePlotting"
 }
 
 _incorrect_examples = {

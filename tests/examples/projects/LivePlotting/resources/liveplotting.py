@@ -1,5 +1,6 @@
 import sys
-from threading import Thread
+import multiprocessing as mp
+import multiprocessing
 from math import sin
 
 from pyqtgraph.Qt import QtGui, QtCore
@@ -42,40 +43,37 @@ class LivePlotting(Fmi2Slave):
         self.register_variable('ts','real','parameter','fixed',start=-1, description='simulation time between refresh.')
         
 
+        # Qt application must run on main thread.
+        # We start a new process to ensure this.
+        # Samples are shared through a buffer
+        ctx = mp.get_context('spawn')
+        self.q = ctx.Queue()
+        self.plot_process = ctx.Process(target=LivePlotting._draw_process_func, args=(self.q,))
+        self._running = False
 
-        self._nsamples = 0
-        self._measurements = np.empty((1,2))
-        self._ptr = 0
+    def terminate(self):
+        
+        if(not self._running):
+            return
+
+        # put sentinel object to indicate end of data
+        self._terminated = True
+        self.q.put(None)
+        self.plot_process.join()
+
+    def __del__(self):
+        if(self._running):
+            self.terminate()
 
     def setup_experiment(self, start_time: float):
         pass
 
     def enter_initialization_mode(self):
-        app = QtGui.QApplication(["Robot live plotting"])
-
-        win = pg.GraphicsWindow(title="Basic plotting examples")
-        win.resize(1000, 1000)
-        win.setWindowTitle(self.title)
-
-        # Enable antialiasing for prettier plots
-        pg.setConfigOptions(antialias=False)
-
-        #scatter_item = pg.ScatterPlotItem(x =1,2,3)
-        p1 = win.addPlot(title="Parametric Plot",
-                         x=[self.x0], y=[self.y0],symbolPen='w',autoDownsample=True)
-
-        
-        app.processEvents()
-
-        self.app = app
-        self.win = win
-        self.p1 = p1
-        self.curve = p1.plot()
+        pass
 
     def exit_initialization_mode(self):
-        self._measurements[0,:] = [self.x0,self.y0]
-        self._lastTime = time()
         self._lastSimTime = 0
+        self.plot_process.start()
 
     def do_step(self, current_time: float, step_size: float) -> bool:
 
@@ -89,27 +87,63 @@ class LivePlotting(Fmi2Slave):
 
         self._lastSimTime = current_time
 
-        self._measurements = np.vstack([self._measurements,[self.x0,self.y0]])
 
-        self.curve.setData(self._measurements, pen='w')
-
-        self.app.processEvents()
-
-        # measure performance
+        self.q.put(np.array([self.x0,self.y0]))
         
-        fps=None
-        now = time()
-        dt = now - self._lastTime
-        self._lastTime = now
-        if fps is None:
-            fps = 1.0/dt
-        else:
-            s = np.clip(dt*3., 0, 1)
-            fps = fps * (1-s) + (1.0/dt) * s
 
-        self.p1.setTitle('%0.2f fps' % fps)
+    @staticmethod
+    def _draw_process_func(q : multiprocessing.Queue):
+        
 
+        app = QtGui.QApplication(["Robot live plotting"])
+
+        win = pg.GraphicsWindow(title="Basic plotting examples")
+        win.resize(1000, 1000)
+        win.setWindowTitle('Robot plotting')
+
+        # Enable antialiasing for prettier plots
+        pg.setConfigOptions(antialias=False)
+
+
+        #scatter_item = pg.ScatterPlotItem(x =1,2,3)
+        p1 = win.addPlot(title="Parametric Plot", symbolPen='w',autoDownsample=True)
+        
+        curve = p1.plot()
+        lastTime = time()
+        samples = None
+
+        samples = q.get()
+
+        while(True):
+
+            new_sample = q.get()
+
+            if(new_sample is None):
+                return 0
+
+            samples = np.vstack([samples,new_sample])
+
+            curve.setData(samples, pen='w')
+
+            app.processEvents()
+
+
+            # performance metrics
+            fps=None
+            now = time()
+            dt = now - lastTime
+            lastTime = now
+            if fps is None:
+                fps = 1.0/dt
+            else:
+                s = np.clip(dt*3., 0, 1)
+                fps = fps * (1-s) + (1.0/dt) * s
+
+            p1.setTitle('%0.2f fps' % fps)
     
+
+        
+
 
 if __name__ == "__main__":
 
@@ -118,12 +152,16 @@ if __name__ == "__main__":
     fmu.enter_initialization_mode()
     fmu.ts = 0.2
     fmu.exit_initialization_mode()
-
+    
     n = 10000
     ts = 0.01
     for i in range(n):
         fmu.x0 = i
         fmu.y0 = sin(i*ts)
         fmu.do_step(i*ts, ts)
+
+    fmu.terminate()
+
+    fmu.plot_process.join()
+
     
-    a = 10
