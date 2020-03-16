@@ -6,12 +6,12 @@ from pyfmu.fmi2slave import Fmi2Slave
 from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
 
 
-class bicycle_model(Fmi2Slave):
+class Bicycle_Kinematic(Fmi2Slave):
 
     def __init__(self):
 
         author = ""
-        modelName = "bicycle_model"
+        modelName = "BicycleKinematic"
         description = ""
 
         super().__init__(
@@ -95,7 +95,7 @@ class bicycle_model(Fmi2Slave):
         #bundle the parameters in the function call
         def fun(t,state):
             params = (self.df,self.a,self.lf,self.lr)
-            return bicycle_model._derivatives(t,state,params)
+            return Bicycle_Kinematic._derivatives(t,state,params)
             
 
         h0 = (self.x,self.y,self.psi,self.v)
@@ -120,7 +120,7 @@ class bicycle_model(Fmi2Slave):
 
 # validation
 if __name__ == "__main__":
-    model = bicycle_model()
+    model = Bicycle_Kinematic()
     model.v0 = 1
     model.exit_initialization_mode()
     

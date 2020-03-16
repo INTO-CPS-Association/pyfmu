@@ -177,7 +177,7 @@ def test_Adder():
         assert s == 3
 
 def test_bicycle():
-    with ExampleArchive('bicycle_model') as a:
+    with ExampleArchive('BicycleKinematic') as a:
 
         md_a = read_model_description(str(a.root))
 
