@@ -305,8 +305,9 @@ class Fmi2Slave:
             log.debug(f'adding')
 
             setattr(self, sv.name, sv.start)
+            return
 
-        else:
+        if(sv.initial in {Fmi2Initial.exact,Fmi2Initial.approx}):
             old = getattr(self, sv.name)
             new = sv.start
 

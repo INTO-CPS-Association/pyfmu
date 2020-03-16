@@ -1,8 +1,9 @@
-from pyfmu.fmi2slave import Fmi2Slave
-from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial
-
+from math import cos, sin, atan, tan
 
 from scipy.integrate import solve_ivp
+
+from pyfmu.fmi2slave import Fmi2Slave
+from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
 
 
 class bicycle_model(Fmi2Slave):
@@ -18,45 +19,69 @@ class bicycle_model(Fmi2Slave):
             author=author,
             description=description)
 
+        # silience incorrect warnings about undeclared variables
+        self.a = 0
+        self.df = 0
+        self.x = 0
+        self.y = 0
+        self.v = 0
+        self.psi = 0
+        self.beta = 0
+        self.lf = 1
+        self.lr = 1
+
         # model
-        self.register_variable("a", "real", "input", start=0) # acceleration
-        self.register_variable("df", "real", "input", start=0) # steering angle
+        self.register_variable("a", "real", "input",
+                            description='acceleration',start=0)
+        self.register_variable("df", "real", "input",
+                               description='steering angle',start=0)
 
-        self.register_variable("x", "real", "output")
-        self.register_variable("y", "real", "output")
-        self.register_variable("psi", "real", "output")
-        self.register_variable("v", "real", "output")
-        self.register_variable("beta", "real", "output")
 
-        self.register_variable('lf','real','parameter','fixed',description='distance from CM to front wheel',start=0)
-        self.register_variable('lr','real','parameter','fixed',description='distance from CM to rear wheel',start=0)
+        self.register_variable("x", "real", "output",
+                               description='x position of the robot')
+        self.register_variable("y", "real", "output",
+                               description='y position of the robot')
+        self.register_variable("psi", "real", "output",
+                               description='inertial heading of the robot')
+        self.register_variable("v", "real", "output",
+                               description='velocity of the robot')
+
+        self.register_variable('lf', 'real', 'parameter', 'fixed',
+                               start=1, description='distance from CM to front wheel')
+        self.register_variable('lr', 'real', 'parameter', 'fixed',
+                               start=1, description='distance from CM to rear wheel')
 
         # Initial values
-        # declare variables to make IDE shut up.
         self.x0 = 0
         self.y0 = 0
         self.psi0 = 0
         self.v0 = 0
-        self.beta0 = 0
         self.register_variable("x0", "real", "parameter", "fixed", start=0)
         self.register_variable("y0", "real", "parameter", "fixed", start=0)
         self.register_variable("psi0", "real", "parameter", "fixed", start=0)
         self.register_variable("v0", "real", "parameter", "fixed", start=0)
-        self.register_variable("beta0", "real", "parameter", "fixed", start=0)
 
-        # reference
+        # reference model
         self.register_variable("x_r", "real", "input", start=0)
         self.register_variable("y_r", "real", "input", start=0)
         self.register_variable("psi_r", "real", "input", start=0)
         self.register_variable("v_r", "real", "input", start=0)
-        self.register_variable("beta_r", "real", "input", start=0)
 
     @staticmethod
-    def _simulate(t,state):
-        
+    def _derivatives(t, state,params):
+        print(t)
+        df,a,lf,lr = params
 
+        _,_,psi,v = state
 
-        pass
+        beta = atan((lr/(lr+lf)) * tan(df))
+
+        x_d = v * cos(psi + beta)
+        y_d = v * sin(psi + beta)
+        psi_d = (v / lr) * sin(beta)
+        v_d = a
+
+        return [x_d,y_d,psi_d,v_d]
 
     def exit_initialization_mode(self):
         # outputs are have initial = calculated
@@ -64,12 +89,40 @@ class bicycle_model(Fmi2Slave):
         self.y = self.y0
         self.psi = self.psi0
         self.v = self.v0
-        self.beta = self.beta0
 
-    def do_step(self, current_time: float, step_size: float) -> bool:
-              
-        return True
+    def do_step(self, current_time: float, step_size: float):
+
+        #bundle the parameters in the function call
+        def fun(t,state):
+            params = (self.df,self.a,self.lf,self.lr)
+            return bicycle_model._derivatives(t,state,params)
+            
+
+        h0 = (self.x,self.y,self.psi,self.v)
+        end = current_time+step_size
+        t_span = (current_time,end)
+
+        res = solve_ivp(
+            fun,
+            t_span,
+            h0,
+            max_step=step_size,
+            t_eval=[end])
+        
+        x,y,psi,v = tuple(res.y)
+        self.x = x[0]
+        self.y = y[0]
+        self.psi = psi[0]
+        self.v = v[0]
+
+        return Fmi2Status.ok
+
 
 # validation
 if __name__ == "__main__":
     model = bicycle_model()
+    model.v0 = 1
+    model.exit_initialization_mode()
+    
+    model.do_step(0.0,0.01)
+    test = 10
