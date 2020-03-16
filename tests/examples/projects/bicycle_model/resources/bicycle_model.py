@@ -2,7 +2,7 @@ from pyfmu.fmi2slave import Fmi2Slave
 from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial
 
 
-from scipy.integrate import odeint
+from scipy.integrate import solve_ivp
 
 
 class bicycle_model(Fmi2Slave):
@@ -19,14 +19,17 @@ class bicycle_model(Fmi2Slave):
             description=description)
 
         # model
-        self.register_variable("a", "real", "input", start=0)
-        self.register_variable("df", "real", "input", start=0)
+        self.register_variable("a", "real", "input", start=0) # acceleration
+        self.register_variable("df", "real", "input", start=0) # steering angle
 
         self.register_variable("x", "real", "output")
         self.register_variable("y", "real", "output")
         self.register_variable("psi", "real", "output")
         self.register_variable("v", "real", "output")
         self.register_variable("beta", "real", "output")
+
+        self.register_variable('lf','real','parameter','fixed',description='distance from CM to front wheel',start=0)
+        self.register_variable('lr','real','parameter','fixed',description='distance from CM to rear wheel',start=0)
 
         # Initial values
         # declare variables to make IDE shut up.
@@ -48,6 +51,12 @@ class bicycle_model(Fmi2Slave):
         self.register_variable("v_r", "real", "input", start=0)
         self.register_variable("beta_r", "real", "input", start=0)
 
+    @staticmethod
+    def _simulate(t,state):
+        
+
+
+        pass
 
     def exit_initialization_mode(self):
         # outputs are have initial = calculated
@@ -58,6 +67,7 @@ class bicycle_model(Fmi2Slave):
         self.beta = self.beta0
 
     def do_step(self, current_time: float, step_size: float) -> bool:
+              
         return True
 
 # validation

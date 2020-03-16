@@ -127,34 +127,8 @@ def get_possible_initial(variability: Fmi2Variability, causality: Fmi2Causality)
     return _vc_combinations[variability][causality]["initial"]["possible"]
 
 
-def should_define_start(variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial) -> bool:
-    """Returns true if the combination requires that a start value is defined, otherwise false.
-
-    For reference check the FMI2 specification p.54 for a description of which combination are allowed.
-    """
-    # see fmi2 spec p.54
-    must_define_start = (initial in {Fmi2Initial.exact, Fmi2Initial.approx}
-                         or causality in {Fmi2Causality.parameter, Fmi2Causality.input}
-                         or variability in {Fmi2Variability.constant})
-
-    can_not_define_start = (
-        initial == Fmi2Initial.calculated or causality == Fmi2Causality.independent)
-
-    # should be mutually exclusive
-    assert(must_define_start != can_not_define_start)
-
-    return must_define_start
 
 
-def validate_start_value(variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial, start: Any) -> Union[str, None]:
-    is_defined = start != None
-    must_be_defined = should_define_start(variability, causality, initial)
-
-    if(must_be_defined ^ is_defined):
-        s = "must be defined" if not is_defined else "may not be defined"
-        return f"Start values {s} for this combination of variability: {variability}, causality: {causality} and intial: {initial}"
-
-    return None
 
 
 def validate_vc(variability: Fmi2Variability, causality: Fmi2Causality):

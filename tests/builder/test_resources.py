@@ -62,6 +62,7 @@ def test_multipleExports_canSimulate():
             path = str(archive.root.resolve())
 
             simulate_fmu(path)
+     
 
 
 def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
@@ -175,4 +176,22 @@ def test_Adder():
         s = fmu_a.getReal([0])[0]
         assert s == 3
 
+def test_bicycle():
+    with ExampleArchive('bicycle_model') as a:
+
+        md_a = read_model_description(str(a.root))
+
+
+        fmu_a = FMU2Slave(guid=md_a.guid,
+                            unzipDirectory=a.root,
+                            modelIdentifier=md_a.coSimulation.modelIdentifier,
+                            instanceName='a',
+                            fmiCallLogger=None)
+
+        fmu_a.instantiate()
+        fmu_a.doStep(0,1)
+
+        # read output
+        s = fmu_a.getReal([0])[0]
+        assert s == 3
 

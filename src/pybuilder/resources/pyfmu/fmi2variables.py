@@ -94,7 +94,7 @@ class ScalarVariable(ABC):
             if(not valid_conversion):        
                 raise TypeError(f'Illegal combination of data type and start value. Type is {data_type} start is {start}.')
         
-        
+
         return None
 
     @staticmethod
@@ -115,3 +115,10 @@ class ScalarVariable(ABC):
         assert(must_define_start != can_not_define_start)
 
         return must_define_start
+
+    def __repr__(self):
+        initial_str = self.initial.value if self.initial else 'notPermitted'
+        return f'{self.name}:{self.data_type.value}:{self.causality.value}:{initial_str}'
+
+    def __str__(self):
+        return self.__repr__()
