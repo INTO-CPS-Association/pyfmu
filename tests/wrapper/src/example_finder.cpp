@@ -21,7 +21,7 @@ set<string> examples = {
     "Adder",
     "ConstantSignalGenerator",
     "SineGenerator",
-    "LoggerFMU"
+    "LoggerFMU",
     "BicycleKinematic"
     };
 

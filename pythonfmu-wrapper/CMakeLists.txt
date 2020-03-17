@@ -16,6 +16,8 @@ add_library(${PROJECT_NAME}
         src/PyObjectWrapper.cpp
         src/PyConfiguration.cpp
         src/Logger.cpp
+        src/utility/py_compatability.cpp
+        src/utility/utils.cpp
 )
 target_include_directories(${PROJECT_NAME} 
         PUBLIC
@@ -25,10 +27,14 @@ target_include_directories(${PROJECT_NAME}
 
 target_compile_features(${PROJECT_NAME} PUBLIC "cxx_std_20")
 
+target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+        Py_LIMITED_API
+)
+
 target_link_libraries(${PROJECT_NAME} 
         PUBLIC 
         ${Python3_LIBRARIES}
         PRIVATE
         ${CONAN_LIBS}
         )
-

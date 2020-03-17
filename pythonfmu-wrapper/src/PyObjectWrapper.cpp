@@ -5,12 +5,13 @@
 #include <stdexcept>
 #include <utility>
 
-#include <fmt/format.h>
+#include "fmt/format.h"
 
 #include "fmi/fmi2TypesPlatform.h"
 #include "pythonfmu/PyConfiguration.hpp"
 #include <pythonfmu/PyException.hpp>
 #include <pythonfmu/PyObjectWrapper.hpp>
+#include "utility/py_compatability.hpp"
 
 using namespace fmt;
 using namespace pyconfiguration;
@@ -37,7 +38,8 @@ void append_resources_folder_to_python_path(path &resource_path)
   string str = oss.str();
   const char *cstr = str.c_str();
 
-  int err = PyRun_SimpleString(cstr);
+  int err = PyCompat::PyRun_SimpleString(cstr);
+
 
   if (err != 0)
     throw runtime_error("Failed to append folder to python path\n");
@@ -351,7 +353,7 @@ void PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
   for (int i = 0; i < nvr; i++)
   {
     PyObject *value = PyList_GetItem(refs, i);
-    values[i] = PyUnicode_AsUTF8(value);
+    values[i] = PyCompat::PyUnicode_AsUTF8(value);
   }
 
   Py_DECREF(refs);
@@ -553,10 +555,9 @@ void PyObjectWrapper::propagate_python_log_messages() const
       auto msg = "Failed to read log messages, unable to unpack message tuples";
       logger->warning(msg);
     }
-
-    fmi2Status status = (fmi2Status)(_PyLong_AsInt(py_status));
-    const char* category = PyUnicode_AsUTF8(py_category);
-    const char* message = PyUnicode_AsUTF8(py_message);
+    fmi2Status status = (fmi2Status)(PyLong_AsLong(py_status));
+    const char* category = PyCompat::PyUnicode_AsUTF8(py_category);
+    const char* message = PyCompat::PyUnicode_AsUTF8(py_message);
 
     logger->log(status,category,message);
   }

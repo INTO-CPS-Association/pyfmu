@@ -35,3 +35,10 @@ class LoggerFMU(Fmi2Slave):
 
         self.s = self.a + self.b
         return True
+
+
+if __name__ == "__main__":
+    fmu = LoggerFMU()
+
+    fmu.exit_initialization_mode()
+    fmu.do_step(0,1)

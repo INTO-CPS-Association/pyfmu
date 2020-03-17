@@ -174,7 +174,7 @@ class Fmi2Slave:
 
         self.logger.set_active_log_categories(logging_on, categories)
 
-    def log(self, message: str, category=None, status=Fmi2Status.ok) -> None:
+    def log(self, message: str, category='event', status=Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
 
         Note that only categories which are set as active using the __set_debug_logging__, are propageted to the tool.

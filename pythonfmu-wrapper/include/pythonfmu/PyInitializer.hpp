@@ -1,3 +1,6 @@
+#ifndef PYTHONFMU_PYTHONSTATE_HPP
+#define PYTHONFMU_PYTHONSTATE_HPP
+
 #include <iostream>
 #include <stdlib.h>
 
@@ -5,8 +8,7 @@
 
 #include "utility/utils.hpp"
 
-#ifndef PYTHONFMU_PYTHONSTATE_HPP
-#define PYTHONFMU_PYTHONSTATE_HPP
+
 
 namespace pythonfmu
 {

@@ -191,7 +191,3 @@ def test_bicycle():
         fmu_a.instantiate()
         fmu_a.doStep(0,1)
 
-        # read output
-        s = fmu_a.getReal([0])[0]
-        assert s == 3
-

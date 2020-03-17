@@ -140,6 +140,10 @@ class Fmi2Logger():
 
     def log(self, message: str,  category: str = _default_category, status=Fmi2Status.ok) -> None:
 
+
+        if(category == None):
+            category = _default_category
+            
         msg = Fmi2LogMessage(status, category, message)
         
 
