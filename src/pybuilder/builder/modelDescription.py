@@ -53,6 +53,8 @@ def extract_model_description_v2(fmu_instance) -> str:
         sv.set("variability", v)
         sv.set("causality", c)
 
+        if(var.description):
+            sv.set("description",var.description)
         
 
         if(var.initial):
