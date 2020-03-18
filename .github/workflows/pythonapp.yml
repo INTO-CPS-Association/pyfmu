@@ -1,33 +1,88 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Build application
+name: Build and update wrappers
 
 on:
   push:
-    branches: [win]
+    branches: [master]
   pull_request:
-    branches: [win]
+    branches: [master]
 
-jobs: 
-    build_windows:
-      name: Builds the wrapper for windows
-      runs-on: windows-latest
-      
-      steps:
-        - uses: actions/checkout@v2
-        
-        - name: install Python 3.x
-          uses: actions/setup-python@v1
-          with:
-            python-version: 3.7
-            architecture: x64
-        
-        - name: install python packages
-          run:  |
-            pip install .    
-        
-        - name: Compile wrapper on windows
-          shell: powershell
-          run: |
-            mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=RELEASE && cd ..
+jobs:
+  build-wrapper-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: install conan
+        run: |
+          pip install conan
+
+      - name: Build using CMAKE
+        run: |
+          python build.py
+
+      - name: Upload wrapper
+        uses: actions/upload-artifact@v1
+        with:
+          name: windows-wrapper
+          path: build/pyfmu.dll
+
+  build-wrapper-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: install conan
+        run: |
+          pip install conan
+
+      - name: Build using CMAKE
+        run: |
+          python build.py
+
+      - name: Upload wrapper
+        uses: actions/upload-artifact@v1
+        with:
+          name: linux-wrapper
+          path: build/pyfmu.so
+
+  update-wrappers:
+    needs: [build-wrapper-windows, build-wrapper-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: download windows wrapper
+        uses: actions/download-artifact@v1
+        with:
+          name: windows-wrapper
+          path: src/pyfmu/resources/wrapper/win64/
+
+      - name: download linux wrappers
+        uses: actions/download-artifact@v1
+        with:
+          name: linux-wrapper
+          path: src/pyfmu/resources/wrapper/linux64/
+
+      - name: Commit files
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Updated wrappers for Linux and Windows" -a
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

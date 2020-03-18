@@ -8,7 +8,8 @@ __pycache__/
 *$py.class
 
 # C extensions
-#*.so
+*.so
+!pyfmu.so
 
 # Distribution / packaging
 .Python
