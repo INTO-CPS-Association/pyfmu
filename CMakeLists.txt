@@ -47,5 +47,5 @@ conan_cmake_run(REQUIRES
 
 # end of external packages
 
-add_subdirectory(pythonfmu-wrapper)
+add_subdirectory(wrapper)
 add_subdirectory(tests/wrapper)
