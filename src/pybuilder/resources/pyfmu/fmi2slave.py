@@ -129,7 +129,7 @@ class Fmi2Slave:
 
             Fmi2DataTypes.integer: Fmi2DataTypes.integer,
             'int': Fmi2DataTypes.integer,
-            'interger': Fmi2DataTypes.integer,
+            'integer': Fmi2DataTypes.integer,
             int: Fmi2DataTypes.integer,
 
             Fmi2DataTypes.string: Fmi2DataTypes.string,

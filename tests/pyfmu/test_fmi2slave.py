@@ -79,22 +79,61 @@ def test_registerVariable_infersDataTypeFromStart():
     assert(len(matches) is 1)
 
 
-def test_registerVariable_defaultStarts():
+def test_registerVariable_defaultStartValues():
 
-    #slave = Fmi2Slave("")
+    s = Fmi2Slave("")
 
-    # reals should have 0 as default
-    #slave.register_variable('a','real')
+    # exact should apply default values
+    s.register_variable('re','real',initial='exact')
+    s.register_variable('ie','integer',variability='discrete',initial='exact')
+    s.register_variable('be','boolean',variability='discrete',initial='exact')
+    s.register_variable('se','string',variability='discrete',initial='exact')
 
-    # bools should have false as default
-    #slave.register_variable('b','boolean')
+    assert(s.re == 0.0)
+    assert(s.ie == 0)
+    assert(s.be == False)
+    assert(s.se == "")
+    
+    v_re = [v for v in s.vars if v.name == 're']
+    v_ie = [v for v in s.vars if v.name == 'ie']
+    v_be = [v for v in s.vars if v.name == 'be']
+    v_se = [v for v in s.vars if v.name == 'se']
+    
+    assert(len(v_re) == 1)
+    assert(len(v_ie) == 1)
+    assert(len(v_be) == 1)
+    assert(len(v_se) == 1)
 
-    # strings hould have empty string as default
+    # approx should also apply default values
+
+    s.register_variable('ra','real',initial='approx')
+    s.register_variable('ia','integer',variability='discrete',initial='approx')
+    s.register_variable('ba','boolean',variability='discrete',initial='approx')
+    s.register_variable('sa','string',variability='discrete',initial='approx')
+
+    assert(s.ra == 0.0)
+    assert(s.ia == 0)
+    assert(s.ba == False)
+    assert(s.sa == "")
+
+    v_ra = [v for v in s.vars if v.name == 'ra']
+    v_ia = [v for v in s.vars if v.name == 'ia']
+    v_ba = [v for v in s.vars if v.name == 'ba']
+    v_sa = [v for v in s.vars if v.name == 'sa']
+    
+    assert(len(v_ra) == 1)
+    assert(len(v_ia) == 1)
+    assert(len(v_ba) == 1)
+    assert(len(v_sa) == 1)
     
 
-    pass
 
-    # test logging functions used by the wrapper
+    
+
+    
+
+
+# test logging functions used by the wrapper
 
 
 def test_setDebugLogging():
