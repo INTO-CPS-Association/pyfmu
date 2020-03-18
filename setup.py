@@ -11,7 +11,7 @@ setup(
 
     python_requires='>=3',
     
-    entry_points={'console_scripts': ['pyfmu=pybuilder.pyfmu:main']}
+    entry_points={'console_scripts': ['pyfmu=pyfmu.pyfmu_cli:main']}
 
 
 )

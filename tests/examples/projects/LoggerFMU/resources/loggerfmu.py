@@ -1,5 +1,4 @@
-from pyfmu.fmi2slave import Fmi2Slave
-from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial
+from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality, Fmi2Variability,Fmi2DataTypes,Fmi2Initial
 
 class LoggerFMU(Fmi2Slave):
 

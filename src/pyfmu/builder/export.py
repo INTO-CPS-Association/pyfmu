@@ -12,11 +12,11 @@ from pathlib import Path
 
 import logging
 
-from pybuilder.builder.configure import read_configuration
-from pybuilder.builder.modelDescription import extract_model_description_v2
-from pybuilder.builder.validate import validate_project
-from pybuilder.builder.generate import PyfmuProject
-from pybuilder.resources.resources import Resources
+from pyfmu.builder.configure import read_configuration
+from pyfmu.builder.modelDescription import extract_model_description_v2
+from pyfmu.builder.validate import validate_project
+from pyfmu.builder.generate import PyfmuProject
+from pyfmu.resources.resources import Resources
 
 _log = logging.getLogger(__name__)
 

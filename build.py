@@ -8,7 +8,7 @@ import logging
 import sys
 from shutil import copy
 
-from pybuilder.resources.resources import Resources
+from pyfmu.resources.resources import Resources
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 l = logging.getLogger(__file__)

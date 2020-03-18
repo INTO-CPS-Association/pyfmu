@@ -1,7 +1,4 @@
-from pybuilder.resources.pyfmu.fmi2logging import Fmi2Logger, Fmi2LogMessage, Fmi2StdLogCats
-from pybuilder.resources.pyfmu.fmi2types import Fmi2Status
-
-from pybuilder.resources.pyfmu.fmi2slave import Fmi2Slave
+from pyfmu.fmi2 import Fmi2Logger, Fmi2LogMessage, Fmi2StdLogCats,Fmi2Status,Fmi2Slave
 
 def test_categoryNotRegistered_notLogged():
     

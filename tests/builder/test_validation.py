@@ -2,7 +2,7 @@ from os.path import join, dirname
 
 from ..examples.example_finder import get_example_project, get_all_examples, ExampleArchive
 
-from pybuilder.builder.validate import validate, validate_modelDescription
+from pyfmu.builder.validate import validate, validate_modelDescription
 
 
 from fmpy import simulate_fmu

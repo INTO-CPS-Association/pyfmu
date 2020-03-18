@@ -1,7 +1,4 @@
-from pybuilder.resources.pyfmu.fmi2slave import Fmi2Slave
-from pybuilder.resources.pyfmu.fmi2types import Fmi2DataTypes, Fmi2Causality, Fmi2Variability, Fmi2Status,Fmi2Initial
-
-from pybuilder.resources.pyfmu.fmi2logging import Fmi2StdLogCats
+from pyfmu.fmi2 import Fmi2Slave,Fmi2DataTypes, Fmi2Causality, Fmi2Variability, Fmi2Status,Fmi2Initial,Fmi2StdLogCats
 
 class Adder(Fmi2Slave):
     

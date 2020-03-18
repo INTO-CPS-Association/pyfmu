@@ -2,9 +2,9 @@ import argparse
 import sys
 from os.path import join, dirname, realpath, normpath
 
-from pybuilder.builder.generate import create_project
-from pybuilder.builder.export import export_project
-from pybuilder.builder.validate import validate
+from pyfmu.builder.generate import create_project
+from pyfmu.builder.export import export_project
+from pyfmu.builder.validate import validate
 
 
 def config_generate_subprogram(subparsers: argparse.ArgumentParser) -> None:

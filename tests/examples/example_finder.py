@@ -6,7 +6,7 @@ from pathlib import Path
 import stat
 
 
-from pybuilder.builder.export import export_project, PyfmuProject, PyfmuArchive
+from pyfmu.builder.export import export_project, PyfmuProject, PyfmuArchive
 
 
 

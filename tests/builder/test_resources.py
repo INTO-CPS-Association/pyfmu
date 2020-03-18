@@ -11,7 +11,7 @@ from fmpy.model_description import read_model_description
 from ..examples.example_finder import get_all_examples,get_correct_examples,get_incorrect_examples, ExampleArchive
 
 
-from pybuilder.resources.resources import Resources
+from pyfmu.resources.resources import Resources
 
 import pytest
 

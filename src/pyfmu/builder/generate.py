@@ -8,8 +8,8 @@ from shutil import copy, copytree, rmtree
 from jinja2 import Template
 import json
 
-from pybuilder.builder.configure import _create_config
-from pybuilder.resources.resources import Resources
+from pyfmu.builder.configure import _create_config
+from pyfmu.resources.resources import Resources
 
 
 class PyfmuProject():
@@ -227,7 +227,7 @@ def create_project(project_path: str, main_class_name: str, overwrite=True) -> P
     project = PyfmuProject(
         project_path, main_class=main_class_name, main_script=main_script)
 
-    _copy_pyfmu_to_project(project)
+    #_copy_pyfmu_to_project(project)
     _write_templateScript_to_project(project)
     _write_projectConfig_to_project(project)
 

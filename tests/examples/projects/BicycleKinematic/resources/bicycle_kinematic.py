@@ -2,8 +2,7 @@ from math import cos, sin, atan, tan
 
 from scipy.integrate import solve_ivp
 
-from pyfmu.fmi2slave import Fmi2Slave
-from pyfmu.fmi2types import Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
+from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality, Fmi2Variability,Fmi2DataTypes,Fmi2Initial
 
 
 class Bicycle_Kinematic(Fmi2Slave):

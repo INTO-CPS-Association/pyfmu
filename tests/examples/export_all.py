@@ -9,8 +9,8 @@ import tqdm
 #from example_finder import get_example_project, get_available_examples
 from tests.examples.example_finder import get_example_project, get_all_examples
 
-from pybuilder.builder.export import export_project
-from pybuilder.builder.generate import PyfmuProject
+from pyfmu.builder.export import export_project
+from pyfmu.builder.generate import PyfmuProject
 
 
 def export_all():
