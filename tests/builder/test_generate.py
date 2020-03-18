@@ -17,7 +17,6 @@ class TestGenerate():
 
         assert p.root.samefile(tmpdir)
         assert p.project_configuration_path.samefile(tmpdir / 'project.json')
-        assert p.pyfmu_dir.samefile(tmpdir / 'resources' / 'pyfmu')
 
     def test_generate_mainScriptTemplateAdded(self, tmpdir):
 
@@ -27,14 +26,6 @@ class TestGenerate():
         assert p.main_class == 'Adder'
         assert p.main_script_path == p.root / 'resources' / 'adder.py'
 
-    def test_generate_libAdded(self, tmpdir):
-        p = create_project(tmpdir, 'Adder')
-
-        assert p.pyfmu_dir.is_dir()
-        assert (p.pyfmu_dir / 'fmi2slave.py').is_file()
-        assert (p.pyfmu_dir / 'fmi2types.py').is_file()
-        assert (p.pyfmu_dir / 'fmi2validation.py').is_file()
-        assert (p.pyfmu_dir / 'fmi2variables.py').is_file()
 
     def test_generate_configurationAdded(self, tmpdir):
         p = create_project(tmpdir, 'Adder')
