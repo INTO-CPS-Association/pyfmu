@@ -75,12 +75,11 @@ def _get_input_binary_path_for_host() -> Path:
     build_path = Path(__file__).parent.resolve() / 'build'
 
     if(sys == 'Windows'):
-        return build_path  / 'pyfmu.dll'
+        return build_path / 'pyfmu.dll'
     elif(sys == "Linux"):
-        return build_path  / 'pyfmu.so'
-    else: 
+        return build_path / 'pyfmu.so'
+    else:
         NotImplementedError(f"Not supported for platform {sys}")
-
 
 
 def _get_output_binary_path_for_host() -> Path:
@@ -94,7 +93,7 @@ def _get_output_binary_path_for_host() -> Path:
         Path -- Path to the resources folder matching the host
 
     Examples:
-    
+
     Windows:
     src/pyfmu/resources/wrapper/win64/pyfmu.dll
 
@@ -116,16 +115,16 @@ def _get_output_binary_path_for_host() -> Path:
 def copy_binaries():
 
     binary_in = _get_input_binary_path_for_host()
-    
+
     l.debug(f'Looking for compiled binary at path: {binary_in}')
 
     if(not binary_in.is_file()):
         raise RuntimeError(
             f'The compiled binary could not be found at: {binary_in}')
-    
+
     binary_out = _get_output_binary_path_for_host()
 
-    l.debug('Binaries were found.')  
+    l.debug('Binaries were found.')
 
     try:
         os.makedirs(binary_out.parent, exist_ok=True)
@@ -155,6 +154,8 @@ def build():
     3. do cmake configure inside this folder
     4. do cmake build inside this folder.
     """
+
+    p = platform.system()
 
     build_dir = Path(__file__).parent / 'build'
     l.log(logging.DEBUG, f'Preparing build to folder {build_dir}')
@@ -191,8 +192,12 @@ def build():
         # CMake build
         try:
             l.log(logging.DEBUG, 'Building project')
-            res = subprocess.run(
-                ['cmake', '--build', '.'])
+
+            if(p == 'Windows'):
+                res = subprocess.run(
+                    ['cmake', '--build', '.', '--config', 'Release'])
+            else:
+                res = subprocess.run(['cmake', '--build', '.'])
 
             if(res.returncode != 0):
                 raise RuntimeError(
@@ -205,14 +210,14 @@ def build():
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Script to ease the process of build the wrapper and updating the resources of PyFMU")
+    parser = argparse.ArgumentParser(
+        description="Script to ease the process of build the wrapper and updating the resources of PyFMU")
 
     parser.add_argument(
         '--update_wrapper', '-u', action='store_true', help="overwrite the old wrapper library with the newly built one.")
-    
+
     parser.add_argument(
-        '--export_examples', '-e', action='store_true',help="Exports all example projects as FMUs with the built wrapper.")
-    
+        '--export_examples', '-e', action='store_true', help="Exports all example projects as FMUs with the built wrapper.")
 
     args = parser.parse_args()
 
@@ -226,9 +231,8 @@ if __name__ == "__main__":
 
     l.debug('Succesfully build project.')
 
-
     should_update_wrapper = args.update_wrapper or args.export_examples
-    
+
     if(should_update_wrapper):
         l.debug('Copying the binaries to resource folder')
 
@@ -237,7 +241,7 @@ if __name__ == "__main__":
             pass
         except Exception as e:
             l.log(logging.ERROR,
-                f'Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}')
+                  f'Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}')
             sys.exit(-1)
 
         l.debug('Binaries were sucessfully copied to resources.')
