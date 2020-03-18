@@ -362,9 +362,6 @@ def export_project(project: PyfmuProject, outputPath: Path, overwrite=False, sto
 
     # copy source files to archive
     _copy_sources_to_archive(project, archive)
-    
-    # copy pyfmu lib to archive, a fresh copy from resources is always used.
-    _copy_pyfmu_lib_to_archive(archive)
 
     _copy_binaries_to_archive(archive)
 

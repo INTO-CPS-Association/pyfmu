@@ -35,15 +35,6 @@ class TestExport():
             assert (a.binaries_dir / 'win64' / 'pyfmu.dll').is_file()
             assert (a.binaries_dir / 'linux64' / 'pyfmu.so').is_file()
 
-    def test_export_validProject_libCopied(self):
-        with ExampleArchive('Adder') as a:
-
-            assert a.pyfmu_dir.is_dir()
-            assert (a.pyfmu_dir / 'fmi2slave.py').is_file()
-            assert (a.pyfmu_dir / 'fmi2types.py').is_file()
-            assert (a.pyfmu_dir / 'fmi2validation.py').is_file()
-            assert (a.pyfmu_dir / 'fmi2variables.py').is_file()
-
     def test_export_validProject_slaveConfigurationGenerated(self):
         with ExampleArchive('Adder') as a:
             slaveConfiguration_generated = a.slave_configuration_path.is_file()
@@ -124,21 +115,3 @@ class TestPyfmuProject():
 
         with pytest.raises(ValueError):
             _ = PyfmuProject.from_existing(tmpdir)
-
-
-def test_freshPyFmuLibCopied(tmpdir):
-
-    with ExampleProject('Adder') as p:
-
-        assert(p.pyfmu_dir.is_dir())
-
-        rmtree(p.pyfmu_dir)
-
-        assert( not p.pyfmu_dir.is_dir())
-
-
-        outdir = tmpdir / 'Adder'
-        a = export_project(p,outdir)
-        assert(a.pyfmu_dir.is_dir())
-        
-
