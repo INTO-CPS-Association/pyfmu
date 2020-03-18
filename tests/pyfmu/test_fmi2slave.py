@@ -67,12 +67,16 @@ def test_registerVariable_acceptsStrings():
         ('real','output','continuous','exact')
     }
 
-    for c in valid_combinations:
-        data_type,causality,variability,initial = c
+    for data_type,causality,variability,initial in valid_combinations:
         slave.register_variable("a",data_type=data_type,causality=causality,variability=variability,initial=initial,start=0)
 
 def test_registerVariable_infersDataTypeFromStart():
-    raise NotImplementedError()
+
+    s = Fmi2Slave("")
+    s.register_variable('a',causality='input',start=1.0)    
+    matches = [v for v in s.vars if v.data_type is Fmi2DataTypes.real]
+
+    assert(len(matches) is 1)
 
 
 def test_registerVariable_defaultStarts():

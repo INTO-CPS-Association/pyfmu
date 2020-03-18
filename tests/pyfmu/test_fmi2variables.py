@@ -95,13 +95,6 @@ def test_dataTypeAndStartTypeMismatch_NOK():
             for s in ss:
                 ScalarVariable("",data_type = t,causality=Fmi2Causality.input,start=s) 
 
-
-def test_dataTypeAndVariabilityCombinations():
-    # see spec p.46-47
-    
-       
-    raise NotImplementedError()
-
 # Output valid start values
 
 def test_output_exact_startDefined_OK():
