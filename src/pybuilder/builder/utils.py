@@ -2,7 +2,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 import os
 from os.path import dirname, isdir, isfile, join, normpath
 from pathlib import Path
-
+import subprocess
 
 def zipdir(inDir: str, outDir: str):
 
@@ -30,6 +30,31 @@ class cd:
     def __exit__(self, etype, value, traceback):
         os.chdir(self.savedPath)
 
+def has_java():
+    """Checks if java is available in the system's path.
+    
+    Returns:
+        [bool] -- true if java is available, otherwise false.
+    """
+    try:
+        subprocess.run(['java','-v'])
+    except Exception:
+        return False
+    
+    return True
+
+def has_fmpy() -> bool:
+    """Checks if FMPy is available
+    
+    Returns:
+        bool -- true if FMPy is available, otherwise false.
+    """
+    try:
+        import fmpy
+    except:
+        return False
+
+    return True
 
 if __name__ == "__main__":
 

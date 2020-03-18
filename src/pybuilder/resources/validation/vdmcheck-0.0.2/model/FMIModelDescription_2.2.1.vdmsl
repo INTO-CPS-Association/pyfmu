@@ -94,6 +94,15 @@ functions
 		( attrs.fmiVersion in set { "2.0" } );
 
 	/**
+	 * Helper function to produce a friendly string result for a validation.
+	 */
+	isValidFMIModelDescriptionCheck: FMIModelDescription +> seq1 of char
+	isValidFMIModelDescriptionCheck(md) ==
+		if isValidFMIModelDescription(md)
+		then "No errors found."
+		else "Errors found.";
+
+	/**
 	 * Invariant definition for FMIModelDescription
 	 */
 	isValidFMIModelDescription: FMIModelDescription +> bool

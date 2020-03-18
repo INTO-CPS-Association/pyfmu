@@ -38,12 +38,6 @@ class Resources:
         self.wrapper_win64 = self.binaries_dir / 'win64' / (_wrapper_name + '.dll')
         self.wrapper_linux64 = self.binaries_dir / 'linux64' / (_wrapper_name + '.so')
 
-        # VDMCheck
-        self.vdmcheck_fmi2_ps = self.root / 'validation' / \
-            'vdmcheck-0.0.2' / 'VDMCheck2.ps1'
-        self.vdmcheck_fmi2_sh = self.root / 'validation' / \
-            'vdmcheck-0.0.2' / 'VDMCheck2.sh'
-        self.vdmcheck_fmi3_ps = self.root / 'validation' / \
-            'vdmcheck-0.0.3' / 'VDMCheck3.ps1'
-        self.vdmcheck_fmi3_sh = self.root / 'validation' / \
-            'vdmcheck-0.0.3' / 'VDMCheck2.sh'
+
+        self.VDMCheck2_jar = self.root / 'validation' / 'vdmcheck-0.0.2' / 'fmi2vdm-0.0.2.jar'
+        self.VDMCheck3_jar = self.root / 'validation' / 'vdmcheck-0.0.3' / 'fmi2vdm-0.0.3.jar'

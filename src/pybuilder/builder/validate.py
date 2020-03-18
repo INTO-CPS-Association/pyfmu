@@ -8,7 +8,7 @@ from os.path import realpath, join
 from pathlib import Path
 
 from pybuilder.resources.resources import Resources
-from pybuilder.builder.utils import cd
+from pybuilder.builder.utils import cd, has_java, has_fmpy
 
 
 class FMI_Versions(Enum):
@@ -36,18 +36,10 @@ class ValidationResult():
         return False not in ss
 
 
-def _has_fmpy() -> bool:
-    try:
-        import fmpy
-    except:
-        return False
-
-    return True
-
 
 def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False, use_vdmcheck: bool = False):
 
-    if(use_fmpy and not _has_fmpy()):
+    if(use_fmpy and not has_fmpy()):
         raise ImportError(
             "Cannot validate exported module using fmpy, the module could not be loaded. Ensure that the package is installed.")
 
@@ -66,7 +58,6 @@ def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False
 
     return None
 
-
 def validate_project(project) -> bool:
     """Validate a project to ensure that it is consistent.
 
@@ -78,7 +69,6 @@ def validate_project(project) -> bool:
     """
     # TODO add validation
     return True
-
 
 def validate_modelDescription(modelDescription: str, use_fmucheck=False, use_vdmcheck=False, vdmcheck_version=FMI_Versions.FMI2) -> ValidationResult:
 
@@ -92,19 +82,9 @@ def validate_modelDescription(modelDescription: str, use_fmucheck=False, use_vdm
         _validate_vdmcheck(modelDescription, results, vdmcheck_version)
 
     if(use_fmucheck):
-        pass
+        raise NotImplementedError()
 
     return results
-
-
-def _vdmcheck_no_errors(results):
-    """ Returns true if VDMCheck finds has found no errors.
-    """
-    stdout_contains_no_error = b'no errors found' in results.stdout.lower()
-    stderr_is_empty = results.stderr == b''
-    error_code_ok = results.returncode == 0
-    return stdout_contains_no_error and stderr_is_empty and error_code_ok
-
 
 def _validate_vdmcheck(modelDescription: str, validation_results: ValidationResult, fmi_version=FMI_Versions.FMI2):
     """Validate the model description using the VDMCheck tool.
@@ -117,74 +97,46 @@ def _validate_vdmcheck(modelDescription: str, validation_results: ValidationResu
 
     Raises:
         ValueError: Raised if an the fmi_version is unknown or if the tool does not support validation thereof.
+
+    Notes:
+        VDMCheck is implemented in Java, as such it requires java to be available in the path.
     """
 
-    p = platform.system()
+    if(not has_java()):
+        raise RuntimeError('Unable to perform validation using VDMCheck, java was not found in the systems path.')
 
-    system_and_fmi_to_script = {
-        'Windows': {
-            FMI_Versions.FMI2: Resources.get().vdmcheck_fmi2_ps,
-            FMI_Versions.FMI3: Resources.get().vdmcheck_fmi3_ps,
-        },
-        'Linux': {
-            FMI_Versions.FMI2: Resources.get().vdmcheck_fmi2_sh,
-            FMI_Versions.FMI3: Resources.get().vdmcheck_fmi3_sh,
-        },
-        'Solaris': {
-            FMI_Versions.FMI2: Resources.get().vdmcheck_fmi2_sh,
-            FMI_Versions.FMI3: Resources.get().vdmcheck_fmi3_sh,
-        },
-        'Darwin': {
-            FMI_Versions.FMI2: Resources.get().vdmcheck_fmi2_sh,
-            FMI_Versions.FMI3: Resources.get().vdmcheck_fmi3_sh,
-        },
-
+    fmi_to_jar = {
+        fmi_version.FMI2 : Resources.get().VDMCheck2_jar,
+        fmi_version.FMI3 : Resources.get().VDMCheck3_jar
     }
 
-    if(p not in system_and_fmi_to_script):
-        raise RuntimeError(
-            f'Unable to perform validation using VDMCheck, the operating system {p}, is not supported')
+    if(fmi_version not in fmi_to_jar):
+        raise RuntimeError(f'Unable to perform validation using VDMCheck. Unsupported FMI version: {fmi_version}, supported versions are: {fmi_to_jar.keys()}')
 
-    supported_versions = system_and_fmi_to_script[p]
+    #p = platform.system()
 
-    if(fmi_version not in supported_versions):
-        raise RuntimeError(
-            f'Unable to perform validation using VDMCheck, validation is only supported for FMI versions: {supported_versions}')
-
-    # At the time of writing the checker can only be invoked on a file and not directly on a string.
-    # Until this is introduced we simply store this in temp file
-
+    # Currently VDMCheck
     tmpdir = Path(mkdtemp())
     md_path = str((tmpdir / 'modelDescription.xml').resolve())
-    script_path = system_and_fmi_to_script[p][fmi_version]
-
-    try:
-        with open(md_path, 'w') as f:
+    with open(md_path, 'w') as f:
             f.write(modelDescription)
 
-        # If on windows use powershell, otherwise use bash script
+    # Run VDMCheck
+    result = subprocess.run(['java','-jar',fmi_to_jar[fmi_version],md_path],capture_output=True)
+    
 
-        # Also we need to change working dir path of VDMCheck
-        wd = script_path.parent
-        with cd(script_path.parent):
+    def _vdmcheck_no_errors(results):
+        stdout_contains_no_error = b'no errors found' in results.stdout.lower()
+        stderr_is_empty = results.stderr == b''
+        error_code_ok = results.returncode == 0
+        return stdout_contains_no_error and stderr_is_empty and error_code_ok
 
-            use_powershell = p in {'Windows'}
-            if(use_powershell):
 
-                result = subprocess.run(
-                    ['powershell.exe', str(script_path.resolve()), '-fmu', md_path], capture_output=True)
-            else:
-                result = subprocess.run(
-                    [script_path, md_path], capture_output=True)
-
-    except Exception as e:
-        raise RuntimeError(
-            f'Failed performing validation using VDMCheck, invoking the validation program threw and exception: {e}') from e
-
-    finally:
-        # TODO delete tmp dir
-        pass
-
+    # convert output
     isValid = _vdmcheck_no_errors(result)
-
     validation_results.set_result_for('vdmcheck', isValid, result.stdout)
+
+    # TODO remove tmp dir    
+
+
+    
