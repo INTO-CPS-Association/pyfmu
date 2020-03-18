@@ -9,7 +9,7 @@ import sys
 from shutil import copy
 import argparse
 
-from pyfmu.resources.resources import Resources
+from src.pyfmu.resources.resources import Resources
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 l = logging.getLogger(__file__)
