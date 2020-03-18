@@ -42,10 +42,33 @@ conan_cmake_run(REQUIRES
                 nlohmann_json/3.7.3
                 
                 BASIC_SETUP 
-                BUILD missing)
+                BUILD missing
+                # fix to keep conan from overwriting output dirs on UNIX, seems to be a bug
+                # https://github.com/conan-io/conan/issues/1982
+                NO_OUTPUT_DIRS 
+                )
 
 
 # end of external packages
 
 add_subdirectory(wrapper)
 add_subdirectory(tests/wrapper)
+
+# multi-configuration generators such as MSVC puts different builds in seperate folders
+# we dumpy them in the root of the build to be able to copy them more easily.
+if(MSVC)
+    set_target_properties(pyfmu PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
+    set_target_properties(pyfmu PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
+
+elseif(UNIX)
+    
+    set_target_properties(pyfmu PROPERTIES 
+        PREFIX ""
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+        )
+
+endif()
+

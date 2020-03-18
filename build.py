@@ -7,6 +7,7 @@ import platform
 import logging
 import sys
 from shutil import copy
+import argparse
 
 from pyfmu.resources.resources import Resources
 
@@ -61,19 +62,12 @@ def FMI2_binary_directory_from_hostname() -> Path:
 def _get_input_binary_path_for_host() -> Path:
     """Returns the path to the compiled binaries for the host.
     The names of the binaries produced by CMake varies based on whether its an .dll or .so platform.
-    
-    For example library names on so platforms will be prefixed with 'lib' which is not the case on dll platforms.
 
     Returns:
         Path -- Path to the pyfmu library in the build folder.
 
     Examples:
 
-    Windows:
-    build/bin/pyfmu.dll
-    
-    Linux:
-    build/lib/libpyfmu.so
     """
 
     sys = platform.system()
@@ -81,9 +75,9 @@ def _get_input_binary_path_for_host() -> Path:
     build_path = Path(__file__).parent.resolve() / 'build'
 
     if(sys == 'Windows'):
-        return build_path / 'bin' /'libpyfmu.dll'
+        return build_path  / 'pyfmu.dll'
     elif(sys == "Linux"):
-        return build_path / 'lib' / 'libpyfmu.so'
+        return build_path  / 'pyfmu.so'
     else: 
         NotImplementedError(f"Not supported for platform {sys}")
 
@@ -122,18 +116,16 @@ def _get_output_binary_path_for_host() -> Path:
 def copy_binaries():
 
     binary_in = _get_input_binary_path_for_host()
-
+    
     l.debug(f'Looking for compiled binary at path: {binary_in}')
 
     if(not binary_in.is_file()):
         raise RuntimeError(
             f'The compiled binary could not be found at: {binary_in}')
-
-    l.debug('Binaries were found.')
-
+    
     binary_out = _get_output_binary_path_for_host()
 
-    
+    l.debug('Binaries were found.')  
 
     try:
         os.makedirs(binary_out.parent, exist_ok=True)
@@ -213,6 +205,17 @@ def build():
 
 if __name__ == "__main__":
 
+    parser = argparse.ArgumentParser(description="Script to ease the process of build the wrapper and updating the resources of PyFMU")
+
+    parser.add_argument(
+        '--update_wrapper', '-u', action='store_true', help="overwrite the old wrapper library with the newly built one.")
+    
+    parser.add_argument(
+        '--export_examples', '-e', action='store_true',help="Exports all example projects as FMUs with the built wrapper.")
+    
+
+    args = parser.parse_args()
+
     l.log(logging.DEBUG, 'Building project.')
     try:
         build()
@@ -223,23 +226,30 @@ if __name__ == "__main__":
 
     l.debug('Succesfully build project.')
 
-    l.debug('Copying the binaries to resource folder')
 
-    try:
-        copy_binaries()
-    except Exception as e:
-        l.log(logging.ERROR,
-              f'Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}')
-        sys.exit(-1)
+    should_update_wrapper = args.update_wrapper or args.export_examples
+    
+    if(should_update_wrapper):
+        l.debug('Copying the binaries to resource folder')
 
-    l.debug('Binaries were sucessfully copied to resources.')
+        try:
+            copy_binaries()
+            pass
+        except Exception as e:
+            l.log(logging.ERROR,
+                f'Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}')
+            sys.exit(-1)
 
-    l.debug('Exporting example projects')
-    try:
-        export_projects()
-    except Exception as e:
-        l.error(
-            f'Failed exporting example projects, an exception was thrown:\n{e}')
-        sys.exit(1)
+        l.debug('Binaries were sucessfully copied to resources.')
 
-    l.debug('Sucessfully exported projects')
+    if(args.export_examples):
+
+        try:
+            export_projects()
+            pass
+        except Exception as e:
+            l.error(
+                f'Failed exporting example projects, an exception was thrown:\n{e}')
+            sys.exit(1)
+
+        l.debug('Sucessfully exported projects')
