@@ -47,7 +47,12 @@ jobs:
       - name: install conan
         run: |
           pip install conan
-
+          
+      - name: check compiler versions
+        run: |
+          cmake --version
+          g++ --version
+          
       - name: Build using CMAKE
         run: |
           python build.py
