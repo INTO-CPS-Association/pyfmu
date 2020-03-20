@@ -8,12 +8,12 @@
 
 #include "Logger.hpp"
 #include "fmi/fmi2TypesPlatform.h"
-#include "pythonfmu/PyGIL.hpp"
+#include "pyfmu/PyGIL.hpp"
 
 #ifndef PYTHONFMU_PYOBJECTWRAPPER_HPP
 #define PYTHONFMU_PYOBJECTWRAPPER_HPP
 
-namespace pythonfmu
+namespace pyfmu
 {
 
 class PyObjectWrapper
@@ -24,35 +24,35 @@ public:
 
     explicit PyObjectWrapper(PyObjectWrapper &&other);
 
-    void setupExperiment(double startTime);
+    fmi2Status setupExperiment(double startTime);
 
-    void enterInitializationMode();
+    fmi2Status enterInitializationMode();
 
-    void exitInitializationMode();
+    fmi2Status exitInitializationMode();
 
-    bool doStep(double currentTime, double stepSize);
+    fmi2Status doStep(double currentTime, double stepSize);
 
-    void reset();
+    fmi2Status reset();
 
-    void terminate();
+    fmi2Status terminate();
 
-    void getInteger(const fmi2ValueReference *vr, std::size_t nvr, fmi2Integer *value) const;
+    fmi2Status getInteger(const fmi2ValueReference *vr, std::size_t nvr, fmi2Integer *value) const;
 
-    void getReal(const fmi2ValueReference *vr, std::size_t nvr, fmi2Real *value) const;
+    fmi2Status getReal(const fmi2ValueReference *vr, std::size_t nvr, fmi2Real *value) const;
 
-    void getString(const fmi2ValueReference *vr, std::size_t nvr, fmi2String *value) const;
+    fmi2Status getString(const fmi2ValueReference *vr, std::size_t nvr, fmi2String *value) const;
 
-    void getBoolean(const fmi2ValueReference *vr, std::size_t nvr, fmi2Boolean *value) const;
+    fmi2Status getBoolean(const fmi2ValueReference *vr, std::size_t nvr, fmi2Boolean *value) const;
 
-    fmi2Status setDebugLogging(bool loggingOn, size_t nCategories, const char* const categories[]) const;
+    fmi2Status setDebugLogging(bool loggingOn, size_t nCategories, const char *const categories[]) const;
 
-    void setReal(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Real *value);
+    fmi2Status setReal(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Real *value);
 
-    void setInteger(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Integer *value);
+    fmi2Status setInteger(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Integer *value);
 
-    void setBoolean(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Boolean *value);
+    fmi2Status setBoolean(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Boolean *value);
 
-    void setString(const fmi2ValueReference *vr, std::size_t nvr, const fmi2String *value);
+    fmi2Status setString(const fmi2ValueReference *vr, std::size_t nvr, const fmi2String *value);
 
     ~PyObjectWrapper();
 
@@ -88,6 +88,6 @@ private:
     void propagate_python_log_messages() const;
 };
 
-} // namespace pythonfmu
+} // namespace pyfmu
 
 #endif //PYTHONFMU_PYOBJECTWRAPPER_HPP
