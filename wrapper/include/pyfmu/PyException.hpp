@@ -1,7 +1,6 @@
 
-#ifndef PYTHONFMU_EXPORT_PYEXCEPTION_HPP
-#define PYTHONFMU_EXPORT_PYEXCEPTION_HPP
-
+#ifndef PYFMU_EXPORT_PYEXCEPTION_HPP
+#define PYFMU_EXPORT_PYEXCEPTION_HPP
 
 #include <Python.h>
 #include <iostream>
@@ -10,27 +9,29 @@
 #include "utility/utils.hpp"
 #include "utility/py_compatability.hpp"
 
-namespace pythonfmu
+namespace pyfmu
 {
-
-
 
 inline std::string get_py_exception()
 {
     auto err = PyErr_Occurred();
 
-    if (err != nullptr) {
+    if (err != nullptr)
+    {
 
         PyObject *pExcType, *pExcValue, *pExcTraceback;
         PyErr_Fetch(&pExcType, &pExcValue, &pExcTraceback);
 
         std::ostringstream oss;
         oss << "Fatal py exception encountered: ";
-        if (pExcValue != nullptr) {
-            PyObject* pRepr = PyObject_Repr(pExcValue);
+        if (pExcValue != nullptr)
+        {
+            PyObject *pRepr = PyObject_Repr(pExcValue);
             oss << PyCompat::PyUnicode_AsUTF8(pRepr);
             Py_DECREF(pRepr);
-        } else {
+        }
+        else
+        {
             oss << "unknown error";
         }
 
@@ -44,7 +45,7 @@ inline std::string get_py_exception()
 
         return msg;
     }
-    else 
+    else
     {
         return "";
     }
@@ -55,6 +56,5 @@ inline void handle_py_exception()
     throw std::runtime_error(get_py_exception().c_str());
 }
 
-} // namespace pythonfmu
-
+} // namespace pyfmu
 #endif

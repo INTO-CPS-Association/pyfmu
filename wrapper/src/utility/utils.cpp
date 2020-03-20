@@ -7,7 +7,7 @@
 #include <uriparser/Uri.h>
 #include <fmt/format.h>
 
-#include "pythonfmu/Logger.hpp"
+#include "pyfmu/Logger.hpp"
 
 using namespace std;
 using namespace filesystem;

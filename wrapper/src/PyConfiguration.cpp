@@ -4,8 +4,8 @@
 
 #include <fmt/format.h>
 
-#include "pythonfmu/Logger.hpp"
-#include "pythonfmu/PyConfiguration.hpp"
+#include "pyfmu/Logger.hpp"
+#include "pyfmu/PyConfiguration.hpp"
 
 using namespace std;
 using namespace nlohmann;
@@ -33,7 +33,7 @@ PyConfiguration read_configuration(const path &config_path, Logger *log)
 
     PyConfiguration config;
 
-    log->ok(format("Reading configuration file from: {}", config_path.string()));
+    log->ok("wrapper","Reading configuration file from: {}", config_path.string());
 
     ifstream is(config_path, ios::in);
 
@@ -45,7 +45,7 @@ PyConfiguration read_configuration(const path &config_path, Logger *log)
         throw runtime_error(msg);
     }
 
-    log->ok("Sucessfully read file");
+    log->ok("wrapper","Sucessfully read file");
 
     json j;
 
@@ -58,6 +58,9 @@ PyConfiguration read_configuration(const path &config_path, Logger *log)
     {
         throw runtime_error(format("failed to parse configuration file used to locate correct Python script on startup. Ensure that the slave_configuration.json file is well formed. Exception was: {}", e.what()));
     }
+
+    // module name is the script's name stripped of extension: myscript.py -> myscript
+    config.module_name = (path(config.main_script).filename().replace_extension("")).string();
 
     return config;
 }
