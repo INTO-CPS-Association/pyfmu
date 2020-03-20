@@ -45,7 +45,6 @@ endif()
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 conan_cmake_run(REQUIRES 
                 
-                Poco/1.9.4@pocoproject/stable
                 catch2/2.5.0@bincrafters/stable
                 fmt/6.1.1
                 spdlog/[>=1.4.1]
@@ -100,8 +99,8 @@ target_link_libraries(pyfmu
         PUBLIC 
         ${Python3_LIBRARIES}
         PRIVATE
-        ${EXTERNAL_LIBS}
         ${CONAN_LIBS}
+        ${EXTERNAL_LIBS}
         )
 
 ######################################## WRAPPER-TESTS ########################################

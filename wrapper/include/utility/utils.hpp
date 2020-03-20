@@ -11,10 +11,19 @@
  * @throw invalid_argument
  * 
  * @example:
- * auto uri = std::path("file:///fmu_directory/fmu/resources")
- * auto path = getPathFromFileUri(uri)
+ * std::string uri = std::path("file:///fmu_directory/fmu/resources")
+ * std::filesystem::path p = getPathFromFileUri(uri)
  */
 std::filesystem::path getPathFromFileUri(std::string uri);
+
+/**
+ * @brief Returns an file URI pointing to the specified path.
+ * 
+ * @param path to the file
+ * @return file uri encoded as a string
+ */
+std::string getFileUriFromPath(std::filesystem::path path);
+
 
 /**
  * Convert a string to a wide string

@@ -4,7 +4,6 @@
 #include <codecvt>
 
 #include <Python.h>
-#include <Poco/URI.h>
 #include <uriparser/Uri.h>
 #include <fmt/format.h>
 
@@ -68,13 +67,42 @@ path getPathFromFileUri(string uri)
   return p;
 }
 
+string getFileUriFromPath(path path)
+{
+
+#ifdef WIN32
+  const int bytesNeeded = 8 + (3 * path.string().length() + 1);
+#else
+  const int bytesNeeded = 7 + (3 * path.string().length() + 1);
+#endif
+  
+  char *absUri = new char[bytesNeeded];
+
+#ifdef WIN32
+    int err = uriWindowsFilenameToUriStringA(p.c_str(),absUri);
+#else
+    int err = uriUnixFilenameToUriStringA(path.c_str(),absUri);
+#endif
+
+  if (err != URI_SUCCESS)
+  {
+    delete[] absUri;
+    throw runtime_error("Failed to parse extract host specific path from URI.");
+  }
+
+  string s(absUri);
+  delete[] absUri;
+
+  return s;
+}
+
 /**
  * Convert a string to a wide string
 **/
-std::wstring s2ws(const string &str)
+wstring s2ws(const string &str)
 {
   using convert_typeX = std::codecvt_utf8<wchar_t>;
-  std::wstring_convert<convert_typeX, wchar_t> converterX;
+  wstring_convert<convert_typeX, wchar_t> converterX;
 
   return converterX.from_bytes(str);
 }
@@ -82,9 +110,9 @@ std::wstring s2ws(const string &str)
 /**
  * Convert a wide string to a string
 **/
-string ws2s(const std::wstring &wstr)
+string ws2s(const wstring &wstr)
 {
-  using convert_typeX = std::codecvt_utf8<wchar_t>;
-  std::wstring_convert<convert_typeX, wchar_t> converterX;
+  using convert_typeX = codecvt_utf8<wchar_t>;
+  wstring_convert<convert_typeX, wchar_t> converterX;
   return converterX.to_bytes(wstr);
 }

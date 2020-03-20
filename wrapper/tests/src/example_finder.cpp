@@ -4,10 +4,10 @@
 #include <iostream>
 
 #include <fmt/format.h>
-#include "spdlog/spdlog.h"
-#include <Poco/URI.h>
-#include <Poco/Path.h>
+#include <spdlog/spdlog.h>
 
+
+#include "utility/utils.hpp"
 #include "example_finder.hpp"
 
 using namespace std;
@@ -82,11 +82,8 @@ fs::path ExampleArchive::getResources()
     return getRoot() / "resources";
 }
 
-std::string ExampleArchive::getResourcesURI()
+string ExampleArchive::getResourcesURI()
 {
-    Poco::Path p = Poco::Path(getResources().string());
 
-    auto uri = Poco::URI(p);
-
-    return uri.toString();
+    return getFileUriFromPath(getResources());
 }
