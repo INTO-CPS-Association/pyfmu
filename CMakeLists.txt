@@ -70,7 +70,7 @@ endif ()
 
 set(Python3_USE_STATIC_LIBS TRUE)
 
-add_library(wrapper
+add_library(pyfmu
         wrapper/src/fmi_functions.cpp
         wrapper/src/PyObjectWrapper.cpp
         wrapper/src/PyConfiguration.cpp
@@ -79,23 +79,23 @@ add_library(wrapper
         wrapper/src/utility/utils.cpp
 )
 
-target_include_directories(wrapper
+target_include_directories(pyfmu
         PUBLIC
         wrapper/include
         ${Python3_INCLUDE_DIRS}
         )
 
-target_compile_features(wrapper PUBLIC "cxx_std_17")
+target_compile_features(pyfmu PUBLIC "cxx_std_17")
 
 
-target_compile_definitions(wrapper 
+target_compile_definitions(pyfmu 
         PRIVATE 
         # use stable Python ABI to maximize portability between python versions
         # https://docs.python.org/3/c-api/stable.html
         Py_LIMITED_API
 )
 
-target_link_libraries(wrapper
+target_link_libraries(pyfmu
         PUBLIC 
         ${Python3_LIBRARIES}
         PRIVATE
@@ -120,21 +120,21 @@ target_compile_features(wrapper-tests
 )
 target_link_libraries(wrapper-tests 
         PRIVATE 
-        wrapper
+        pyfmu
         ${CONAN_LIBS}
 )
 
 # multi-configuration generators such as MSVC puts different builds in seperate folders
 # we dumpy them in the root of the build to be able to copy them more easily.
 if(MSVC)
-    set_target_properties(wrapper PROPERTIES
+    set_target_properties(pyfmu PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
-    set_target_properties(wrapper PROPERTIES
+    set_target_properties(pyfmu PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
 
 elseif(UNIX)
     
-    set_target_properties(wrapper PROPERTIES 
+    set_target_properties(pyfmu PROPERTIES 
         PREFIX ""
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
