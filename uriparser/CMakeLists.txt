@@ -34,7 +34,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 # OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.10)
 
 project(uriparser
     VERSION
@@ -58,13 +58,13 @@ include(GNUInstallDirs)
 #
 # Configuration
 #
-option(BUILD_SHARED_LIBS "Build shared libraries (rather than static ones)" ON)
-option(URIPARSER_BUILD_DOCS "Build API documentation (requires Doxygen, Graphviz, and (optional) Qt's qhelpgenerator)" ON)
-option(URIPARSER_BUILD_TESTS "Build test suite (requires GTest >=1.8.0)" ON)
-option(URIPARSER_BUILD_TOOLS "Build tools (e.g. CLI \"uriparse\")" ON)
+#option(BUILD_SHARED_LIBS "Build shared libraries (rather than static ones)" ON)
+option(URIPARSER_BUILD_DOCS "Build API documentation (requires Doxygen, Graphviz, and (optional) Qt's qhelpgenerator)" OFF)
+option(URIPARSER_BUILD_TESTS "Build test suite (requires GTest >=1.8.0)" OFF)
+option(URIPARSER_BUILD_TOOLS "Build tools (e.g. CLI \"uriparse\")" OFF)
 option(URIPARSER_BUILD_CHAR "Build code supporting data type 'char'" ON)
 option(URIPARSER_BUILD_WCHAR_T "Build code supporting data type 'wchar_t'" ON)
-option(URIPARSER_ENABLE_INSTALL "Enable installation of uriparser" ON)
+option(URIPARSER_ENABLE_INSTALL "Enable installation of uriparser" OFF)
 set(URIPARSER_MSVC_RUNTIME "" CACHE STRING "Use of specific runtime library (/MT /MTd /MD /MDd) with MSVC")
 
 if(NOT URIPARSER_BUILD_CHAR AND NOT URIPARSER_BUILD_WCHAR_T)
