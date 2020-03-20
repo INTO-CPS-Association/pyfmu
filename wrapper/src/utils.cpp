@@ -3,11 +3,8 @@
 #include <locale>
 #include <codecvt>
 
-#include <Python.h>
 #include <uriparser/Uri.h>
 #include <fmt/format.h>
-
-#include "pyfmu/Logger.hpp"
 
 using namespace std;
 using namespace filesystem;

@@ -1,12 +1,10 @@
+#ifndef PYCONFIGURATION_HPP
+#define PYCONFIGURATION_HPP
+
 #include <string>
 #include <filesystem>
 
 #include <nlohmann/json.hpp> // pylint: disable=import-error
-
-#include "Logger.hpp"
-
-#ifndef PYCONFIGURATION_HPP
-#define PYCONFIGURATION_HPP
 
 // For automatic serializiation of objects see https://github.com/nlohmann/json#arbitrary-types-conversions
 
@@ -30,6 +28,6 @@ void from_json(const nlohmann::json &j, pyconfiguration::PyConfiguration &p);
  * @param config_path path to the configuration file
  * @return PyConfigruation 
  */
-pyconfiguration::PyConfiguration read_configuration(const std::filesystem::path &config_path, Logger *logger);
+pyconfiguration::PyConfiguration read_configuration(const std::filesystem::path &config_path, pyfmu::Logger *logger);
 
 #endif // PYCONFIGURATION_HPP

@@ -8,10 +8,10 @@
 #include "fmt/format.h"
 
 #include "fmi/fmi2TypesPlatform.h"
-#include "pyfmu/PyConfiguration.hpp"
-#include <pyfmu/PyException.hpp>
-#include <pyfmu/PyObjectWrapper.hpp>
-#include "utility/py_compatability.hpp"
+#include "pyfmu/fmi2PySlave.hpp"
+#include "pyfmu/fmi2PySlaveConfiguration.hpp"
+#include "pyfmu/fmi2PySlaveLogging.hpp"
+#include "pyfmu/pyCompatability.hpp"
 
 using namespace fmt;
 using namespace pyconfiguration;
@@ -39,7 +39,7 @@ void append_resources_folder_to_python_path(path &resource_path)
   string str = oss.str();
   const char *cstr = str.c_str();
 
-  int err = PyCompat::PyRun_SimpleString(cstr);
+  int err = pyfmu::pyCompat::PyRun_SimpleString(cstr);
 
   if (err != 0)
     throw runtime_error("Failed to append folder to python path\n");
@@ -404,7 +404,7 @@ fmi2Status PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t 
       logger->fatal("wrapper", "call to getBoolean failed, unable to convert to c-types, error : {}", get_py_exception());
       return fmi2Fatal;
     }
-    values[i] = PyCompat::PyUnicode_AsUTF8(value);
+    values[i] = pyfmu::pyCompat::PyUnicode_AsUTF8(value);
   }
 
   Py_DECREF(refs);
@@ -614,8 +614,8 @@ void PyObjectWrapper::propagate_python_log_messages() const
       logger->warning("wrapper", msg);
     }
     fmi2Status status = (fmi2Status)(PyLong_AsLong(py_status));
-    const char *category = PyCompat::PyUnicode_AsUTF8(py_category);
-    const char *message = PyCompat::PyUnicode_AsUTF8(py_message);
+    const char *category = pyfmu::pyCompat::PyUnicode_AsUTF8(py_category);
+    const char *message = pyfmu::pyCompat::PyUnicode_AsUTF8(py_message);
 
     logger->log(status, category, message);
   }

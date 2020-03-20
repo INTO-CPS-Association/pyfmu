@@ -4,8 +4,8 @@
 
 #include <fmt/format.h>
 
-#include "pyfmu/Logger.hpp"
-#include "pyfmu/PyConfiguration.hpp"
+#include "pyfmu/fmi2PySlaveLogging.hpp"
+#include "pyfmu/fmi2PySlaveConfiguration.hpp"
 
 using namespace std;
 using namespace nlohmann;
@@ -28,11 +28,11 @@ void from_json(const json &j, PyConfiguration &p)
 }
 }
 
-PyConfiguration read_configuration(const path &config_path, Logger *log)
+PyConfiguration read_configuration(const path &config_path, pyfmu::Logger *log)
 {
 
     PyConfiguration config;
-
+    
     log->ok("wrapper","Reading configuration file from: {}", config_path.string());
 
     ifstream is(config_path, ios::in);

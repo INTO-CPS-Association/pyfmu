@@ -5,14 +5,13 @@
 #include <vector>
 #include <optional>
 
-#include "Python.h"
-
-#include "fmt/format.h"
+#include <Python.h>
+#include <fmt/format.h>
 
 #include "fmi/fmi2Functions.h"
-#include "pyfmu/Logger.hpp"
-#include "pyfmu/PyObjectWrapper.hpp"
-#include "utility/utils.hpp"
+#include "pyfmu/fmi2PySlaveLogging.hpp"
+#include "pyfmu/fmi2PySlave.hpp"
+#include "pyfmu/utils.hpp"
 
 using namespace fmt;
 using namespace std;

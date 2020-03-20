@@ -8,7 +8,7 @@
 
 #include "fmi/fmi2Functions.h"
 #include "example_finder.hpp"
-#include "utility/utils.hpp"
+#include "pyfmu/utils.hpp"
 
 using namespace std;
 using namespace filesystem;
