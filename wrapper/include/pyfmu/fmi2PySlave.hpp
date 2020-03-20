@@ -1,4 +1,5 @@
-
+#ifndef PYFMU_PYOBJECTWRAPPER_HPP
+#define PYFMU_PYOBJECTWRAPPER_HPP
 
 #include <string>
 #include <memory>
@@ -6,12 +7,9 @@
 
 #include <Python.h>
 
-#include "Logger.hpp"
 #include "fmi/fmi2TypesPlatform.h"
-#include "pyfmu/PyGIL.hpp"
-
-#ifndef PYTHONFMU_PYOBJECTWRAPPER_HPP
-#define PYTHONFMU_PYOBJECTWRAPPER_HPP
+#include "pyfmu/fmi2PySlaveLogging.hpp"
+#include "pyfmu/pyCompatability.hpp"
 
 namespace pyfmu
 {
@@ -90,4 +88,4 @@ private:
 
 } // namespace pyfmu
 
-#endif //PYTHONFMU_PYOBJECTWRAPPER_HPP
+#endif //PYFMU_PYOBJECTWRAPPER_HPP

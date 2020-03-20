@@ -71,12 +71,10 @@ endif ()
 set(Python3_USE_STATIC_LIBS TRUE)
 
 add_library(pyfmu
-        wrapper/src/fmi_functions.cpp
-        wrapper/src/PyObjectWrapper.cpp
-        wrapper/src/PyConfiguration.cpp
-        wrapper/src/Logger.cpp
-        wrapper/src/utility/py_compatability.cpp
-        wrapper/src/utility/utils.cpp
+        wrapper/src/fmi2Functions.cpp
+        wrapper/src/fmi2PySlave.cpp
+        wrapper/src/fmi2PySlaveConfiguration.cpp
+        wrapper/src/utils.cpp
 )
 
 target_include_directories(pyfmu

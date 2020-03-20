@@ -7,7 +7,7 @@
 #include <spdlog/spdlog.h>
 
 
-#include "utility/utils.hpp"
+#include "pyfmu/utils.hpp"
 #include "example_finder.hpp"
 
 using namespace std;
