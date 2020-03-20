@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-03-20T11:32:21Z" generationTool="pyfmu" guid="a88ffc0c-623c-4069-a54b-9316f41be1dd" modelName="LoggerFMU" variableNamingConvention="structured">
+   <CoSimulation modelIdentifier="pyfmu" needsExecutionTool="true"/>
+   <ModelVariables>
+      <!--Index of variable = "1"-->
+      <ScalarVariable causality="output" initial="calculated" name="s" valueReference="0" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "2"-->
+      <ScalarVariable causality="input" name="a" valueReference="1" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "3"-->
+      <ScalarVariable causality="input" name="b" valueReference="2" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+   </ModelVariables>
+   <ModelStructure>
+      <Outputs>
+         <Unknown dependencies="" index="1"/>
+      </Outputs>
+      <InitialUnknowns>
+         <Unknown dependencies="" index="1"/>
+      </InitialUnknowns>
+   </ModelStructure>
+</fmiModelDescription>

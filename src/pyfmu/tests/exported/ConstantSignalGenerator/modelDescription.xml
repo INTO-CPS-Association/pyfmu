@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-03-20T11:32:21Z" generationTool="pyfmu" guid="d8729d3f-5430-4c25-83d7-551d0d7b03c5" modelName="ConstantSignalGenerator" variableNamingConvention="structured">
+   <CoSimulation modelIdentifier="pyfmu" needsExecutionTool="true"/>
+   <ModelVariables>
+      <!--Index of variable = "1"-->
+      <ScalarVariable causality="output" initial="calculated" name="y" valueReference="0" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "2"-->
+      <ScalarVariable causality="parameter" initial="exact" name="k" valueReference="1" variability="fixed">
+         <Real start="0"/>
+      </ScalarVariable>
+   </ModelVariables>
+   <ModelStructure>
+      <Outputs>
+         <Unknown dependencies="" index="1"/>
+      </Outputs>
+      <InitialUnknowns>
+         <Unknown dependencies="" index="1"/>
+      </InitialUnknowns>
+   </ModelStructure>
+</fmiModelDescription>

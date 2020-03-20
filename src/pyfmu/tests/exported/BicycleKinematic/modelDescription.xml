@@ -1,0 +1,84 @@
+<?xml version="1.0" ?>
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-03-20T11:32:21Z" generationTool="pyfmu" guid="a6ff6eee-fba4-41c4-bf9f-b17fbadbf7c0" modelName="BicycleKinematic" variableNamingConvention="structured">
+   <CoSimulation modelIdentifier="pyfmu" needsExecutionTool="true"/>
+   <ModelVariables>
+      <!--Index of variable = "1"-->
+      <ScalarVariable causality="input" description="acceleration" name="a" valueReference="0" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "2"-->
+      <ScalarVariable causality="input" description="steering angle" name="df" valueReference="1" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "3"-->
+      <ScalarVariable causality="output" description="x position of the robot" initial="calculated" name="x" valueReference="2" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "4"-->
+      <ScalarVariable causality="output" description="y position of the robot" initial="calculated" name="y" valueReference="3" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "5"-->
+      <ScalarVariable causality="output" description="inertial heading of the robot" initial="calculated" name="psi" valueReference="4" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "6"-->
+      <ScalarVariable causality="output" description="velocity of the robot" initial="calculated" name="v" valueReference="5" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "7"-->
+      <ScalarVariable causality="parameter" description="distance from CM to front wheel" initial="exact" name="lf" valueReference="6" variability="fixed">
+         <Real start="1"/>
+      </ScalarVariable>
+      <!--Index of variable = "8"-->
+      <ScalarVariable causality="parameter" description="distance from CM to rear wheel" initial="exact" name="lr" valueReference="7" variability="fixed">
+         <Real start="1"/>
+      </ScalarVariable>
+      <!--Index of variable = "9"-->
+      <ScalarVariable causality="parameter" initial="exact" name="x0" valueReference="8" variability="fixed">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "10"-->
+      <ScalarVariable causality="parameter" initial="exact" name="y0" valueReference="9" variability="fixed">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "11"-->
+      <ScalarVariable causality="parameter" initial="exact" name="psi0" valueReference="10" variability="fixed">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "12"-->
+      <ScalarVariable causality="parameter" initial="exact" name="v0" valueReference="11" variability="fixed">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "13"-->
+      <ScalarVariable causality="input" name="x_r" valueReference="12" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "14"-->
+      <ScalarVariable causality="input" name="y_r" valueReference="13" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "15"-->
+      <ScalarVariable causality="input" name="psi_r" valueReference="14" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "16"-->
+      <ScalarVariable causality="input" name="v_r" valueReference="15" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+   </ModelVariables>
+   <ModelStructure>
+      <Outputs>
+         <Unknown dependencies="" index="3"/>
+         <Unknown dependencies="" index="4"/>
+         <Unknown dependencies="" index="5"/>
+         <Unknown dependencies="" index="6"/>
+      </Outputs>
+      <InitialUnknowns>
+         <Unknown dependencies="" index="3"/>
+         <Unknown dependencies="" index="4"/>
+         <Unknown dependencies="" index="5"/>
+         <Unknown dependencies="" index="6"/>
+      </InitialUnknowns>
+   </ModelStructure>
+</fmiModelDescription>

@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-03-20T11:32:21Z" generationTool="pyfmu" guid="a4f83e2a-db69-472c-96cd-4826b8421917" modelName="LivePlotting" variableNamingConvention="structured">
+   <CoSimulation modelIdentifier="pyfmu" needsExecutionTool="true"/>
+   <ModelVariables>
+      <!--Index of variable = "1"-->
+      <ScalarVariable causality="input" description="first variable" name="x0" valueReference="0" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "2"-->
+      <ScalarVariable causality="input" description="second variable" name="y0" valueReference="1" variability="continuous">
+         <Real start="0"/>
+      </ScalarVariable>
+      <!--Index of variable = "3"-->
+      <ScalarVariable causality="parameter" description="title of the plot" initial="exact" name="title" valueReference="2" variability="fixed">
+         <String start="Robot position"/>
+      </ScalarVariable>
+      <!--Index of variable = "4"-->
+      <ScalarVariable causality="parameter" description="simulation time between refresh." initial="exact" name="ts" valueReference="3" variability="fixed">
+         <Real start="-1"/>
+      </ScalarVariable>
+   </ModelVariables>
+   <ModelStructure/>
+</fmiModelDescription>

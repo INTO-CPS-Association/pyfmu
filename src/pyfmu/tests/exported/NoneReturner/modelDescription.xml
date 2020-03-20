@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<fmiModelDescription author="" fmiVersion="2.0" generationDateAndTime="2020-03-20T11:32:21Z" generationTool="pyfmu" guid="b850f8ea-8e66-44aa-9284-3fff0bb1bb9e" modelName="NoneReturner" variableNamingConvention="structured">
+   <CoSimulation modelIdentifier="pyfmu" needsExecutionTool="true"/>
+   <ModelVariables>
+      <!--Index of variable = "1"-->
+      <ScalarVariable causality="output" initial="calculated" name="real" valueReference="0" variability="continuous">
+         <Real/>
+      </ScalarVariable>
+      <!--Index of variable = "2"-->
+      <ScalarVariable causality="output" initial="calculated" name="integer" valueReference="1" variability="discrete">
+         <Integer/>
+      </ScalarVariable>
+      <!--Index of variable = "3"-->
+      <ScalarVariable causality="output" initial="calculated" name="boolean" valueReference="2" variability="discrete">
+         <Boolean/>
+      </ScalarVariable>
+      <!--Index of variable = "4"-->
+      <ScalarVariable causality="output" initial="calculated" name="string" valueReference="3" variability="discrete">
+         <String/>
+      </ScalarVariable>
+   </ModelVariables>
+   <ModelStructure>
+      <Outputs>
+         <Unknown dependencies="" index="1"/>
+         <Unknown dependencies="" index="2"/>
+         <Unknown dependencies="" index="3"/>
+         <Unknown dependencies="" index="4"/>
+      </Outputs>
+      <InitialUnknowns>
+         <Unknown dependencies="" index="1"/>
+         <Unknown dependencies="" index="2"/>
+         <Unknown dependencies="" index="3"/>
+         <Unknown dependencies="" index="4"/>
+      </InitialUnknowns>
+   </ModelStructure>
+</fmiModelDescription>
