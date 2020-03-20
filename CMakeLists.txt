@@ -44,7 +44,7 @@ endif()
 
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 conan_cmake_run(REQUIRES 
-
+                
                 Poco/1.9.4@pocoproject/stable
                 catch2/2.5.0@bincrafters/stable
                 fmt/6.1.1
@@ -60,6 +60,7 @@ conan_cmake_run(REQUIRES
 
 # 2. source tree packages
 add_subdirectory(uriparser)
+set(EXTERNAL_LIBS uriparser)
 
 ######################################## WRAPPER ########################################
 
@@ -99,6 +100,7 @@ target_link_libraries(pyfmu
         PUBLIC 
         ${Python3_LIBRARIES}
         PRIVATE
+        ${EXTERNAL_LIBS}
         ${CONAN_LIBS}
         )
 
