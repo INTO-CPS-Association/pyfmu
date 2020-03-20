@@ -141,7 +141,7 @@ def copy_binaries():
 def export_projects():
     """Exports all projects located in tests/examples/projects to resources/examples/exported
     """
-    from tests.examples.export_all import export_all
+    from pyfmu.tests import export_all
     export_all()
 
 

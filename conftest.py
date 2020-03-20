@@ -1,0 +1,1 @@
+#scollect_ignore_glob = ["**/test_validation.py"]
