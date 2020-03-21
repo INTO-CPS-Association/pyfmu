@@ -1,6 +1,7 @@
 #include <fstream>
 #include <exception>
 #include <filesystem>
+#include <string.h>
 
 #include <fmt/format.h>
 
@@ -32,20 +33,32 @@ PyConfiguration read_configuration(const path &config_path, pyfmu::Logger *log)
 {
 
     PyConfiguration config;
-    
-    log->ok("wrapper","Reading configuration file from: {}", config_path.string());
+
+    log->ok("wrapper", "Reading configuration file from: {}", config_path.string());
 
     ifstream is(config_path, ios::in);
 
     if (!is.is_open())
     {
-           
-        char* err = strerror(errno);
-        std::string msg = format("Could not open to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.\n Inner error is: {}", err);
+
+// MSVC is missing the strerrorlen_s method, however error messages can at most be 94 characters long:
+// https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/strerror-s-strerror-s-wcserror-s-wcserror-s?view=vs-2019
+#ifdef _MSC_VER
+        constexpr size_t errmsglen = 94 + 1;
+#else
+        size_t errmsglen = strerrorlen_s(errno) + 1;
+#endif
+
+        char *errmsg = new char[errmsglen];
+        strerror_s(errmsg, errmsglen, errno);
+
+        std::string msg = format("Could not open to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.\n Inner error is: {}", errmsg);
+
+        delete[] errmsg;
         throw runtime_error(msg);
     }
 
-    log->ok("wrapper","Sucessfully read file");
+    log->ok("wrapper", "Sucessfully read file");
 
     json j;
 
