@@ -116,7 +116,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(lo
   {
     append_resources_folder_to_python_path(resource_path);
   }
-  catch (const std::exception &e)
+  catch (const std::exception &)
   {
     logger->fatal("wrapper", "Failed appending resources directory to interpreter's path.");
     throw;

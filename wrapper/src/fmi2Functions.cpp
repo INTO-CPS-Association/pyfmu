@@ -249,7 +249,7 @@ fmi2Status fmi2GetString(fmi2Component c, const fmi2ValueReference vr[],
     auto cc = reinterpret_cast<PyObjectWrapper *>(c);
     return cc->getString(vr, nvr, value);
   }
-  catch (const exception &e)
+  catch (const exception &)
   {
     return fmi2Fatal;
   }
