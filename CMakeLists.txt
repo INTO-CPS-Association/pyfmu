@@ -102,6 +102,13 @@ target_compile_definitions(pyfmu
         # use stable Python ABI to maximize portability between python versions
         # https://docs.python.org/3/c-api/stable.html
         Py_LIMITED_API
+
+        # The CODECVT header is being deprecated:
+        # The wrapper uses this to convert pythons representation of string which are "widestrings" to std::strings.
+        #
+        # However, as there is no replacement the standard as of the time of writing, it will be "annexed" until a replacement is found.
+        # http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0618r0.html
+        _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 )
 
 target_link_libraries(pyfmu
