@@ -2,7 +2,11 @@
 #define LOGGER_HPP
 
 #include <string>
+#include <ostream>
+#include <optional>
+
 #include <Python.h>
+#include <fmt/format.h>
 
 #include "fmi/fmi2Functions.h"
 #include "pyfmu/pyCompatability.hpp"
@@ -52,7 +56,7 @@ public:
       std::optional<fmt::format_args> args = std::nullopt)
   {
     std::string msg;
-    if(args.has_value())
+    if (args.has_value())
     {
       std::string msg = fmt::vformat(format, args.value());
     }
@@ -60,7 +64,7 @@ public:
     {
       msg = format;
     }
-    
+
     size_t n_m = msg.length();
     auto msg_cstr = new char[n_m + 1];
     msg.copy(msg_cstr, n_m);
@@ -131,17 +135,16 @@ inline std::string get_py_exception()
     PyObject *pExcType, *pExcValue, *pExcTraceback;
     PyErr_Fetch(&pExcType, &pExcValue, &pExcTraceback);
 
-    std::ostringstream oss;
-    oss << "Fatal py exception encountered: ";
+    std::string py_msg;
     if (pExcValue != nullptr)
     {
       PyObject *pRepr = PyObject_Repr(pExcValue);
-      oss << pyfmu::pyCompat::PyUnicode_AsUTF8(pRepr);
+      py_msg = pyfmu::pyCompat::PyUnicode_AsUTF8(pRepr);
       Py_DECREF(pRepr);
     }
     else
     {
-      oss << "unknown error";
+      py_msg = "unable to fetch error information from interpreter";
     }
 
     PyErr_Clear();
@@ -150,7 +153,7 @@ inline std::string get_py_exception()
     Py_XDECREF(pExcValue);
     Py_XDECREF(pExcTraceback);
 
-    auto msg = oss.str();
+    std::string msg = fmt::format("Fatal py exception encountered : {}", py_msg);
 
     return msg;
   }

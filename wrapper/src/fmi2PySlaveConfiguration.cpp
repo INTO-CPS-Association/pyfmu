@@ -1,6 +1,7 @@
 #include <fstream>
 #include <exception>
 #include <filesystem>
+#include <string.h>
 
 #include <fmt/format.h>
 
@@ -32,20 +33,19 @@ PyConfiguration read_configuration(const path &config_path, pyfmu::Logger *log)
 {
 
     PyConfiguration config;
-    
-    log->ok("wrapper","Reading configuration file from: {}", config_path.string());
+
+    log->ok("wrapper", "Reading configuration file from: {}", config_path.string());
 
     ifstream is(config_path, ios::in);
 
     if (!is.is_open())
     {
-           
-        char* err = strerror(errno);
+        const char *err = strerror(errno);
         std::string msg = format("Could not open to read configuration file used to locate correct Python script on startup. Ensure that a slave_configuration.json file is located in the 'resources' folder of the FMU.\n Inner error is: {}", err);
         throw runtime_error(msg);
     }
 
-    log->ok("wrapper","Sucessfully read file");
+    log->ok("wrapper", "Sucessfully read file");
 
     json j;
 

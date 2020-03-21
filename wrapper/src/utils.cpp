@@ -24,24 +24,24 @@ using namespace fmt;
 
 path getPathFromFileUri(string uri)
 {
-    // see parser docs https://uriparser.github.io/doc/api/latest/
-  const char* uri_cstr = uri.c_str();
-  
+  // see parser docs https://uriparser.github.io/doc/api/latest/
+  const char *uri_cstr = uri.c_str();
+
   UriUriA uri_s;
 
-  int err = uriParseSingleUriA(&uri_s,uri_cstr,NULL);
-  
-  if(err)
+  int err = uriParseSingleUriA(&uri_s, uri_cstr, NULL);
+
+  if (err)
   {
-    throw runtime_error(format("Unable to parse URI string : {}. Ensure that the uri is valid.",uri));
+    throw runtime_error(format("Unable to parse URI string : {}. Ensure that the uri is valid.", uri));
   }
 
   uriFreeUriMembersA(&uri_s);
 
 #ifdef WIN32
-  const int bytesNeeded = uri.length() + 1;
+  const size_t bytesNeeded = uri.length() + 1;
 #else
-  const int bytesNeeded = uri.length() + 1;
+  const size_t bytesNeeded = uri.length() + 1;
 #endif
 
   char *absUri = new char[bytesNeeded];
@@ -57,28 +57,28 @@ path getPathFromFileUri(string uri)
     delete[] absUri;
     throw runtime_error("Failed to parse extract host specific path from URI.");
   }
-  
+
   path p = weakly_canonical(path(absUri));
   delete[] absUri;
 
   return p;
 }
 
-string getFileUriFromPath(path path)
+string getFileUriFromPath(path p)
 {
 
 #ifdef WIN32
-  const int bytesNeeded = 8 + (3 * path.string().length() + 1);
+  const size_t bytesNeeded = 8 + (3 * p.string().length() + 1);
 #else
-  const int bytesNeeded = 7 + (3 * path.string().length() + 1);
+  const size_t bytesNeeded = 7 + (3 * p.string().length() + 1);
 #endif
-  
+
   char *absUri = new char[bytesNeeded];
 
 #ifdef WIN32
-    int err = uriWindowsFilenameToUriStringA(p.c_str(),absUri);
+  int err = uriWindowsFilenameToUriStringA(p.string().c_str(), absUri);
 #else
-    int err = uriUnixFilenameToUriStringA(path.c_str(),absUri);
+  int err = uriUnixFilenameToUriStringA(p.string().c_str(), absUri);
 #endif
 
   if (err != URI_SUCCESS)
