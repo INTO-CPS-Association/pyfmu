@@ -1,5 +1,5 @@
 ![Build and update wrappers](https://github.com/INTO-CPS-Association/pyfmu/workflows/Build%20and%20update%20wrappers/badge.svg?branch=master)
-![Upload Python Package](https://github.com/INTO-CPS-Association/pyfmu/workflows/Upload%20Python%20Package/badge.svg)
+[![PyPI version](https://badge.fury.io/py/pyfmu.svg)](https://badge.fury.io/py/pyfmu)
 [![Documentation Status](https://readthedocs.org/projects/into-cps-application/badge/?version=latest)](https://into-cps-application.readthedocs.io/en/latest/?badge=latest)
 
 # PyFMU
