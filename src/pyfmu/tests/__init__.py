@@ -1,2 +1,2 @@
-from pyfmu.tests.example_finder import *
-from pyfmu.tests.export_all import *
+from .example_finder import *
+from .export_all import *

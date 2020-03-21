@@ -138,11 +138,6 @@ def copy_binaries():
             f"Failed to copy binaries into the resources, an exception was thrown:\n{e}") from e
 
 
-def export_projects():
-    """Exports all projects located in tests/examples/projects to resources/examples/exported
-    """
-    from pyfmu.tests import export_all
-    export_all()
 
 
 def build():
@@ -221,6 +216,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    setattr(args,"export_examples",True)
+
     l.log(logging.DEBUG, 'Building project.')
     try:
         build()
@@ -249,11 +246,11 @@ if __name__ == "__main__":
     if(args.export_examples):
 
         try:
-            export_projects()
-            pass
+            from pyfmu.tests import export_all
         except Exception as e:
-            l.error(
-                f'Failed exporting example projects, an exception was thrown:\n{e}')
-            sys.exit(1)
+            l.warning('Unable to export projects, pyfmu is not built. To export build the python application first using : "pip install -e ." ')
+            sys.exit(-1)
 
         l.debug('Sucessfully exported projects')
+
+    

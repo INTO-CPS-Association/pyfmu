@@ -1,1 +1,1 @@
-from pyfmu.resources.resources import *
+from .resources import *
