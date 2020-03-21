@@ -4,7 +4,7 @@ project(pyfmu-wrapper
         LANGUAGES C CXX
 )
 
-set(BUILD_SHARED_LIBS ON)
+#set(BUILD_SHARED_LIBS ON)
 ######################################## WINDOWS COMPATABILITY ########################################
 if (MSVC)
   # https://stackoverflow.com/questions/14172856/compile-with-mt-instead-of-md-using-cmake
@@ -19,6 +19,14 @@ if (MSVC)
   foreach (CompilerFlag ${CompilerFlags})
     string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
   endforeach ()
+
+  # Python defines its own snprintf function in case the system does not provide one.
+  # Unfortunately this clashes with std::snprintf. The flag HAVE_SNPRINTF determines this behavior.
+  # In GCC this seems to be correctly set, however it does not seem to be the case for MSVC.
+  # The symptom of this shows where snprintf is used such as by nlohman@json:
+  # https://github.com/nlohmann/json/issues/1408 , https://github.com/boostorg/system/issues/32
+  add_compile_definitions(HAVE_SNPRINTF ON)
+
 endif ()
 
 # Automatically export all symbols in Windows DLLs.
@@ -61,7 +69,7 @@ conan_cmake_run(REQUIRES
 add_subdirectory(uriparser)
 set(EXTERNAL_LIBS uriparser)
 
-######################################## WRAPPER ########################################
+######################################## LOCATE PYTHON ########################################
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 if (WIN32)
@@ -70,7 +78,10 @@ endif ()
 
 set(Python3_USE_STATIC_LIBS TRUE)
 
-add_library(pyfmu
+######################################## WRAPPER ########################################
+
+
+add_library(pyfmu SHARED
         wrapper/src/fmi2Functions.cpp
         wrapper/src/fmi2PySlave.cpp
         wrapper/src/fmi2PySlaveConfiguration.cpp
@@ -83,7 +94,7 @@ target_include_directories(pyfmu
         ${Python3_INCLUDE_DIRS}
         )
 
-target_compile_features(pyfmu PUBLIC "cxx_std_17")
+target_compile_features(pyfmu PUBLIC "cxx_std_20")
 
 
 target_compile_definitions(pyfmu 
@@ -115,7 +126,7 @@ target_include_directories(wrapper-tests
 )
 target_compile_features(wrapper-tests
         PUBLIC
-        "cxx_std_17"
+        "cxx_std_20"
 )
 target_link_libraries(wrapper-tests 
         PRIVATE 
