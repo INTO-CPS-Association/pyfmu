@@ -109,6 +109,11 @@ target_compile_definitions(pyfmu
         # However, as there is no replacement the standard as of the time of writing, it will be "annexed" until a replacement is found.
         # http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0618r0.html
         _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+
+        # Microsoft's set of  "safe" _s functions are poorly supported in GCC. The two options are:
+        # * conditionally use these on windows
+        # * supress the warning 
+        _CRT_SECURE_NO_WARNINGS
 )
 
 target_link_libraries(pyfmu
