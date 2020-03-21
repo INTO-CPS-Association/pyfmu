@@ -1,8 +1,8 @@
 
 from collections import defaultdict
-from .fmi2types import Fmi2Variability, Fmi2Causality, Fmi2Initial
 from typing import Union, Any
 
+from pyfmu.fmi2 import Fmi2Variability, Fmi2Causality, Fmi2Initial
 
 # dictionaries defining valid combinations of variability and causality, see fmi2 p.49
 _vc_combinations = defaultdict(dict)

@@ -1,10 +1,9 @@
 from abc import ABC
 
-from .fmi2validation import validate_vc, get_default_initial, get_possible_initial
-from .fmi2types import Fmi2DataTypes, Fmi2Initial, Fmi2Causality, Fmi2Variability
+from pyfmu.fmi2 import validate_vc, get_default_initial, get_possible_initial,Fmi2DataTypes, Fmi2Initial, Fmi2Causality, Fmi2Variability
 
 
-class ScalarVariable(ABC):
+class Fmi2ScalarVariable(ABC):
 
     def __init__(self,
                  name: str, 
@@ -35,7 +34,7 @@ class ScalarVariable(ABC):
                 "Illegal combination of variabilty causality, see FMI2 spec p.49 for legal combinations")
 
 
-        is_valid_start = ScalarVariable.validate_start_value(
+        is_valid_start = Fmi2ScalarVariable.validate_start_value(
             data_type=data_type,
             causality=causality,
             variability = variability,
@@ -69,7 +68,7 @@ class ScalarVariable(ABC):
 
     @staticmethod
     def validate_start_value(data_type, causality, initial, variability, start):
-        must_be_defined = ScalarVariable.should_define_start(variability, causality, initial)
+        must_be_defined = Fmi2ScalarVariable.should_define_start(variability, causality, initial)
 
         is_defined = start != None
         if(must_be_defined ^ is_defined):

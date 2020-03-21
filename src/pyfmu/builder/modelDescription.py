@@ -1,15 +1,14 @@
-import io
-
 from os.path import join
-import xml.etree.ElementTree as ET
-from xml.etree.ElementTree import ElementTree
 from xml.dom import minidom
+from xml.etree.ElementTree import ElementTree
 import datetime
+import io
 import uuid
+import xml.etree.ElementTree as ET
 
 from jinja2 import Template
 
-from pyfmu.resources.pyfmu.fmi2types import Fmi2Causality
+from pyfmu.fmi2 import Fmi2Causality
 
 
 def extract_model_description_v2(fmu_instance) -> str:

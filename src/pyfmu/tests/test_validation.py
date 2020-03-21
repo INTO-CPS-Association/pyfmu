@@ -1,7 +1,7 @@
 from os.path import join, dirname
 
 from pyfmu.tests import get_example_project, get_all_examples, ExampleArchive
-from pyfmu.builder.validate import validate, validate_modelDescription
+from pyfmu.builder import validate, validate_modelDescription
 from fmpy import simulate_fmu
 
 

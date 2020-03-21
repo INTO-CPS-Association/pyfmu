@@ -9,8 +9,8 @@ import pytest
 from fmpy.simulation import simulate_fmu, FMU2Slave
 from fmpy.model_description import read_model_description
 
-from pyfmu.tests import get_all_examples,get_correct_examples,get_incorrect_examples, ExampleArchive
-from pyfmu.resources.resources import Resources
+from pyfmu.tests import get_all_examples, get_correct_examples, get_incorrect_examples, ExampleArchive
+from pyfmu.resources import Resources
 
 
 
@@ -21,7 +21,6 @@ def test_shared_library_can_be_loaded():
     for pname in get_all_examples():
 
         with ExampleArchive(pname) as archive:
-            
 
             if(sys == 'Windows'):
                 p = archive.wrapper_win64
@@ -29,14 +28,13 @@ def test_shared_library_can_be_loaded():
                 p = archive.wrapper_linux64
             else:
                 raise NotImplementedError(f'Not implemented for platform {sys}')
-            
+
             p = str(p.resolve())
 
-            lib_loaded = cdll.LoadLibrary(p)
+            cdll.LoadLibrary(p)
 
 
 def test_singleInstantiation_canSimulate():
-
 
     for pname in get_correct_examples():
 
@@ -59,7 +57,7 @@ def test_multipleExports_canSimulate():
             path = str(archive.root.resolve())
 
             simulate_fmu(path)
-     
+
 
 
 def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
@@ -160,7 +158,7 @@ def test_Adder():
                             instanceName=instance_a,
                             fmiCallLogger=None)
 
-        
+
         fmu_a.instantiate()
         # set input a
         fmu_a.setReal([1],[1])

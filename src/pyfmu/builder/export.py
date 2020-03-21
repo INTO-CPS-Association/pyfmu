@@ -1,22 +1,17 @@
-from os.path import join, curdir, dirname, splitext, basename, isdir, realpath, normpath, exists, splitext, relpath
+from distutils.dir_util import copy_tree
+from logging import debug, info, warning, error
 from os import makedirs, listdir, rename
+from os.path import join, curdir, dirname, splitext, basename, isdir, realpath, normpath, exists, splitext, relpath
+from pathlib import Path
+from shutil import copyfile, copytree, rmtree, make_archive, move, copy
 import importlib
 import json
-from logging import debug, info, warning, error
 import json
-
-from shutil import copyfile, copytree, rmtree, make_archive, move, copy
-import sys
-from distutils.dir_util import copy_tree
-from pathlib import Path
-
 import logging
+import sys
 
-from pyfmu.builder.configure import read_configuration
-from pyfmu.builder.modelDescription import extract_model_description_v2
-from pyfmu.builder.validate import validate_project
-from pyfmu.builder.generate import PyfmuProject
-from pyfmu.resources.resources import Resources
+from pyfmu.builder import read_configuration,extract_model_description_v2,validate_project,PyfmuProject
+from pyfmu.resources import Resources
 
 _log = logging.getLogger(__name__)
 

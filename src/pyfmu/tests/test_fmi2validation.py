@@ -1,9 +1,5 @@
 
-
-
-from pyfmu.resources.pyfmu.fmi2validation import get_default_initial, validate_vc
-from pyfmu.resources.pyfmu.fmi2types import Fmi2Causality, Fmi2Initial, Fmi2Variability
-
+from pyfmu.fmi2 import get_default_initial, validate_vc,Fmi2Causality, Fmi2Initial, Fmi2Variability
 
 from pytest import raises
 
