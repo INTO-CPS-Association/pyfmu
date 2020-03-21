@@ -102,6 +102,6 @@ jobs:
           git add .
           git commit -m "Updated wrappers for Linux and Windows" -a --allow-empty
       - name: Push changes
-        uses: ad-m/github-push-action@$GITHUB_REF
+        uses: ad-m/github-push-action@${{github.ref}}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
