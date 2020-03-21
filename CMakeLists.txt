@@ -27,6 +27,22 @@ if (MSVC)
   # https://github.com/nlohmann/json/issues/1408 , https://github.com/boostorg/system/issues/32
   add_compile_definitions(HAVE_SNPRINTF ON)
 
+  # Suppress warnings specific to MSVC for which the solution which are deemed to be:
+  # 1. no platform independent solution exists.
+  # 2. ratio between added value/correctness to maintainability is low
+  add_compile_definitions(
+        # The CODECVT header is being deprecated:
+        # The wrapper uses this to convert pythons representation of string which are "widestrings" to std::strings.
+        # However, as there is no replacement the standard as of the time of writing, it will be "annexed" until a replacement is found.
+        # http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0618r0.html
+        _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+
+        # Microsoft's set of  "safe" _s functions are poorly supported in GCC. The two options are:
+        # * conditionally use these on windows
+        # * supress the warning 
+        _CRT_SECURE_NO_WARNINGS
+)
+
 endif ()
 
 # Automatically export all symbols in Windows DLLs.
@@ -103,18 +119,11 @@ target_compile_definitions(pyfmu
         # https://docs.python.org/3/c-api/stable.html
         Py_LIMITED_API
 
-        # The CODECVT header is being deprecated:
-        # The wrapper uses this to convert pythons representation of string which are "widestrings" to std::strings.
-        #
-        # However, as there is no replacement the standard as of the time of writing, it will be "annexed" until a replacement is found.
-        # http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0618r0.html
-        _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
-        # Microsoft's set of  "safe" _s functions are poorly supported in GCC. The two options are:
-        # * conditionally use these on windows
-        # * supress the warning 
-        _CRT_SECURE_NO_WARNINGS
+
+
 )
+
 
 target_link_libraries(pyfmu
         PUBLIC 
