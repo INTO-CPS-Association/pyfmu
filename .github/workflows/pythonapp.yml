@@ -30,7 +30,7 @@ jobs:
 
       - name: setup and test
         run: |
-          pip install .
+          pip install .[tests]
           pytest
 
       - name: Upload wrapper
@@ -67,7 +67,7 @@ jobs:
 
       - name: setup and test
         run: |
-          pip install .
+          pip install .[tests]
           pytest
 
       - name: Upload wrapper
