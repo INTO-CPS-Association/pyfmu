@@ -5,7 +5,7 @@ name: Build and update wrappers
 
 on:
   push:
-    branches: [master]
+    branches: [*]
   pull_request:
     branches: [master]
 
@@ -81,7 +81,7 @@ jobs:
     needs: [build-wrapper-linux]
     runs-on: ubuntu-latest
     steps:
-      # - uses: actions/checkout@master
+      - uses: actions/checkout@v2
 
       # - name: download windows wrapper
       #   uses: actions/download-artifact@v1
@@ -99,10 +99,9 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git pull
           git add .
-          git commit -m "Updated wrappers for Linux and Windows" -a
+          git commit -m "Updated wrappers for Linux and Windows" -a --allow-empty
       - name: Push changes
-        uses: ad-m/github-push-action@master
+        uses: ad-m/github-push-action@$GITHUB_REF
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
