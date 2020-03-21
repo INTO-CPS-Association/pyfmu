@@ -78,7 +78,7 @@ string getFileUriFromPath(path p)
 #ifdef WIN32
   int err = uriWindowsFilenameToUriStringA(p.string().c_str(), absUri);
 #else
-  int err = uriUnixFilenameToUriStringA(p.string() c_str(), absUri);
+  int err = uriUnixFilenameToUriStringA(p.string().c_str(), absUri);
 #endif
 
   if (err != URI_SUCCESS)
