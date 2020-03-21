@@ -26,7 +26,12 @@ jobs:
 
       - name: Build using CMAKE
         run: |
-          python build.py
+          python build.py -u
+
+      - name: setup and test
+        run: |
+          pip install .
+          pytest
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
@@ -47,18 +52,23 @@ jobs:
       - name: install conan
         run: |
           pip install conan
-          
+
       - name: check compiler versions
         run: |
           cmake --version
           g++ --version
           g++-9 --version
-          
+
       - name: Build using CMAKE
         run: |
           export CXX=g++-9
           export C=gcc-9
-          python build.py
+          python build.py -u
+
+      - name: setup and test
+        run: |
+          pip install .
+          pytest
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1

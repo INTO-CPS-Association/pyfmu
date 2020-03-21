@@ -120,7 +120,7 @@ def _validate_vdmcheck(modelDescription: str, validation_results: ValidationResu
     jar_path = str(fmi_to_jar[fmi_version].resolve())
     # Run VDMCheck
     result = subprocess.run(
-        ['java', '-jar', jar_path, md_path], capture_output=True)
+        ['java', '-jar', jar_path, '-x', modelDescription], capture_output=True)
 
     def _vdmcheck_no_errors(results):
         stdout_contains_no_error = b'no errors found' in results.stdout.lower()
