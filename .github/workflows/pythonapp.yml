@@ -76,13 +76,13 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: windows-wrapper
-          path: src/pyfmu/resources/wrapper/win64/
+          path: src/pyfmu/resources/wrapper/binaries/win64/
 
       - name: download linux wrappers
         uses: actions/download-artifact@v1
         with:
           name: linux-wrapper
-          path: src/pyfmu/resources/wrapper/linux64/
+          path: src/pyfmu/resources/wrapper/binaries/linux64/
 
       - name: Commit files
         run: |
