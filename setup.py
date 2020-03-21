@@ -1,10 +1,16 @@
-
 from setuptools import setup, find_packages
+
+with open("README_PyPI.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name="pyfmu",
     version="0.0.1",
-    description='A set of tools for developing functional-mockup-units (FMUs) using the full capabilities of Python.',
     author='INTO-CPS Association',
+    description='A set of tools for developing functional-mockup-units (FMUs) using the full capabilities of Python.',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    url='https://github.com/INTO-CPS-Association/pyfmu',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     project_urls={
