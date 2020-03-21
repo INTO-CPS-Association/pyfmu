@@ -5,9 +5,7 @@ name: Build and update wrappers
 
 on:
   push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+    branches: "*"
 
 jobs:
   build-wrapper-windows:
@@ -30,7 +28,7 @@ jobs:
 
       - name: setup and test
         run: |
-          pip install .
+          pip install .[tests]
           pytest
 
       - name: Upload wrapper
@@ -67,7 +65,7 @@ jobs:
 
       - name: setup and test
         run: |
-          pip install .
+          pip install .[tests]
           pytest
 
       - name: Upload wrapper
@@ -78,9 +76,10 @@ jobs:
 
   update-wrappers:
     needs: [build-wrapper-windows, build-wrapper-linux]
+
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
 
       - name: download windows wrapper
         uses: actions/download-artifact@v1
@@ -99,8 +98,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Updated wrappers for Linux and Windows" -a
+          git commit -m "Updated wrappers for Linux and Windows" -a --allow-empty
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
+          branch: ${{github.ref}}
           github_token: ${{ secrets.GITHUB_TOKEN }}
