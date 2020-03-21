@@ -5,7 +5,9 @@ name: Build and update wrappers
 
 on:
   push:
-    branches: "*"
+    branches: "master"
+  pull_request:
+    branches: "master"
 
 jobs:
   build-wrapper-windows:
