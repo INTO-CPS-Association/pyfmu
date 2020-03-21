@@ -216,8 +216,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    setattr(args,"export_examples",True)
-
     l.log(logging.DEBUG, 'Building project.')
     try:
         build()
