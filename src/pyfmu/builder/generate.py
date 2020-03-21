@@ -3,13 +3,48 @@ This module contains functionality to the creation of Python FMU projects
 """
 from os import makedirs
 from os.path import basename, curdir, isdir, join, realpath, dirname, exists, normpath
+from os.path import exists, isfile
 from pathlib import Path
 from shutil import copy, copytree, rmtree
-from jinja2 import Template
 import json
 
-from pyfmu.builder.configure import _create_config
-from pyfmu.resources.resources import Resources
+from jinja2 import Template
+
+from pyfmu.resources import Resources
+
+
+
+
+def _create_config(config_path: str, class_name: str, relative_script_path: str):
+        
+    with open(config_path, 'w') as f:
+        json.dump({
+            "main_script" : relative_script_path,
+            "main_class": class_name
+        }, f,indent=4)
+
+
+def read_configuration(config_path : str) -> object:
+
+    print(f"configuration path is {config_path}")
+    if(not exists(config_path)):
+        raise FileNotFoundError("Failed to read configuration, the file does not exist")
+
+    if(not isfile(config_path)):
+        raise FileNotFoundError("Failed to read configuration, the specified path does not point to a file")
+
+
+    try:
+        with open(config_path,'r') as f:
+            config = json.load(f)
+    except Exception as e:
+        raise RuntimeError("Failed to parse project configuration file. Ensure that it is well formed json")
+    
+    # TODO use json schema
+    isWellFormed = hasattr(config,'main_script') and hasattr(config,'class_name')
+
+    return config
+        
 
 
 class PyfmuProject():

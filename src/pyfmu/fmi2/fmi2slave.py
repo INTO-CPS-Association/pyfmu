@@ -3,9 +3,7 @@ from typing import List, Iterable, Tuple
 from uuid import uuid4
 import logging
 
-from .fmi2types import Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
-from .fmi2logging import Fmi2LogMessage, Fmi2Logger
-from .fmi2variables import ScalarVariable
+from pyfmu.fmi2 import Fmi2ScalarVariable,Fmi2LogMessage, Fmi2Logger,Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
 
 _internal_log_catergory = 'pyfmu'
@@ -305,7 +303,7 @@ class Fmi2Slave:
         if(value_reference is None):
             value_reference = self._acquire_unused_value_reference()
 
-        var = ScalarVariable(name=name, data_type=data_type, initial=initial, causality=causality,
+        var = Fmi2ScalarVariable(name=name, data_type=data_type, initial=initial, causality=causality,
                              variability=variability, description=description, start=start, value_reference=value_reference)
 
         self.vars.append(var)
@@ -522,7 +520,7 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type String!")
 
-    def _define_variable(self, sv: ScalarVariable):
+    def _define_variable(self, sv: Fmi2ScalarVariable):
 
         if(not hasattr(self, sv.name)):
             log.debug(f'adding')

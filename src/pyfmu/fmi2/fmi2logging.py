@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import Iterable, List
 
-from .fmi2types import Fmi2Status
+from pyfmu.fmi2 import Fmi2Status
 
 # log category which the pyfmu framework logs to
 _internal_log_catergory = 'pyfmu'

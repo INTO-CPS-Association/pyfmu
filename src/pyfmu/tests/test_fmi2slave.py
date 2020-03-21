@@ -1,4 +1,5 @@
-from pyfmu.fmi2 import Fmi2Slave,Fmi2DataTypes, Fmi2Causality, Fmi2Variability, Fmi2Status,Fmi2Initial,Fmi2StdLogCats
+from pyfmu.fmi2 import Fmi2Slave, Fmi2DataTypes, Fmi2Causality, Fmi2Variability, Fmi2Status, Fmi2Initial,Fmi2StdLogCats
+
 
 class Adder(Fmi2Slave):
     

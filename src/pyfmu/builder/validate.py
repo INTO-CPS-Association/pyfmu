@@ -7,8 +7,8 @@ import os
 from os.path import realpath, join
 from pathlib import Path
 
-from pyfmu.resources.resources import Resources
-from pyfmu.builder.utils import cd, has_java, has_fmpy
+from pyfmu.resources import Resources
+from pyfmu.builder import cd, has_java, has_fmpy
 
 
 class FMI_Versions(Enum):
