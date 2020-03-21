@@ -36,7 +36,6 @@ class ValidationResult():
         return False not in ss
 
 
-
 def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False, use_vdmcheck: bool = False):
 
     if(use_fmpy and not has_fmpy()):
@@ -58,6 +57,7 @@ def validate(fmu_archive: str, use_fmpy: bool = True, use_fmucheck: bool = False
 
     return None
 
+
 def validate_project(project) -> bool:
     """Validate a project to ensure that it is consistent.
 
@@ -69,6 +69,7 @@ def validate_project(project) -> bool:
     """
     # TODO add validation
     return True
+
 
 def validate_modelDescription(modelDescription: str, use_fmucheck=False, use_vdmcheck=False, vdmcheck_version=FMI_Versions.FMI2) -> ValidationResult:
 
@@ -85,6 +86,7 @@ def validate_modelDescription(modelDescription: str, use_fmucheck=False, use_vdm
         raise NotImplementedError()
 
     return results
+
 
 def _validate_vdmcheck(modelDescription: str, validation_results: ValidationResult, fmi_version=FMI_Versions.FMI2):
     """Validate the model description using the VDMCheck tool.
@@ -103,27 +105,22 @@ def _validate_vdmcheck(modelDescription: str, validation_results: ValidationResu
     """
 
     if(not has_java()):
-        raise RuntimeError('Unable to perform validation using VDMCheck, java was not found in the systems path.')
+        raise RuntimeError(
+            'Unable to perform validation using VDMCheck, java was not found in the systems path.')
 
     fmi_to_jar = {
-        fmi_version.FMI2 : Resources.get().VDMCheck2_jar,
-        fmi_version.FMI3 : Resources.get().VDMCheck3_jar
+        fmi_version.FMI2: Resources.get().VDMCheck2_jar,
+        fmi_version.FMI3: Resources.get().VDMCheck3_jar
     }
 
     if(fmi_version not in fmi_to_jar):
-        raise RuntimeError(f'Unable to perform validation using VDMCheck. Unsupported FMI version: {fmi_version}, supported versions are: {fmi_to_jar.keys()}')
+        raise RuntimeError(
+            f'Unable to perform validation using VDMCheck. Unsupported FMI version: {fmi_version}, supported versions are: {fmi_to_jar.keys()}')
 
-    #p = platform.system()
-
-    # Currently VDMCheck
-    tmpdir = Path(mkdtemp())
-    md_path = str((tmpdir / 'modelDescription.xml').resolve())
-    with open(md_path, 'w') as f:
-            f.write(modelDescription)
-
+    jar_path = str(fmi_to_jar[fmi_version].resolve())
     # Run VDMCheck
-    result = subprocess.run(['java','-jar',fmi_to_jar[fmi_version],md_path],capture_output=True)
-    
+    result = subprocess.run(
+        ['java', '-jar', jar_path, md_path], capture_output=True)
 
     def _vdmcheck_no_errors(results):
         stdout_contains_no_error = b'no errors found' in results.stdout.lower()
@@ -131,12 +128,6 @@ def _validate_vdmcheck(modelDescription: str, validation_results: ValidationResu
         error_code_ok = results.returncode == 0
         return stdout_contains_no_error and stderr_is_empty and error_code_ok
 
-
     # convert output
     isValid = _vdmcheck_no_errors(result)
     validation_results.set_result_for('vdmcheck', isValid, result.stdout)
-
-    # TODO remove tmp dir    
-
-
-    
