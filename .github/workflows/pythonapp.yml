@@ -6,38 +6,36 @@ name: Build and update wrappers
 on:
   push:
     branches: "*"
-  pull_request:
-    branches: [master]
 
 jobs:
-  # build-wrapper-windows:
-  #   runs-on: windows-latest
+  build-wrapper-windows:
+    runs-on: windows-latest
 
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Set up Python 3.7
-  #       uses: actions/setup-python@v1
-  #       with:
-  #         python-version: 3.7
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
 
-  #     - name: install conan
-  #       run: |
-  #         pip install conan
+      - name: install conan
+        run: |
+          pip install conan
 
-  #     - name: Build using CMAKE
-  #       run: |
-  #         python build.py -u
+      - name: Build using CMAKE
+        run: |
+          python build.py -u
 
-  #     - name: setup and test
-  #       run: |
-  #         pip install .[tests]
-  #         pytest
+      - name: setup and test
+        run: |
+          pip install .[tests]
+          pytest
 
-  #     - name: Upload wrapper
-  #       uses: actions/upload-artifact@v1
-  #       with:
-  #         name: windows-wrapper
-  #         path: build/pyfmu.dll
+      - name: Upload wrapper
+        uses: actions/upload-artifact@v1
+        with:
+          name: windows-wrapper
+          path: build/pyfmu.dll
 
   build-wrapper-linux:
     runs-on: ubuntu-latest
@@ -77,17 +75,17 @@ jobs:
           path: build/pyfmu.so
 
   update-wrappers:
-    #needs: [build-wrapper-windows, build-wrapper-linux]
-    needs: [build-wrapper-linux]
+    needs: [build-wrapper-windows, build-wrapper-linux]
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      # - name: download windows wrapper
-      #   uses: actions/download-artifact@v1
-      #   with:
-      #     name: windows-wrapper
-      #     path: src/pyfmu/resources/wrapper/binaries/win64/
+      - name: download windows wrapper
+        uses: actions/download-artifact@v1
+        with:
+          name: windows-wrapper
+          path: src/pyfmu/resources/wrapper/binaries/win64/
 
       - name: download linux wrappers
         uses: actions/download-artifact@v1
