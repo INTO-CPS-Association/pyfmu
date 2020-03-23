@@ -1,19 +1,25 @@
 from abc import ABC, abstractmethod
 from typing import List, Iterable, Tuple
 from uuid import uuid4
+import inspect
 import logging
+
+
 
 from pyfmu.fmi2 import Fmi2ScalarVariable,Fmi2LogMessage, Fmi2Logger,Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
 
-_internal_log_catergory = 'pyfmu'
+# fmi function call logging
+_internal_log_catergory = 'fmi2slave'
+_internal_throw_category = Fmi2Status.error
+_internal_invalid_status_category = Fmi2Status.fatal
 
 log = logging.getLogger('fmu')
 
 
 class Fmi2Slave:
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging = True):
         """Constructs a FMI2
 
         Arguments:
@@ -25,6 +31,7 @@ class Fmi2Slave:
             version {str} -- [description] (default: {""})
             description {str} -- [description] (default: {""})
             standard_log_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
+            enable_fmi_call_logging {bool} -- if true, log fmi calls to the category "fmi2slave" category (default: {True}).
         """
 
         self.author = author
@@ -39,8 +46,13 @@ class Fmi2Slave:
         self.used_value_references = {}
 
         self.logger = Fmi2Logger()
+
         if(standard_log_categories):
             self.logger.register_all_standard_categories()
+
+        if(enable_fmi_call_logging):
+            self.logger.register_log_category(_internal_log_catergory)
+            self.logger.log('FMI call logging enabled, all fmi calls will be logged')
 
     def register_variable(self,
                           name: str,
@@ -51,7 +63,7 @@ class Fmi2Slave:
                           start=None,
                           description: str = "",
                           define_attribute: bool = True,
-                          value_reference: int = None
+                          value_reference: int = None,
                           ):
         """Add a variable to the model such as an input, output or parameter.
 
@@ -312,8 +324,9 @@ class Fmi2Slave:
             self._define_variable(var)
 
     def register_log_category(self, name: str):
-        """Registers a new log category.
-        This information is used by co-simulation engines to filter messages
+        """Registers a new log category which will be visible to the simulation tool..
+        This information is used by co-simulation engines to filter messages.
+
 
         Arguments:
             name {str} -- name of the category.
@@ -325,14 +338,74 @@ class Fmi2Slave:
 
         ```
         """
+        
+        self.logger.register_log_category(name)
 
-        pass
+    def _do_fmi_call(self,f,*args,**kwargs) -> Fmi2Status:
+        """ Performs the call to the fmi function implemented by the subclass and returns the status.
+
+        Purpose of the function is:
+        1. logging of the function calls
+        2. handle exceptions in implementation
+        3. convert return values to FMI status values
+
+        Arguments:
+            f {[type]} -- the function to be invoked.
+        """
+
+        if(not callable(f)):
+            raise TypeError(f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
+
+        try:
+            self.log(f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}',_internal_log_catergory)
+            s = f(*args,**kwargs)
+        except Exception as e:
+            self.log(f'Call resulted in an exception being raise : {e}. Treating this as a {_internal_throw_category}.',_internal_log_catergory,_internal_throw_category)
+            return _internal_invalid_status_category
+
+
+        # convert return status to appropritate fmi status      
+        return_to_status = {
+            None : Fmi2Status.ok,
+            True : Fmi2Status.ok,
+            False : Fmi2Status.fatal,
+            Fmi2Status.ok : Fmi2Status.ok,
+            Fmi2Status.warning : Fmi2Status.warning,
+            Fmi2Status.error : Fmi2Status.error,
+            Fmi2Status.fatal : Fmi2Status.fatal,
+            Fmi2Status.pending : Fmi2Status.pending,
+        }
+
+        s_fmi = None
+
+        if(s in return_to_status):
+            s_fmi = return_to_status[s]
+            self.log(f'Call was succesful, status returned : {s} treated as : {s_fmi}',_internal_log_catergory,s_fmi)
+        else:
+            s_fmi = Fmi2Status.warning
+            self.log(f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}',_internal_log_catergory,s_fmi)
+
+        assert(s_fmi is not None)
+
+        return s_fmi
+            
+        
+    def _setup_experiment(self, start_time: float):
+
+        self._do_fmi_call(self.setup_experiment,start_time)
 
     def setup_experiment(self, start_time: float):
         pass
 
+    def _enter_initialization_mode(self):
+        self._do_fmi_call(self)
+
     def enter_initialization_mode(self):
         pass
+    
+    def _exit_initialization_mode(self):
+        
+        self._do_fmi_call(self.exit_initialization_mode)
 
     def exit_initialization_mode(self):
         pass
@@ -345,6 +418,9 @@ class Fmi2Slave:
 
     def terminate(self):
         pass
+
+    def __get_registered_debug_categories(self) -> List[str]:
+        return self.logger.active_categories
 
     def __set_debug_logging__(self, logging_on: bool, categories: Iterable[str]) -> None:
         """Defines the set of active log categories for which log messages will logged.
