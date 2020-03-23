@@ -71,6 +71,14 @@ static inline const char *PyUnicode_AsUTF8(PyObject *object)
 
     return cstr;
 }
+
+static inline std::string PyUnicode_AsString(PyObject *object)
+{
+    const char* cstr = pyCompat::PyUnicode_AsUTF8(object);
+    std::string str(cstr);
+    delete[] cstr;
+    return str;
+}
 } // namespace pyCompat
 
 /**

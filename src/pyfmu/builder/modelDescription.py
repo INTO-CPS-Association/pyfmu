@@ -40,6 +40,8 @@ def extract_model_description_v2(fmu_instance) -> str:
         c = ET.SubElement(cs,'Category')
         c.set('name',ac)
 
+
+    # 2.2.7 p.47) ModelVariables
     mvs = ET.SubElement(fmd,'ModelVariables')
     
     variable_index = 0
@@ -71,7 +73,7 @@ def extract_model_description_v2(fmu_instance) -> str:
         val = ET.SubElement(sv, t)
 
         if(var.start is not None):
-            s = str(var.start)
+            s = str(var.start).lower()
             val.set("start", s)
         
         variable_index += 1

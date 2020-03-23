@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <utility>
+#include <regex>
 
 #include "fmt/format.h"
 
@@ -366,7 +367,7 @@ fmi2Status PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t
     PyList_SetItem(refs, i, Py_BuildValue("i", 0));
   }
   auto f =
-      PyObject_CallMethod(pInstance_, "__get_boolean__", "(OO)", vrs, refs);
+      PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_GETBOOLEAN, "(OO)", vrs, refs);
   Py_DECREF(vrs);
   if (f == nullptr)
   {
@@ -634,8 +635,16 @@ void PyObjectWrapper::propagate_python_log_messages() const
       logger->warning("wrapper", msg);
     }
     fmi2Status status = (fmi2Status)(PyLong_AsLong(py_status));
-    const char *category = pyfmu::pyCompat::PyUnicode_AsUTF8(py_category);
-    const char *message = pyfmu::pyCompat::PyUnicode_AsUTF8(py_message);
+    auto category = pyfmu::pyCompat::PyUnicode_AsString(py_category);
+    auto message = pyfmu::pyCompat::PyUnicode_AsString(py_message);
+
+    // we need to escape '{' and '}' which are common in Python's output
+    auto re_left = std::regex("\\{");
+    auto re_right = std::regex("\\}");
+    message = std::regex_replace(message,re_left,"{{");
+    message = std::regex_replace(message,re_right,"}}");
+
+
 
     logger->log(status, category, message);
   }

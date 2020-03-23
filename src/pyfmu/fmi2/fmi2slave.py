@@ -17,7 +17,7 @@ log = logging.getLogger('fmu')
 
 class Fmi2Slave:
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, log_all = True):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, override_logging = True):
         """Constructs a FMI2
 
         Arguments:
@@ -29,7 +29,7 @@ class Fmi2Slave:
             version {str} -- [description] (default: {""})
             description {str} -- [description] (default: {""})
             standard_log_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
-            enable_fmi_call_logging {bool} -- if true, log fmi calls to the category "fmi2slave" category (default: {True}).
+            override_logging {bool} -- if true, add a boolean parameter to the FMU which allows it to log all, useful for FMPy (default: {True}).
         """
 
         self.author = author
@@ -53,8 +53,10 @@ class Fmi2Slave:
             self.logger.log(
                 'FMI call logging enabled, all fmi calls will be logged')
 
-        if(log_all):
-            self.logger.set_active_log_categories(True,['logAll'])
+        if(override_logging):
+            self._override_logging = override_logging
+            self.register_variable('log_all_bypass','boolean','parameter','fixed','exact',False,'log all messages')
+            
     # REGISTER VARIABLES AND LOG CATEGORIES
 
     def register_variable(self,
@@ -376,6 +378,9 @@ class Fmi2Slave:
         pass
 
     def _exit_initialization_mode(self):
+        if(self._override_logging):
+            self.set_debug_logging(True,['logAll'])
+
         return self._do_fmi_call(self.exit_initialization_mode)
 
     def exit_initialization_mode(self):
