@@ -16,9 +16,9 @@ class SineGenerator(Fmi2Slave):
             author=author,
             description=description)
 
-        self.register_variable("amplitude", 'real', 'fixed', 'parameter', start=1, description='amplitude of the sine wave')
-        self.register_variable("frequency", 'real', 'fixed', 'parameter', start=1, description='frequency of the sine wave')
-        self.register_variable("phase", 'real', 'fixed', 'parameter', start=0, description='phase of the sine wave')
+        self.register_variable("amplitude", 'real', 'parameter', 'fixed', start=1, description='amplitude of the sine wave')
+        self.register_variable("frequency", 'real', 'parameter', 'fixed', start=1, description='frequency of the sine wave')
+        self.register_variable("phase", 'real', 'parameter', 'fixed', start=0, description='phase of the sine wave')
         self.register_variable("y", 'real', 'output',description='output of the generator')
 
     def setup_experiment(self, start_time: float):

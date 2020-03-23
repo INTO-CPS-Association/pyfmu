@@ -30,7 +30,7 @@ class BicycleDynamical(Fmi2Slave):
     def exit_initialization_mode(self):
         pass
 
-    def do_step(self, current_time: float, step_size: float) -> bool:
+    def do_step(self, current_time: float, step_size: float):
         return True
 
     def reset(self):

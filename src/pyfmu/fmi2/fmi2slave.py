@@ -492,7 +492,7 @@ class Fmi2Slave:
             # standard logging
             fmu = MyFMU()
             fmu.standard_log_catgories()
-            fmu.__set_debug_logging__({'LogAll'})
+            fmu._set_debug_logging({'LogAll'})
 
             fmu.log(Fmi2Status.ok,'logEvents',)
 

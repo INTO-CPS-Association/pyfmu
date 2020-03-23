@@ -28,7 +28,7 @@ class LoggerFMU(Fmi2Slave):
 
         return True
 
-    def do_step(self, current_time: float, step_size: float, no_prior_step : bool) -> bool:
+    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
         
         self.log("Stepping!")
 
@@ -38,8 +38,8 @@ class LoggerFMU(Fmi2Slave):
 
 if __name__ == "__main__":
     fmu = LoggerFMU()
-    fmu._set_debug_logging(True,['fmi2slave'])
-    fmu._exit_initialization_mode()
+    fmu.set_debug_logging(True,['fmi2slave'])
+    fmu.exit_initialization_mode()
 
         
 

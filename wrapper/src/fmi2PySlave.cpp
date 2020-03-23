@@ -224,7 +224,7 @@ fmi2Status PyObjectWrapper::doStep(fmi2Real currentTime, fmi2Real stepSize,fmi2B
   propagate_python_log_messages();
 
   Py_DECREF(f);
-  Py_DecRef(pyNoSetPrior);
+  Py_DECREF(pyNoSetPrior);
   return fmi2OK;
 }
 
