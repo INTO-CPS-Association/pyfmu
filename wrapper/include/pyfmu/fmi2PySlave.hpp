@@ -11,7 +11,7 @@
 #include "pyfmu/fmi2PySlaveLogging.hpp"
 #include "pyfmu/pyCompatability.hpp"
 
-#define PYFMU_FMI2SLAVE_SETUPEXPERIMENT "_setup_experiement"
+#define PYFMU_FMI2SLAVE_SETUPEXPERIMENT "_setup_experiment"
 #define PYFMU_FMI2SLAVE_ENTERINITIALIZATIONMODE "_enter_initialization_mode"
 #define PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE "__exit_initialization_mode"
 #define PYFMU_FMI2SLAVE_DOSTEP "_do_step"
@@ -39,13 +39,13 @@ public:
 
     explicit PyObjectWrapper(PyObjectWrapper &&other);
 
-    fmi2Status setupExperiment(double startTime);
+    fmi2Status setupExperiment(fmi2Boolean toleranceDefined,fmi2Real tolerance, fmi2Real startTime, fmi2Boolean stopTimeDefined, fmi2Real stopTime);
 
     fmi2Status enterInitializationMode();
 
     fmi2Status exitInitializationMode();
 
-    fmi2Status doStep(double currentTime, double stepSize);
+    fmi2Status doStep(fmi2Real currentTime, fmi2Real stepSize,fmi2Boolean noSetFMUStatePriorToCurrentPoint);
 
     fmi2Status reset();
 
@@ -59,7 +59,7 @@ public:
 
     fmi2Status getBoolean(const fmi2ValueReference *vr, std::size_t nvr, fmi2Boolean *value) const;
 
-    fmi2Status setDebugLogging(bool loggingOn, size_t nCategories, const char *const categories[]) const;
+    fmi2Status setDebugLogging(fmi2Boolean loggingOn, size_t nCategories, const char *const categories[]) const;
 
     fmi2Status setReal(const fmi2ValueReference *vr, std::size_t nvr, const fmi2Real *value);
 
@@ -101,6 +101,9 @@ private:
     * @details Two methods are __get_log_size__ and __get_log_messages__ are defined in the FMI2Slave classes.
     */
     void propagate_python_log_messages() const;
+
+
+    //fmi2Status call_py_func(std::string function_name, PyObject* args, PyObject* kwargs);
 };
 
 } // namespace pyfmu

@@ -1,6 +1,7 @@
 from math import sin
 
-from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality, Fmi2Variability,Fmi2DataTypes,Fmi2Initial
+from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial
+
 
 class SineGenerator(Fmi2Slave):
 
@@ -15,23 +16,19 @@ class SineGenerator(Fmi2Slave):
             author=author,
             description=description)
 
-        self.register_variable("amplitude", data_type=Fmi2DataTypes.real, variability=Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=1)
-        self.register_variable("frequency", data_type=Fmi2DataTypes.real, variability=Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=1)
-        self.register_variable("phase", data_type=Fmi2DataTypes.real, variability = Fmi2Variability.fixed, causality=Fmi2Causality.parameter, start=0)
-
-        self.register_variable("y", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
+        self.register_variable("amplitude", 'real', 'fixed', 'parameter', start=1, description='amplitude of the sine wave')
+        self.register_variable("frequency", 'real', 'fixed', 'parameter', start=1, description='frequency of the sine wave')
+        self.register_variable("phase", 'real', 'fixed', 'parameter', start=0, description='phase of the sine wave')
+        self.register_variable("y", 'real', 'output',description='output of the generator')
 
     def setup_experiment(self, start_time: float):
+        # its necessary to record this, to provide correct output at t=t_start
         self.start_time = start_time
-        return True
 
-    def exit_initialization_mode(self) -> bool:
+    def exit_initialization_mode(self):
+        # output has initial calculated, e.g. it must be defined after the FMU has been initialized.
         self.y = self.amplitude * sin(self.start_time * self.frequency + self.phase)
-        return True
 
-    def do_step(self, current_time: float, step_size: float):
-        
+    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
         self.y = self.amplitude * sin(current_time * self.frequency + self.phase)
-        return True
-
 

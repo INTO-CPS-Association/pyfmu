@@ -391,20 +391,17 @@ class Fmi2Slave:
         return s_fmi
 
     def _setup_experiment(self,
-                          tolerance_defined: bool,
-                          tolerance: float,
                           start_time: float,
-                          stop_time_defined: bool,
-                          stop_time: float):
+                          tolerance : float = None,
+                          stop_time : float = None):
+                        
 
         return self._do_fmi_call(self.setup_experiment, start_time)
 
     def setup_experiment(self,
-                         tolerance_defined: bool,
-                         tolerance: float,
-                         start_time: float,
-                         stop_time_defined: bool,
-                         stop_time: float):
+                          start_time: float,
+                          tolerance : float = None,
+                          stop_time : float = None):
         pass
 
     def _enter_initialization_mode(self):
@@ -600,8 +597,8 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type String!")
 
-    def _set_integer(self, vrs, refs, values):
-        return self._do_fmi_call(self.set_integer, vrs, refs)
+    def _set_integer(self, vrs, values):
+        return self._do_fmi_call(self.set_integer, vrs, values)
 
     def set_integer(self, vrs, values):
         for i in range(len(vrs)):
@@ -613,8 +610,8 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Integer!")
 
-    def _set_real(self, vrs, refs, values):
-        return self._do_fmi_call(self.set_real, vrs, refs)
+    def _set_real(self, vrs, values):
+        return self._do_fmi_call(self.set_real, vrs,values)
 
     def set_real(self, vrs, values):
         for i in range(len(vrs)):
@@ -626,8 +623,8 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Real!")
 
-    def _set_boolean(self, vrs, refs, values):
-        return self._do_fmi_call(self.set_boolean, vrs, refs)
+    def _set_boolean(self, vrs, values):
+        return self._do_fmi_call(self.set_boolean, vrs, values)
 
     def set_boolean(self, vrs, values):
         for i in range(len(vrs)):
@@ -639,8 +636,8 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Boolean!")
 
-    def _set_string(self, vrs, refs, values):
-        return self._do_fmi_call(self.set_string, vrs, refs)
+    def _set_string(self, vrs, values):
+        return self._do_fmi_call(self.set_string, vrs, values)
 
     def set_string(self, vrs, values):
         for i in range(len(vrs)):

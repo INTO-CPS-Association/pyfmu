@@ -1,4 +1,4 @@
-from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality, Fmi2Variability,Fmi2DataTypes,Fmi2Initial
+from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality,Fmi2Status Fmi2Variability,Fmi2DataTypes,Fmi2Initial
 
 class {{class_name}}(Fmi2Slave):
 
@@ -13,28 +13,20 @@ class {{class_name}}(Fmi2Slave):
             author=author,
             description=description)
 
-        """
-        Inputs, outputs and parameters may be defined using the 'register_variable' function:
+        # Inputs, outputs and parameters may be defined using the 'register_variable' function
+        self.register_variable('a','real','input',start=0.0, description='first addend')
+        self.register_variable('b','real','input',start=0.0, description='second addend')
+        self.register_variable('s','real','output',description='sum of the two numbers')
 
-        self.register_variable("my_input", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.input, start=0)
-        self.register_variable("my_output", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.output)
-        self.register_variable("my_parameter", data_type=Fmi2DataTypes.real, causality = Fmi2Causality.parameter, start=0)
-        """
+    
 
-    def setup_experiment(self, start_time: float):
-        pass
+    # functions may be overwridden
+    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
+        
+        self.s = self.a + self.b
+        return Fmi2Status.ok
 
-    def enter_initialization_mode(self):
-        pass
-
+    # initial of output is calculated, as such it must be defined once the FMU exits initialization.
     def exit_initialization_mode(self):
-        pass
-
-    def do_step(self, current_time: float, step_size: float) -> bool:
-        return True
-
-    def reset(self):
-        pass
-
-    def terminate(self):
-        pass
+        self.s = self.a + self.b 
+        # No explicit return implies OK
