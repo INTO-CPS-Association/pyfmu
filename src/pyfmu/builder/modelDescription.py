@@ -13,6 +13,8 @@ from pyfmu.fmi2 import Fmi2Causality
 
 def extract_model_description_v2(fmu_instance) -> str:
     
+    # 2.2.1 p.29) Structure
+    
     data_time_obj = datetime.datetime.now()
     date_str_xsd = datetime.datetime.strftime(data_time_obj, '%Y-%m-%dT%H:%M:%SZ')
 
@@ -27,11 +29,16 @@ def extract_model_description_v2(fmu_instance) -> str:
     fmd.set('variableNamingConvention', 'structured')
     fmd.set("generationTool", 'pyfmu')
 
+    #
     cs = ET.SubElement(fmd,'CoSimulation')
     cs.set("modelIdentifier", 'pyfmu')
     cs.set('needsExecutionTool','true')
     
-    
+    # 2.2.4 p.42) Log categories:
+    cs = ET.SubElement(fmd,'LogCategories')
+    for ac in fmu_instance.available_categories:
+        c = ET.SubElement(cs,'Category')
+        c.set('name',ac)
 
     mvs = ET.SubElement(fmd,'ModelVariables')
     
@@ -87,11 +94,7 @@ def extract_model_description_v2(fmu_instance) -> str:
             ET.SubElement(os,'Unknown',{'index' : str(idx), 'dependencies' : ''})
     
 
-    # 2.2.4 p.42) Log categories:
-    cs = ET.SubElement(fmd,'LogCategories')
-    for ac in fmu_instance.available_categories:
-        c = ET.SubElement(cs,'Category')
-        c.set('name',ac)
+    
 
     try:
         stream = io.StringIO()
