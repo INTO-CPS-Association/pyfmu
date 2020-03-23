@@ -58,7 +58,7 @@ public:
     std::string msg;
     if (args.has_value())
     {
-      std::string msg = fmt::vformat(format, args.value());
+      msg = fmt::vformat(format, args.value());
     }
     else
     {
@@ -81,6 +81,10 @@ public:
     n_cstr[n_n] = '\0';
 
     loggerCallback(componentEnvironment, n_cstr, status, cat_cstr, msg_cstr);
+
+    delete[] msg_cstr;
+    delete[] cat_cstr;
+    delete[] n_cstr;
   }
 
   template <typename... Args>

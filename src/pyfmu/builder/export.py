@@ -323,9 +323,10 @@ def export_project(project: PyfmuProject, outputPath: Path, overwrite=False, sto
     if(not isProject):
 
         try:
+            before = project
             project = PyfmuProject.from_existing(Path(project))
         except Exception as e:
-            raise ValueError('Could not load the specified project. The path project argument appears to be neither a project or the path to a project') from e
+            raise ValueError(f'Could not load the specified project : {before}. The path project argument appears to be neither a project or the path to a project') from e
         
     try:
         outputPath = Path(outputPath)

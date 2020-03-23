@@ -30,7 +30,7 @@ set<string> examples = {
 **/
 fs::path getProjectsRoot()
 {
-    fs::path p = fs::path(__FILE__).parent_path().parent_path().parent_path() / "examples" / "projects";
+    fs::path p = fs::path(__FILE__).parent_path().parent_path().parent_path().parent_path() / "examples" / "projects";
     return p;
 }
 

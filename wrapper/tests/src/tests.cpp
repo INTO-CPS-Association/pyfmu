@@ -15,10 +15,11 @@ using namespace filesystem;
 using namespace fmt;
 namespace fs = std::filesystem;
 
-void logger(void *env, const char *str1, fmi2Status s, const char *str2,
-            const char *str3, ...)
+void logger(void *env, const char *instance, fmi2Status status, const char *category,
+            const char *message, ...)
 {
-  //spdlog::info(str1);
+  
+  spdlog::info("{}:{}:{}:{}",instance,status,category,message);
 }
 
 void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status status)
