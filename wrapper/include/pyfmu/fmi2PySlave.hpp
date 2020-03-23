@@ -11,8 +11,25 @@
 #include "pyfmu/fmi2PySlaveLogging.hpp"
 #include "pyfmu/pyCompatability.hpp"
 
+#define PYFMU_FMI2SLAVE_SETUPEXPERIMENT "_setup_experiement"
+#define PYFMU_FMI2SLAVE_ENTERINITIALIZATIONMODE "_enter_initialization_mode"
+#define PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE "__exit_initialization_mode"
+#define PYFMU_FMI2SLAVE_DOSTEP "_do_step"
+#define PYFMU_FMI2SLAVE_RESET "_reset"
+#define PYFMU_FMI2SLAVE_TERMINATE "_terminate"
+#define PYFMU_FMI2SLAVE_SETDEBUGLOGGING "_set_debug_logging"
+#define PYFMU_FMI2SLAVE_SETREAL "_set_real"
+#define PYFMU_FMI2SLAVE_SETBOOLEAN "_set_boolean"
+#define PYFMU_FMI2SLAVE_SETINTEGER "_set_integer"
+#define PYFMU_FMI2SLAVE_SETSTRING "_set_string"
+#define PYFMU_FMI2SLAVE_GETREAL "_get_real"
+#define PYFMU_FMI2SLAVE_GETBOOLEAN "_get_boolean"
+#define PYFMU_FMI2SLAVE_GETINTEGER "_get_integer"
+#define PYFMU_FMI2SLAVE_GETSTRING "_get_string"
+
 namespace pyfmu
 {
+
 
 class PyObjectWrapper
 {
