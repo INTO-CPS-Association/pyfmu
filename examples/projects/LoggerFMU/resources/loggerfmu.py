@@ -38,10 +38,10 @@ class LoggerFMU(Fmi2Slave):
 
 if __name__ == "__main__":
     fmu = LoggerFMU()
-    fmu.__set_debug_logging__(True,['fmi2slave'])
+    fmu._set_debug_logging(True,['fmi2slave'])
     fmu._exit_initialization_mode()
 
         
 
-    size = fmu.__get_log_size__()
+    size = fmu._get_log_size()
     test = 10

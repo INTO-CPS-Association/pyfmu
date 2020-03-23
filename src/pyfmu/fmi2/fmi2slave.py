@@ -4,9 +4,7 @@ from uuid import uuid4
 import inspect
 import logging
 
-
-
-from pyfmu.fmi2 import Fmi2ScalarVariable,Fmi2LogMessage, Fmi2Logger,Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
+from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2LogMessage, Fmi2Logger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
 
 # fmi function call logging
@@ -19,7 +17,7 @@ log = logging.getLogger('fmu')
 
 class Fmi2Slave:
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging = True):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True):
         """Constructs a FMI2
 
         Arguments:
@@ -52,7 +50,8 @@ class Fmi2Slave:
 
         if(enable_fmi_call_logging):
             self.logger.register_log_category(_internal_log_catergory)
-            self.logger.log('FMI call logging enabled, all fmi calls will be logged')
+            self.logger.log(
+                'FMI call logging enabled, all fmi calls will be logged')
 
     def register_variable(self,
                           name: str,
@@ -165,7 +164,7 @@ class Fmi2Slave:
             Fmi2Causality.local: Fmi2Causality.local,
             'local': Fmi2Causality.local,
 
-            Fmi2Causality.independent : Fmi2Causality.independent,
+            Fmi2Causality.independent: Fmi2Causality.independent,
             'independent': Fmi2Causality.independent,
         }
         initial_aliases = {
@@ -230,23 +229,23 @@ class Fmi2Slave:
         variabilityAndCausality_to_intial = {
             (Fmi2Variability.constant, Fmi2Causality.local): case_a,
             (Fmi2Variability.constant, Fmi2Causality.output): case_a,
-            (Fmi2Variability.fixed, Fmi2Causality.parameter) : case_a,
-            (Fmi2Variability.tunable, Fmi2Causality.parameter) : case_a,
+            (Fmi2Variability.fixed, Fmi2Causality.parameter): case_a,
+            (Fmi2Variability.tunable, Fmi2Causality.parameter): case_a,
 
             (Fmi2Variability.fixed, Fmi2Causality.calculatedParameter): case_b,
             (Fmi2Variability.fixed, Fmi2Causality.local): case_b,
             (Fmi2Variability.tunable, Fmi2Causality.calculatedParameter): case_b,
             (Fmi2Variability.tunable, Fmi2Causality.local): case_b,
-      
-    
+
+
             (Fmi2Variability.discrete, Fmi2Causality.output): case_c,
             (Fmi2Variability.discrete, Fmi2Causality.local): case_c,
             (Fmi2Variability.continuous, Fmi2Causality.output): case_c,
             (Fmi2Variability.continuous, Fmi2Causality.local): case_c,
 
-            (Fmi2Variability.discrete, Fmi2Causality.input) : case_de,
-            (Fmi2Variability.continuous, Fmi2Causality.input) : case_de,
-            (Fmi2Variability.continuous, Fmi2Causality.independent) : case_de,
+            (Fmi2Variability.discrete, Fmi2Causality.input): case_de,
+            (Fmi2Variability.continuous, Fmi2Causality.input): case_de,
+            (Fmi2Variability.continuous, Fmi2Causality.independent): case_de,
         }
 
         if(initial is None):
@@ -300,7 +299,6 @@ class Fmi2Slave:
             raise ValueError(
                 f'Illegal combination of causality : {causality} and variablity : {variability}. The combination is not permitted.')
 
-
         #v1. type and causality
         if(data_type is not Fmi2DataTypes.real and variability is Fmi2Variability.continuous):
             raise ValueError(
@@ -316,7 +314,7 @@ class Fmi2Slave:
             value_reference = self._acquire_unused_value_reference()
 
         var = Fmi2ScalarVariable(name=name, data_type=data_type, initial=initial, causality=causality,
-                             variability=variability, description=description, start=start, value_reference=value_reference)
+                                 variability=variability, description=description, start=start, value_reference=value_reference)
 
         self.vars.append(var)
 
@@ -338,10 +336,10 @@ class Fmi2Slave:
 
         ```
         """
-        
+
         self.logger.register_log_category(name)
 
-    def _do_fmi_call(self,f,*args,**kwargs) -> Fmi2Status:
+    def _do_fmi_call(self, f, *args, **kwargs) -> Fmi2Status:
         """ Performs the call to the fmi function implemented by the subclass and returns the status.
 
         Purpose of the function is:
@@ -354,75 +352,110 @@ class Fmi2Slave:
         """
 
         if(not callable(f)):
-            raise TypeError(f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
+            raise TypeError(
+                f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
 
         try:
-            self.log(f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}',_internal_log_catergory)
-            s = f(*args,**kwargs)
+            self.log(
+                f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}', _internal_log_catergory)
+            s = f(*args, **kwargs)
         except Exception as e:
-            self.log(f'Call resulted in an exception being raise : {e}. Treating this as a {_internal_throw_category}.',_internal_log_catergory,_internal_throw_category)
+            self.log(
+                f'Call resulted in an exception being raise : {e}. Treating this as a {_internal_throw_category}.', _internal_log_catergory, _internal_throw_category)
             return _internal_invalid_status_category
-
-
-        # convert return status to appropritate fmi status      
+        # convert return status to appropritate fmi status
         return_to_status = {
-            None : Fmi2Status.ok,
-            True : Fmi2Status.ok,
-            False : Fmi2Status.fatal,
-            Fmi2Status.ok : Fmi2Status.ok,
-            Fmi2Status.warning : Fmi2Status.warning,
-            Fmi2Status.error : Fmi2Status.error,
-            Fmi2Status.fatal : Fmi2Status.fatal,
-            Fmi2Status.pending : Fmi2Status.pending,
+            None: Fmi2Status.ok,
+            True: Fmi2Status.ok,
+            False: Fmi2Status.fatal,
+            Fmi2Status.ok: Fmi2Status.ok,
+            Fmi2Status.warning: Fmi2Status.warning,
+            Fmi2Status.error: Fmi2Status.error,
+            Fmi2Status.fatal: Fmi2Status.fatal,
+            Fmi2Status.pending: Fmi2Status.pending,
         }
 
         s_fmi = None
 
         if(s in return_to_status):
             s_fmi = return_to_status[s]
-            self.log(f'Call was succesful, status returned : {s} treated as : {s_fmi}',_internal_log_catergory,s_fmi)
+            self.log(
+                f'Call was succesful, status returned : {s} treated as : {s_fmi}', _internal_log_catergory, s_fmi)
         else:
             s_fmi = Fmi2Status.warning
-            self.log(f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}',_internal_log_catergory,s_fmi)
+            self.log(
+                f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
 
         assert(s_fmi is not None)
 
         return s_fmi
-            
-        
-    def _setup_experiment(self, start_time: float):
 
-        self._do_fmi_call(self.setup_experiment,start_time)
+    def _setup_experiment(self,
+                          tolerance_defined: bool,
+                          tolerance: float,
+                          start_time: float,
+                          stop_time_defined: bool,
+                          stop_time: float):
 
-    def setup_experiment(self, start_time: float):
+        return self._do_fmi_call(self.setup_experiment, start_time)
+
+    def setup_experiment(self,
+                         tolerance_defined: bool,
+                         tolerance: float,
+                         start_time: float,
+                         stop_time_defined: bool,
+                         stop_time: float):
         pass
 
     def _enter_initialization_mode(self):
-        self._do_fmi_call(self)
+        return self._do_fmi_call(self.enter_initialization_mode)
 
     def enter_initialization_mode(self):
         pass
-    
+
     def _exit_initialization_mode(self):
-        
-        self._do_fmi_call(self.exit_initialization_mode)
+        return self._do_fmi_call(self.exit_initialization_mode)
 
     def exit_initialization_mode(self):
         pass
 
-    def do_step(self, current_time: float, step_size: float) -> bool:
+    def _do_step(self,
+                 current_time: float,
+                 step_size: float,
+                 no_set_fmu_state_prior: bool):
+
+        return self._do_fmi_call(self.do_step, current_time,
+                                 step_size, no_set_fmu_state_prior)
+
+    def do_step(self,
+                current_time: float,
+                step_size: float,
+                no_set_fmu_state_prior: bool):
         pass
+
+    def _reset(self):
+        return self._do_fmi_call(self.reset)
 
     def reset(self):
         pass
 
+    def _terminate(self):
+        return self._do_fmi_call(self.terminate)
+
     def terminate(self):
         pass
 
-    def __get_registered_debug_categories(self) -> List[str]:
+    def _get_registered_debug_categories(self):
         return self.logger.active_categories
 
-    def __set_debug_logging__(self, logging_on: bool, categories: Iterable[str]) -> None:
+    def _set_debug_logging(self, logging_on: bool, categories: Iterable[str]) -> None:
+        
+        return self._do_fmi_call(
+            self.set_debug_logging,
+            logging_on,
+            categories)
+
+    def set_debug_logging(self, logging_on: bool, categories: Iterable[str]):
         """Defines the set of active log categories for which log messages will logged.
         Messages logged to any other categories will be ignored.
 
@@ -468,7 +501,6 @@ class Fmi2Slave:
 
         ```
         """
-
         self.logger.set_active_log_categories(logging_on, categories)
 
     def log(self, message: str, category=None, status=Fmi2Status.ok) -> None:
@@ -489,7 +521,7 @@ class Fmi2Slave:
 
         self.logger.log(message, category, status)
 
-    def __pop_log_messages__(self, n: int) -> Tuple[str, str, str]:
+    def _pop_log_messages(self, n: int):
         """Function called by the wrapper to fetch log messages
 
         Arguments:
@@ -508,7 +540,7 @@ class Fmi2Slave:
 
         return messages_tuples
 
-    def __get_log_size__(self) -> int:
+    def _get_log_size(self):
         """Returns the number of log messages that are currently on the log stack.
 
         Returns:
@@ -516,7 +548,10 @@ class Fmi2Slave:
         """
         return len(self.logger)
 
-    def __get_integer__(self, vrs, refs):
+    def _get_integer(self, vrs, refs):
+        return self._do_fmi_call(self.get_integer, vrs, refs)
+
+    def get_integer(self, vrs, refs):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
@@ -526,7 +561,10 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Integer!")
 
-    def __get_real__(self, vrs, refs):
+    def _get_real(self, vrs, refs):
+        return self._do_fmi_call(self.get_real, vrs, refs)
+
+    def get_real(self, vrs, refs):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
@@ -536,7 +574,10 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Real!")
 
-    def __get_boolean__(self, vrs, refs):
+    def _get_boolean(self, vrs, refs):
+        return self._do_fmi_call(self.get_boolean, vrs, refs)
+
+    def get_boolean(self, vrs, refs):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
@@ -546,7 +587,10 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Boolean!")
 
-    def __get_string__(self, vrs, refs):
+    def _get_string(self, vrs, refs):
+        return self._do_fmi_call(self.get_string, vrs, refs)
+
+    def get_string(self, vrs, refs):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
@@ -556,7 +600,10 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type String!")
 
-    def __set_integer__(self, vrs, values):
+    def _set_integer(self, vrs, refs, values):
+        return self._do_fmi_call(self.set_integer, vrs, refs)
+
+    def set_integer(self, vrs, values):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
@@ -566,7 +613,10 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Integer!")
 
-    def __set_real__(self, vrs, values):
+    def _set_real(self, vrs, refs, values):
+        return self._do_fmi_call(self.set_real, vrs, refs)
+
+    def set_real(self, vrs, values):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
@@ -576,7 +626,10 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Real!")
 
-    def __set_boolean__(self, vrs, values):
+    def _set_boolean(self, vrs, refs, values):
+        return self._do_fmi_call(self.set_boolean, vrs, refs)
+
+    def set_boolean(self, vrs, values):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
@@ -586,7 +639,10 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type Boolean!")
 
-    def __set_string__(self, vrs, values):
+    def _set_string(self, vrs, refs, values):
+        return self._do_fmi_call(self.set_string, vrs, refs)
+
+    def set_string(self, vrs, values):
         for i in range(len(vrs)):
             vr = vrs[i]
             var = self.vars[vr]
