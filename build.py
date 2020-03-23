@@ -245,10 +245,14 @@ if __name__ == "__main__":
 
         try:
             from pyfmu.tests import export_all
+            
         except Exception as e:
             l.warning('Unable to export projects, pyfmu is not built. To export build the python application first using : "pip install -e ." ')
             sys.exit(-1)
 
+        export_all()
+
         l.debug('Sucessfully exported projects')
 
     
+
