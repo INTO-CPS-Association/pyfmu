@@ -14,7 +14,7 @@
 // Names of functions invoked on the slave
 #define PYFMU_FMI2SLAVE_SETUPEXPERIMENT "_setup_experiment"
 #define PYFMU_FMI2SLAVE_ENTERINITIALIZATIONMODE "_enter_initialization_mode"
-#define PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE "__exit_initialization_mode"
+#define PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE "_exit_initialization_mode"
 #define PYFMU_FMI2SLAVE_DOSTEP "_do_step"
 #define PYFMU_FMI2SLAVE_RESET "_reset"
 #define PYFMU_FMI2SLAVE_TERMINATE "_terminate"

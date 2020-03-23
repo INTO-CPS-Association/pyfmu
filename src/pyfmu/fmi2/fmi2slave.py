@@ -17,7 +17,7 @@ log = logging.getLogger('fmu')
 
 class Fmi2Slave:
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, override_logging = True):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, override_logging=True):
         """Constructs a FMI2
 
         Arguments:
@@ -44,7 +44,7 @@ class Fmi2Slave:
         self.used_value_references = {}
 
         self.logger = Fmi2Logger()
-        
+
         if(standard_log_categories):
             self.logger.register_all_standard_categories()
 
@@ -53,10 +53,9 @@ class Fmi2Slave:
             self.logger.log(
                 'FMI call logging enabled, all fmi calls will be logged')
 
-        if(override_logging):
-            self._override_logging = override_logging
-            self.register_variable('log_all_bypass','boolean','parameter','fixed','exact',False,'log all messages')
-            
+        # self.register_variable('pyfmu_override_logging', 'boolean',
+        #                        'parameter', 'fixed', 'exact', False, 'log all messages')
+
     # REGISTER VARIABLES AND LOG CATEGORIES
 
     def register_variable(self,
@@ -359,16 +358,18 @@ class Fmi2Slave:
 
     def _setup_experiment(self,
                           start_time: float,
-                          tolerance : float = None,
-                          stop_time : float = None):
-                        
+                          tolerance: float = None,
+                          stop_time: float = None):
 
-        return self._do_fmi_call(self.setup_experiment, start_time,stop_time,tolerance)
+        return self._do_fmi_call(
+            self.setup_experiment,
+            start_time,
+            stop_time, tolerance)
 
     def setup_experiment(self,
-                          start_time: float,
-                          tolerance : float = None,
-                          stop_time : float = None):
+                         start_time: float,
+                         tolerance: float = None,
+                         stop_time: float = None):
         pass
 
     def _enter_initialization_mode(self):
@@ -378,8 +379,11 @@ class Fmi2Slave:
         pass
 
     def _exit_initialization_mode(self):
-        if(self._override_logging):
-            self.set_debug_logging(True,['logAll'])
+
+        # if(self.pyfmu_override_logging is not None
+        #         and self.pyfmu_override_logging is True):
+
+        #self.set_debug_logging(True, ['logAll'])
 
         return self._do_fmi_call(self.exit_initialization_mode)
 
@@ -411,9 +415,9 @@ class Fmi2Slave:
 
     def terminate(self):
         pass
-  
+
     def _set_debug_logging(self, logging_on: bool, categories: Iterable[str]) -> None:
-        
+
         return self._do_fmi_call(
             self.set_debug_logging,
             logging_on,
@@ -533,7 +537,7 @@ class Fmi2Slave:
                     f"Variable with valueReference={vr} is not of type Integer!")
 
     def _set_real(self, vrs, values):
-        return self._do_fmi_call(self.set_real, vrs,values)
+        return self._do_fmi_call(self.set_real, vrs, values)
 
     def set_real(self, vrs, values):
         for i in range(len(vrs)):

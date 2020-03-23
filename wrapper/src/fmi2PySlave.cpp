@@ -184,7 +184,7 @@ fmi2Status PyObjectWrapper::enterInitializationMode()
 
   PyGIL g;
   auto f =
-      PyObject_CallMethod(pInstance_, "enter_initialization_mode", nullptr);
+      PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_ENTERINITIALIZATIONMODE, nullptr);
   if (f == nullptr)
   {
     logger->fatal("wrapper", "call to enterInitializationMode failed with exception : {}", get_py_exception());
@@ -199,7 +199,7 @@ fmi2Status PyObjectWrapper::exitInitializationMode()
 {
   PyGIL g;
 
-  auto f = PyObject_CallMethod(pInstance_, "exit_initialization_mode", nullptr);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE, nullptr);
   if (f == nullptr)
   {
     logger->fatal("wrapper", "call to exitInitializationMode failed with exception : {}", get_py_exception());
@@ -216,7 +216,7 @@ fmi2Status PyObjectWrapper::doStep(fmi2Real currentTime, fmi2Real stepSize,fmi2B
 
   
   auto pyNoSetPrior = PyBool_FromLong(noSetFMUStatePriorToCurrentPoint);
-  auto f = PyObject_CallMethod(pInstance_, "do_step", "(ddO)", currentTime, stepSize,pyNoSetPrior);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_DOSTEP, "(ddO)", currentTime, stepSize,pyNoSetPrior);
 
   if (f == nullptr)
   {
