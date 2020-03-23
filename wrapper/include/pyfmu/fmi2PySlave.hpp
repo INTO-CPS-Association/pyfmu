@@ -11,6 +11,7 @@
 #include "pyfmu/fmi2PySlaveLogging.hpp"
 #include "pyfmu/pyCompatability.hpp"
 
+// Names of functions invoked on the slave
 #define PYFMU_FMI2SLAVE_SETUPEXPERIMENT "_setup_experiment"
 #define PYFMU_FMI2SLAVE_ENTERINITIALIZATIONMODE "_enter_initialization_mode"
 #define PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE "__exit_initialization_mode"
@@ -26,6 +27,12 @@
 #define PYFMU_FMI2SLAVE_GETBOOLEAN "_get_boolean"
 #define PYFMU_FMI2SLAVE_GETINTEGER "_get_integer"
 #define PYFMU_FMI2SLAVE_GETSTRING "_get_string"
+
+#define PYFMU_FMI2SLAVE_GETLOGSIZE "_get_log_size"
+#define PYFMU_FMI2SLAVE_POPLOGMESSAGES "_pop_log_messages"
+
+
+
 
 namespace pyfmu
 {

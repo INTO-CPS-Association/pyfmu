@@ -17,7 +17,7 @@ log = logging.getLogger('fmu')
 
 class Fmi2Slave:
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, log_all = True):
         """Constructs a FMI2
 
         Arguments:
@@ -44,7 +44,7 @@ class Fmi2Slave:
         self.used_value_references = {}
 
         self.logger = Fmi2Logger()
-
+        
         if(standard_log_categories):
             self.logger.register_all_standard_categories()
 
@@ -53,6 +53,8 @@ class Fmi2Slave:
             self.logger.log(
                 'FMI call logging enabled, all fmi calls will be logged')
 
+        if(log_all):
+            self.logger.set_active_log_categories(True,['logAll'])
     # REGISTER VARIABLES AND LOG CATEGORIES
 
     def register_variable(self,
@@ -359,7 +361,7 @@ class Fmi2Slave:
                           stop_time : float = None):
                         
 
-        return self._do_fmi_call(self.setup_experiment, start_time)
+        return self._do_fmi_call(self.setup_experiment, start_time,stop_time,tolerance)
 
     def setup_experiment(self,
                           start_time: float,

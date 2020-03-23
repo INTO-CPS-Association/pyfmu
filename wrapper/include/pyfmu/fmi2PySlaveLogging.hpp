@@ -65,26 +65,28 @@ public:
       msg = format;
     }
 
-    size_t n_m = msg.length();
-    auto msg_cstr = new char[n_m + 1];
-    msg.copy(msg_cstr, n_m);
-    msg_cstr[n_m] = '\0';
+    // size_t n_m = msg.length();
+    // auto msg_cstr = new char[n_m + 1];
+    // msg.copy(msg_cstr, n_m);
+    // msg_cstr[n_m] = '\0';
 
-    size_t n_c = category.length();
-    auto cat_cstr = new char[n_c + 1];
-    category.copy(cat_cstr, n_c);
-    cat_cstr[n_c] = '\0';
+    // size_t n_c = category.length();
+    // auto cat_cstr = new char[n_c + 1];
+    // category.copy(cat_cstr, n_c);
+    // cat_cstr[n_c] = '\0';
 
-    size_t n_n = instanceName.length();
-    char *n_cstr = new char[n_n + 1];
-    instanceName.copy(n_cstr, n_n);
-    n_cstr[n_n] = '\0';
+    // size_t n_n = instanceName.length();
+    // char *n_cstr = new char[n_n + 1];
+    // instanceName.copy(n_cstr, n_n);
+    // n_cstr[n_n] = '\0';
 
-    loggerCallback(componentEnvironment, n_cstr, status, cat_cstr, msg_cstr);
+    //loggerCallback(componentEnvironment, "some instance", status, "some cat", "some message");
+    loggerCallback(componentEnvironment, instanceName.c_str(), status, category.c_str(), "static message");
+    //loggerCallback(componentEnvironment, instanceName.c_str(), status, category.c_str(), msg.c_str());
 
-    delete[] msg_cstr;
-    delete[] cat_cstr;
-    delete[] n_cstr;
+    // delete[] msg_cstr;
+    // delete[] cat_cstr;
+    // delete[] n_cstr;
   }
 
   template <typename... Args>
