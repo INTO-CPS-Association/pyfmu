@@ -87,6 +87,12 @@ def extract_model_description_v2(fmu_instance) -> str:
             ET.SubElement(os,'Unknown',{'index' : str(idx), 'dependencies' : ''})
     
 
+    # 2.2.4 p.42) Log categories:
+    cs = ET.SubElement(fmd,'LogCategories')
+    for ac in fmu_instance.available_categories:
+        c = ET.SubElement(cs,'Category')
+        c.set('name',ac)
+
     try:
         stream = io.StringIO()
         ElementTree(fmd).write(stream, encoding="unicode", short_empty_elements=True,xml_declaration=True)

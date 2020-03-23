@@ -53,6 +53,8 @@ class Fmi2Slave:
             self.logger.log(
                 'FMI call logging enabled, all fmi calls will be logged')
 
+    # REGISTER VARIABLES AND LOG CATEGORIES
+
     def register_variable(self,
                           name: str,
                           data_type: Fmi2DataTypes = None,
@@ -339,56 +341,17 @@ class Fmi2Slave:
 
         self.logger.register_log_category(name)
 
-    def _do_fmi_call(self, f, *args, **kwargs) -> Fmi2Status:
-        """ Performs the call to the fmi function implemented by the subclass and returns the status.
-
-        Purpose of the function is:
-        1. logging of the function calls
-        2. handle exceptions in implementation
-        3. convert return values to FMI status values
-
-        Arguments:
-            f {[type]} -- the function to be invoked.
+    def _acquire_unused_value_reference(self) -> int:
+        """ Returns the an unused value reference
         """
+        while(True):
+            vr = self.value_reference_counter
+            self.value_reference_counter += 1
 
-        if(not callable(f)):
-            raise TypeError(
-                f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
+            if(vr not in self.used_value_references):
+                return vr
 
-        try:
-            self.log(
-                f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}', _internal_log_catergory)
-            s = f(*args, **kwargs)
-        except Exception as e:
-            self.log(
-                f'Call resulted in an exception being raise : {e}. Treating this as a {_internal_throw_category}.', _internal_log_catergory, _internal_throw_category)
-            return _internal_invalid_status_category
-        # convert return status to appropritate fmi status
-        return_to_status = {
-            None: Fmi2Status.ok,
-            True: Fmi2Status.ok,
-            False: Fmi2Status.fatal,
-            Fmi2Status.ok: Fmi2Status.ok,
-            Fmi2Status.warning: Fmi2Status.warning,
-            Fmi2Status.error: Fmi2Status.error,
-            Fmi2Status.fatal: Fmi2Status.fatal,
-            Fmi2Status.pending: Fmi2Status.pending,
-        }
-
-        s_fmi = None
-
-        if(s in return_to_status):
-            s_fmi = return_to_status[s]
-            self.log(
-                f'Call was succesful, status returned : {s} treated as : {s_fmi}', _internal_log_catergory, s_fmi)
-        else:
-            s_fmi = Fmi2Status.warning
-            self.log(
-                f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
-
-        assert(s_fmi is not None)
-
-        return s_fmi
+    # FMI FUNCTIONS
 
     def _setup_experiment(self,
                           start_time: float,
@@ -441,10 +404,7 @@ class Fmi2Slave:
 
     def terminate(self):
         pass
-
-    def _get_registered_debug_categories(self):
-        return self.logger.active_categories
-
+  
     def _set_debug_logging(self, logging_on: bool, categories: Iterable[str]) -> None:
         
         return self._do_fmi_call(
@@ -499,51 +459,6 @@ class Fmi2Slave:
         ```
         """
         self.logger.set_active_log_categories(logging_on, categories)
-
-    def log(self, message: str, category=None, status=Fmi2Status.ok) -> None:
-        """Logs a message to the fmi interface.
-
-        Note that only categories which are set as active using the __set_debug_logging__, are propageted to the tool.
-        The function is called by the tool using with the categories which the user wishes to be active.
-
-        Arguments:
-            status {Fmi2Status} -- The current status of the FMU.
-            category {str} -- The category of the log message.
-            message {str} -- The log message itself.
-
-        Logging categories mappings:
-
-
-        """
-
-        self.logger.log(message, category, status)
-
-    def _pop_log_messages(self, n: int):
-        """Function called by the wrapper to fetch log messages
-
-        Arguments:
-            n {int} -- Number of messages to fetch
-        """
-        if(n > len(self.logger)):
-            self.log(
-                f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
-            return None
-
-        messages = self.logger.pop_messages(n)
-
-        # for convenience we convert the object into tuples
-        messages_tuples = [(m.status.value, m.category, m.message)
-                           for m in messages]
-
-        return messages_tuples
-
-    def _get_log_size(self):
-        """Returns the number of log messages that are currently on the log stack.
-
-        Returns:
-            int -- [description]
-        """
-        return len(self.logger)
 
     def _get_integer(self, vrs, refs):
         return self._do_fmi_call(self.get_integer, vrs, refs)
@@ -649,6 +564,57 @@ class Fmi2Slave:
                 raise Exception(
                     f"Variable with valueReference={vr} is not of type String!")
 
+    def _do_fmi_call(self, f, *args, **kwargs) -> Fmi2Status:
+        """ Performs the call to the fmi function implemented by the subclass and returns the status.
+
+        Purpose of the function is:
+        1. logging of the function calls
+        2. handle exceptions in implementation
+        3. convert return values to FMI status values
+
+        Arguments:
+            f {[type]} -- the function to be invoked.
+        """
+
+        if(not callable(f)):
+            raise TypeError(
+                f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
+
+        try:
+            self.log(
+                f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}', _internal_log_catergory)
+            s = f(*args, **kwargs)
+        except Exception as e:
+            self.log(
+                f'Call resulted in an exception being raise : {e}. Treating this as a {_internal_throw_category}.', _internal_log_catergory, _internal_throw_category)
+            return _internal_invalid_status_category
+        # convert return status to appropritate fmi status
+        return_to_status = {
+            None: Fmi2Status.ok,
+            True: Fmi2Status.ok,
+            False: Fmi2Status.fatal,
+            Fmi2Status.ok: Fmi2Status.ok,
+            Fmi2Status.warning: Fmi2Status.warning,
+            Fmi2Status.error: Fmi2Status.error,
+            Fmi2Status.fatal: Fmi2Status.fatal,
+            Fmi2Status.pending: Fmi2Status.pending,
+        }
+
+        s_fmi = None
+
+        if(s in return_to_status):
+            s_fmi = return_to_status[s]
+            self.log(
+                f'Call was succesful, status returned : {s} treated as : {s_fmi}', _internal_log_catergory, s_fmi)
+        else:
+            s_fmi = Fmi2Status.warning
+            self.log(
+                f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
+
+        assert(s_fmi is not None)
+
+        return s_fmi
+
     def _define_variable(self, sv: Fmi2ScalarVariable):
 
         if(not hasattr(self, sv.name)):
@@ -666,12 +632,53 @@ class Fmi2Slave:
                     "start value variable defined using the 'register_variable' function does not match initial value")
                 setattr(self, sv.name, new)
 
-    def _acquire_unused_value_reference(self) -> int:
-        """ Returns the an unused value reference
-        """
-        while(True):
-            vr = self.value_reference_counter
-            self.value_reference_counter += 1
+    # Logging
 
-            if(vr not in self.used_value_references):
-                return vr
+    def log(self, message: str, category=None, status=Fmi2Status.ok) -> None:
+        """Logs a message to the fmi interface.
+
+        Note that only categories which are set as active using the __set_debug_logging__, are propageted to the tool.
+        The function is called by the tool using with the categories which the user wishes to be active.
+
+        Arguments:
+            status {Fmi2Status} -- The current status of the FMU.
+            category {str} -- The category of the log message.
+            message {str} -- The log message itself.
+
+        Logging categories mappings:
+
+
+        """
+
+        self.logger.log(message, category, status)
+
+    def _get_log_size(self):
+        """Returns the number of log messages that are currently on the log stack.
+
+        Returns:
+            int -- [description]
+        """
+        return len(self.logger)
+
+    def _pop_log_messages(self, n: int):
+        """Function called by the wrapper to fetch log messages
+
+        Arguments:
+            n {int} -- Number of messages to fetch
+        """
+        if(n > len(self.logger)):
+            self.log(
+                f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
+            return None
+
+        messages = self.logger.pop_messages(n)
+
+        # for convenience we convert the object into tuples
+        messages_tuples = [(m.status.value, m.category, m.message)
+                           for m in messages]
+
+        return messages_tuples
+
+    @property
+    def available_categories(self):
+        return self.logger.available_categories

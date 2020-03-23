@@ -291,3 +291,9 @@ class Fmi2Logger():
         """Categories which are marked as active.
         """
         return self._active_categories
+
+    @property
+    def available_categories(self):
+        """Categories which have been declared and can potentially be marked as active by the tool.
+        """
+        return self._categories_to_predicates.keys()
