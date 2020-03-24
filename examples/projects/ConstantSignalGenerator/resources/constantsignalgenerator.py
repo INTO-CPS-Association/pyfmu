@@ -21,6 +21,6 @@ class ConstantSignalGenerator(Fmi2Slave):
     def exit_initialization_mode(self):
         self.y = self.k
 
-    def do_step(self, current_time: float, step_size: float) -> bool:
+    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
         self.y = self.k
         return True

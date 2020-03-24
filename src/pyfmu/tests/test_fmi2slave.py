@@ -40,7 +40,7 @@ def test_inputsUseStartValue():
 
     result = [0]
 
-    d.__get_real__([vr],result)
+    d._get_real([vr],result)
     assert(result[0] == start)
 
 def test_parametersUseStartValue():
@@ -53,7 +53,7 @@ def test_parametersUseStartValue():
 
     result = [0]
 
-    d.__get_real__([vr],result)
+    d._get_real([vr],result)
     assert(result[0] == start)
 
 def test_registerVariable_acceptsStrings():
@@ -140,37 +140,37 @@ def test_setDebugLogging():
 
     fmu.log("test")
     
-    assert(fmu.__get_log_size__() == 0)
+    assert(fmu._get_log_size() == 0)
 
-    fmu.__set_debug_logging__(True,["logAll"])
+    fmu.set_debug_logging(True,["logAll"])
 
     fmu.log("test")
 
-    assert(fmu.__get_log_size__() == 1)
+    assert(fmu._get_log_size() == 1)
     
 
-def test__get_log_size__():
+def test_get_log_size():
     
     fmu = Fmi2Slave("logger",standard_log_categories=True)
-    fmu.__set_debug_logging__(True,["logAll"])
+    fmu.set_debug_logging(True,["logAll"])
 
     fmu.log("test 1")
     
-    assert(fmu.__get_log_size__() == 1)
+    assert(fmu._get_log_size() == 1)
     
     fmu.log("test 2")
 
-    assert(fmu.__get_log_size__() == 2)
+    assert(fmu._get_log_size() == 2)
 
 
-def test__get_log_messages__():
+def test_get_log_messages():
 
     fmu = Fmi2Slave("logger", standard_log_categories=True)
-    fmu.__set_debug_logging__(True,["logAll"])
+    fmu._set_debug_logging(True,["logAll"])
 
     fmu.log("test",category="a",status=Fmi2Status.ok)
 
-    ms = fmu.__pop_log_messages__(1)
+    ms = fmu._pop_log_messages(1)
 
     (status,category,message) = ms[0]
 

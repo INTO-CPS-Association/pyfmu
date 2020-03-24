@@ -69,17 +69,13 @@ class LivePlotting(Fmi2Slave):
         if(self._running):
             self.terminate()
 
-    def setup_experiment(self, start_time: float):
-        pass
-
-    def enter_initialization_mode(self):
-        pass
+   
 
     def exit_initialization_mode(self):
         self._lastSimTime = 0
         self.plot_process.start()
 
-    def do_step(self, current_time: float, step_size: float) -> bool:
+    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
 
         time_downsampling = (self.ts != -1)
         if(time_downsampling):
@@ -160,7 +156,7 @@ if __name__ == "__main__":
     for i in range(n):
         fmu.x0 = i
         fmu.y0 = sin(i*ts)
-        fmu.do_step(i*ts, ts)
+        fmu.do_step(i*ts, ts,True)
 
     fmu.terminate()
 

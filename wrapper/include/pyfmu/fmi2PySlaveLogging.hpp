@@ -7,6 +7,7 @@
 
 #include <Python.h>
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 #include "fmi/fmi2Functions.h"
 #include "pyfmu/pyCompatability.hpp"
@@ -49,78 +50,53 @@ public:
    * @example
    * mylog.log(fmi2Error,"wrapper","something failed due to : {}",err_msg)
    */
+  template <typename... Args>
   void log(
       fmi2Status status,
       const std::string &category,
       const std::string &format,
-      std::optional<fmt::format_args> args = std::nullopt)
+      const Args &... args)
   {
-    std::string msg;
-    if (args.has_value())
-    {
-      msg = fmt::vformat(format, args.value());
-    }
-    else
-    {
-      msg = format;
-    }
+    
+    std::string msg = fmt::format(format,args...);
 
-    size_t n_m = msg.length();
-    auto msg_cstr = new char[n_m + 1];
-    msg.copy(msg_cstr, n_m);
-    msg_cstr[n_m] = '\0';
-
-    size_t n_c = category.length();
-    auto cat_cstr = new char[n_c + 1];
-    category.copy(cat_cstr, n_c);
-    cat_cstr[n_c] = '\0';
-
-    size_t n_n = instanceName.length();
-    char *n_cstr = new char[n_n + 1];
-    instanceName.copy(n_cstr, n_n);
-    n_cstr[n_n] = '\0';
-
-    loggerCallback(componentEnvironment, n_cstr, status, cat_cstr, msg_cstr);
-
-    delete[] msg_cstr;
-    delete[] cat_cstr;
-    delete[] n_cstr;
+    loggerCallback(componentEnvironment, instanceName.c_str(), status,category.c_str(), msg.c_str());
   }
 
   template <typename... Args>
   void ok(const std::string &category, const std::string &message, const Args &... args)
   {
-    log(fmi2Status::fmi2OK, category, message, fmt::make_format_args(args...));
+    log(fmi2Status::fmi2OK, category, message, args...);
   }
 
   template <typename... Args>
   void warning(const std::string &category, const std::string &message, const Args &... args)
   {
-    log(fmi2Status::fmi2Warning, category, message, fmt::make_format_args(args...));
+    log(fmi2Status::fmi2Warning, category, message, args...);
   }
 
   template <typename... Args>
   void discard(const std::string &category, const std::string &message, const Args &... args)
   {
-    log(fmi2Status::fmi2Discard, category, message, fmt::make_format_args(args...));
+    log(fmi2Status::fmi2Discard, category, message, args...);
   }
 
   template <typename... Args>
   void error(const std::string &category, const std::string &message, const Args &... args)
   {
-    log(fmi2Status::fmi2Error, category, message, fmt::make_format_args(args...));
+    log(fmi2Status::fmi2Error, category, message, args...);
   }
 
   template <typename... Args>
   void fatal(const std::string &category, const std::string &message, const Args &... args)
   {
-    log(fmi2Status::fmi2Fatal, category, message, fmt::make_format_args(args...));
+    log(fmi2Status::fmi2Fatal, category, message, args...);
   }
 
   template <typename... Args>
   void pending(const std::string &category, const std::string &message, const Args &... args)
   {
-    log(fmi2Status::fmi2Pending, category, message, fmt::make_format_args(args...));
+    log(fmi2Status::fmi2Pending, category, message, args...);
   }
 
 private:

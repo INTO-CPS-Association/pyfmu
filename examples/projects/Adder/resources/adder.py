@@ -23,6 +23,6 @@ class Adder(Fmi2Slave):
         self.s = self.a + self.b
         return True
 
-    def do_step(self, current_time: float, step_size: float) -> bool:
+    def do_step(self, current_time: float, step_size: float,no_set_fmu_state_prior : bool):
         self.s = self.a + self.b
         return True

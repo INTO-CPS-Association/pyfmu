@@ -116,7 +116,7 @@ class Fmi2ScalarVariable(ABC):
         return must_define_start
 
     def __repr__(self):
-        initial_str = self.initial.value if self.initial else 'notPermitted'
+        initial_str = self.initial.value if self.initial else 'omitted'
         return f'{self.name}:{self.data_type.value}:{self.causality.value}:{initial_str}'
 
     def __str__(self):

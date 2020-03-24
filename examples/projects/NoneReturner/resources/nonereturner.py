@@ -29,23 +29,3 @@ class NoneReturner(Fmi2Slave):
         self.integer = None
         self.boolean = None
         self.string = None
-        
-        
-
-    def setup_experiment(self, start_time: float):
-        pass
-
-    def enter_initialization_mode(self):
-        pass
-
-    def exit_initialization_mode(self):
-        pass
-
-    def do_step(self, current_time: float, step_size: float) -> bool:
-        return True
-
-    def reset(self):
-        pass
-
-    def terminate(self):
-        pass
