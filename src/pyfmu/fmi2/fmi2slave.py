@@ -57,9 +57,9 @@ class Fmi2Slave:
 
         if(enable_fmi_call_logging):
             self.logger.register_log_category(_internal_log_catergory)
-            self.set_debug_logging(True,[_internal_log_catergory])
+            #self.set_debug_logging(True,[_internal_log_catergory])
             self.logger.log(
-                'FMI call logging enabled, all fmi calls will be logged')
+                'FMI call logging enabled, all fmi calls will be logged',_internal_log_catergory)
 
         
         self._configure()
