@@ -11,7 +11,7 @@ def test_sumOfSines():
         s_str = str(s)
 
         try:
-            simulate_ssp(
+            res = simulate_ssp(
                 s_str,
                 start_time=0,
                 stop_time=1,
@@ -20,3 +20,24 @@ def test_sumOfSines():
         except Exception as e:
             print(e)
 
+        _ = 10
+        print(res)
+
+
+if __name__ == "__main__":
+    with ExampleSystem('SumOfSines') as s:
+
+        s_str = str(s)
+
+        try:
+            res = simulate_ssp(
+                s_str,
+                start_time=0,
+                stop_time=1,
+                step_size=0.01)
+
+        except Exception as e:
+            print(e)
+
+        _ = 10
+        print(res)

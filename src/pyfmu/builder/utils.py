@@ -1,5 +1,5 @@
 from zipfile import ZipFile, ZIP_DEFLATED
-from shutil import make_archive, copytree, move
+from shutil import make_archive, copytree, move, rmtree
 from tempfile import mkdtemp
 from pathlib import Path
 import os
@@ -18,6 +18,27 @@ def zipdir(inDir: str, outDir: str):
                 p = os.path.relpath(os.path.join(root, file),
                                     os.path.join(inDir, '..'))
                 zf.write(p)
+
+
+def rm(path):
+    """Delete a file or a directory
+
+    Arguments:
+        p {Path} -- path to a directory or a file
+    """
+
+    try:
+        path = Path(path)
+
+        if(path.is_dir()):
+            rmtree(path)
+        elif(path.is_file()):
+            path.unlink()
+        else:
+            raise ValueError('path neither specifies a file nor a directory.')
+
+    except Exception as e:
+        raise RuntimeError(f'Unable to remove file/directory: {path} and error was raised: {e}')
 
 
 def compress(

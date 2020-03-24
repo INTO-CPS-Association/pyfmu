@@ -1,12 +1,10 @@
-import os
 from os.path import dirname, join
 from tempfile import mkdtemp
 from shutil import rmtree, copytree
 from pathlib import Path
-import stat
 
 
-from pyfmu.builder import export_project, PyfmuProject, PyfmuArchive, compress
+from pyfmu.builder import export_project, PyfmuProject, PyfmuArchive, compress, rm
 
 
 _ssp_examples = [
@@ -153,7 +151,7 @@ class ExampleProject():
         return self.project
 
     def __exit__(self, exception_type, exception_value, traceback):
-        rmtree(self.tmpdir)
+        rm(self.tmpdir)
 
 
 class ExampleArchive():
@@ -183,22 +181,9 @@ class ExampleArchive():
         return self.archive
 
     def __exit__(self, exception_type, exception_value, traceback):
+        rm(self.tmpdir)
 
-        import platform
 
-        # TODO
-        # Currently the clean up mechanism does not work with FMPy on windows
-        # It seems like the dll is still loaded when the function is called, resulting in a windows "access denied" error when trying to delete it.
-        if(platform.system() == "Windows"):
-            return
-
-        for root, dirs, files in os.walk(self.tmpdir, topdown=False):
-            for name in files:
-                filename = os.path.join(root, name)
-                os.chmod(filename, stat.S_IWUSR)
-                os.remove(filename)
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
 
 
 class ExampleSystem():
@@ -221,4 +206,4 @@ class ExampleSystem():
         return self._system_path
 
     def __exit__(self, exception_type, exception_value, traceback):
-        rmtree(self._system_path)
+        rm(self._system_path)
