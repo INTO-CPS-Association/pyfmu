@@ -4,6 +4,9 @@ from uuid import uuid4
 import inspect
 import logging
 import json
+from pathlib import Path
+import os
+import sys
 
 from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2LogMessage, Fmi2Logger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
@@ -54,33 +57,84 @@ class Fmi2Slave:
 
         if(enable_fmi_call_logging):
             self.logger.register_log_category(_internal_log_catergory)
+            self.set_debug_logging(True,[_internal_log_catergory])
             self.logger.log(
                 'FMI call logging enabled, all fmi calls will be logged')
 
-        self.set_debug_logging(True,['logAll'])
+        
+        self._configure()
 
     def _configure(self):
         """ Performs configuration of the FMI slave based on the contents of the slave configuration file.
+
+            The configuration function is only available for Fmi2Slaves which are running from inside an FMU, e.g. they have a slave_configuration.json
 
             Options:
                 1. Logging, allows the user to override log settings.
         """
 
+        if(not self._is_running_as_fmu):
+            self.log("Skipping configuration due to the FMU running in project-mode",_internal_log_catergory)            
+
         try:
-            self.log(f"Reading configuration file : {_slave_configuration_name}",_internal_log_catergory)
-            with open(_slave_configuration_name,'r') as f:
+            
+            self.log(f"Trying to locate configuration file : {_slave_configuration_name} in Python Path : {sys.path}",_internal_log_catergory)
+
+            config_path = None
+
+            for potential in sys.path:
+                
+                p = Path(potential) / _slave_configuration_name
+                
+                if(p.is_file()):
+                    config_path = p
+                    break
+            else:
+                self.log('Configuration process failed the file could not be found in Pythons path, continuing using defaults',_internal_log_catergory)
+                return
+
+            with open(config_path,'r') as f:
                 config = json.load(f)
                 
                 # 1. Logging
                 cats = config['logging']['override_log_categories']
 
                 if(len(cats) != 0):
-                    self.log(f'Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active')
-                    self.set_debug_logging(True,cats)
+                    self.log(f'Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active',_internal_log_catergory)
+                    self._set_debug_logging(True,cats)
+                    
 
         except Exception as e:
-            self.log(f'Configuration process failed due to error : {e}, continueing using default options', _internal_log_catergory,Fmi2Status.warning)
-                  
+            print(e)
+            self.log(f'Configuration process failed due to error : {e}, continuing using default options', _internal_log_catergory,Fmi2Status.warning)
+
+    def _set_resources_path(self, path):
+        """Called by the wrapper to set the path to resource folder.
+        
+        This is used for configuration.
+
+        Arguments:
+            path {[str]} -- Path to the resources folder
+        """          
+
+        self._resources_path = Path(path)
+
+    def _is_running_as_project(self):
+        """Returns true if the Fmi2Slave is running inside a project that has not yet been exported.
+        """
+        return not self._is_running_as_fmu
+        
+    def _is_running_as_fmu(self):
+        """Returns true if the FMI2Slave is running from inside an exported FMU
+        """
+        for potential in sys.path:
+        
+            p = Path(potential) / _slave_configuration_name
+            
+            if(p.is_file()):
+                return True
+
+        return False
 
     # REGISTER VARIABLES AND LOG CATEGORIES
 
