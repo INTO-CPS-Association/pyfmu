@@ -1,0 +1,7 @@
+{
+    "main_script": "sinegenerator.py",
+    "main_class": "SineGenerator",
+    "logging": {
+        "override_log_categories": []
+    }
+}

@@ -17,7 +17,7 @@ def export_all():
 
         p = get_example_project(name)
 
-        outdir = get_example_directory().parent / 'exported' / name
+        outdir = get_example_directory() / 'exported' / name
         project = PyfmuProject.from_existing(p)
         export_project(project, outdir, overwrite=True)
 

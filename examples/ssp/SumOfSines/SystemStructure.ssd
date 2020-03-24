@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SystemStructureDescription xmlns="http://www.pmsf.net/xsd/SystemStructureDescriptionDraft" version="Draft20171219" name="SumOfSines"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.pmsf.net/xsd/SystemStructureDescriptionDraft http://www.pmsf.net/xsd/SSP/Draft20171219/SystemStructureDescription.xsd">
+    <System name="SumOfSines">
+        <Elements>
+            <Component type="application/x-fmu-sharedlibrary" source="resources/Adder.fmu" name="a">
+                <Connectors>
+                    <Connector name="a" kind="input"/>
+                    <Connector name="b" kind="input"/>
+                    <Connector name="s" kind="output"/>
+                </Connectors>
+            </Component>
+            <Component type="application/x-fmu-sharedlibrary" source="resources/SineGenerator.fmu" name="s1">
+                <Connectors>
+                    <Connector name="y" kind="output"/>
+                </Connectors>
+            </Component>
+            <Component type="application/x-fmu-sharedlibrary" source="resources/SineGenerator.fmu" name="s2">
+                <Connectors>
+                    <Connector name="y" kind="output"/>
+                </Connectors>
+            </Component>
+        </Elements>
+        <Connections>
+            <Connection startElement="s1" startConnector="y" endElement="a" endConnector="a"/>
+            <Connection startElement="s2" startConnector="y" endElement="a" endConnector="b"/>
+        </Connections>
+    </System>
+</SystemStructureDescription>
