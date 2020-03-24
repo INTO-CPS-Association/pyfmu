@@ -3,21 +3,25 @@ from typing import List, Iterable, Tuple
 from uuid import uuid4
 import inspect
 import logging
+import json
 
 from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2LogMessage, Fmi2Logger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
+############### CONFIGURATION ###############
+_slave_configuration_name = "slave_configuration.json"
 
-# fmi function call logging
+############### LOGGING OF FMI INTERFACE ###############
 _internal_log_catergory = 'fmi2slave'
-_internal_throw_category = Fmi2Status.error
-_internal_invalid_status_category = Fmi2Status.fatal
+_internal_throw_category = Fmi2Status.fatal # category if an FMI method implementation fails
+_internal_invalid_status_category = Fmi2Status.fatal # category if an FMI method returns and invalid status
+_logging_override_name = "pyfmu_log_all_override"
 
 log = logging.getLogger('fmu')
 
 
 class Fmi2Slave:
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, override_logging=True):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, add_logging_override_param=True):
         """Constructs a FMI2
 
         Arguments:
@@ -29,7 +33,7 @@ class Fmi2Slave:
             version {str} -- [description] (default: {""})
             description {str} -- [description] (default: {""})
             standard_log_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
-            override_logging {bool} -- if true, add a boolean parameter to the FMU which allows it to log all, useful for FMPy (default: {True}).
+            add_logging_override_param {bool} -- if true, add a boolean parameter to the FMU which allows it to log all, useful for FMPy (default: {True}).
         """
 
         self.author = author
@@ -53,8 +57,30 @@ class Fmi2Slave:
             self.logger.log(
                 'FMI call logging enabled, all fmi calls will be logged')
 
-        # self.register_variable('pyfmu_override_logging', 'boolean',
-        #                        'parameter', 'fixed', 'exact', False, 'log all messages')
+        self.set_debug_logging(True,['logAll'])
+
+    def _configure(self):
+        """ Performs configuration of the FMI slave based on the contents of the slave configuration file.
+
+            Options:
+                1. Logging, allows the user to override log settings.
+        """
+
+        try:
+            self.log(f"Reading configuration file : {_slave_configuration_name}",_internal_log_catergory)
+            with open(_slave_configuration_name,'r') as f:
+                config = json.load(f)
+                
+                # 1. Logging
+                cats = config['logging']['override_log_categories']
+
+                if(len(cats) != 0):
+                    self.log(f'Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active')
+                    self.set_debug_logging(True,cats)
+
+        except Exception as e:
+            self.log(f'Configuration process failed due to error : {e}, continueing using default options', _internal_log_catergory,Fmi2Status.warning)
+                  
 
     # REGISTER VARIABLES AND LOG CATEGORIES
 
@@ -379,11 +405,6 @@ class Fmi2Slave:
         pass
 
     def _exit_initialization_mode(self):
-
-        # if(self.pyfmu_override_logging is not None
-        #         and self.pyfmu_override_logging is True):
-
-        #self.set_debug_logging(True, ['logAll'])
 
         return self._do_fmi_call(self.exit_initialization_mode)
 

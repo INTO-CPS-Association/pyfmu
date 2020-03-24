@@ -66,8 +66,11 @@ static inline const char *PyUnicode_AsUTF8(PyObject *object)
     std::string str = ws2s(wchar_str);
     PyMem_Free(wchar_str);
 
-    char *cstr = new char[str.length() + 1];
-    str.copy(cstr, str.length() + 1);
+    size_t n = str.length() + 1;
+    char *cstr = new char[n];
+    str.copy(cstr, str.length());
+    cstr[n-1] = '\0';
+    
 
     return cstr;
 }

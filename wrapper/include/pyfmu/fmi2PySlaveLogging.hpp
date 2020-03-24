@@ -7,6 +7,7 @@
 
 #include <Python.h>
 #include <fmt/format.h>
+#include <spdlog/spdlog.h>
 
 #include "fmi/fmi2Functions.h"
 #include "pyfmu/pyCompatability.hpp"
@@ -59,9 +60,7 @@ public:
     
     std::string msg = fmt::format(format,args...);
 
-    //loggerCallback(componentEnvironment, "some instance", status, "some cat", "some message");
-    loggerCallback(componentEnvironment, instanceName.c_str(), status, category.c_str(), msg.c_str());
-
+    loggerCallback(componentEnvironment, instanceName.c_str(), status,category.c_str(), msg.c_str());
   }
 
   template <typename... Args>
