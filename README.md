@@ -40,7 +40,7 @@ pip install -e.
 
 ## Usage
 
-The library comes with a command line tool py2fmu which eases the creation of projects and the subsequent export as FMUs
+The library comes with a command line tool pyfmu which eases the creation of projects and the subsequent export as FMUs
 
 As an example a two input Adder is used.
 
@@ -48,10 +48,10 @@ As an example a two input Adder is used.
 
 To create a new project the *generate* command is used:
 ``` bash
-python py2fmu.py generate --path /someDir/Adder
+pyfmu generate --path /someDir/Adder
 ```
 
-This generates a empty project containing the necessary resources and configuration files.
+This generates an empty project containing the necessary resources and configuration files.
 By default a template of the main class is generated. In this case a file *adder.py* defining the class *Adder* is created.
 
 This subclasses the Fmi2Slave class which provides the methods necessary to define the FMU.
@@ -97,7 +97,7 @@ It is not necessary to implement the **set\_xxx** and **get\_xxx** functions. By
 To export an project as an FMU the **export** subcommand is used:
 
 ``` bash
-python py2fmu.py export --project /someDir/Adder --output /myFMUs/Adder
+pyfmu export -p /someDir/Adder -o /myFMUs/Adder
 ```
 
 The result of this command is an FMU containing the Python that was just written.
