@@ -148,8 +148,7 @@ private:
     template<typename T>
     fmi2Status InvokeFmiSetFunction(
         const std::string &setter_name,
-        const std::string &build_formatter,
-        PyObject* (*buildValueFunc)(const char*,...),
+        std::function<PyObject*(T value)> buildValueFunc,
         const fmi2ValueReference *vr,
         std::size_t nvr, const T *values) const
         {
@@ -160,7 +159,7 @@ private:
             for (int i = 0; i < nvr; i++)
             {
                 PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-                PyList_SetItem(refs, i, Py_BuildValue(build_formatter.c_str(), values[i]));
+                PyList_SetItem(refs, i, buildValueFunc(values[i]));
             }
 
             auto status = InvokeFmiOnSlave(setter_name, "(OO)", vrs, refs);

@@ -429,69 +429,35 @@ fmi2Status PyObjectWrapper::setDebugLogging(fmi2Boolean loggingOn, size_t nCateg
 
 fmi2Status PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t nvr,
                                        const fmi2Integer *values)
-{
-  return InvokeFmiSetFunction(PYFMU_FMI2SLAVE_SETINTEGER,"i",Py_BuildValue,vr,nvr,values);
+{ 
+  
+  auto builder = [](fmi2Integer val) -> PyObject* {return Py_BuildValue("i",val);};
+
+  return InvokeFmiSetFunction<fmi2Integer>(PYFMU_FMI2SLAVE_SETINTEGER,builder,vr,nvr,values);
 }
 
 fmi2Status PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr,
                                     const fmi2Real *values)
 {
-  return InvokeFmiSetFunction(PYFMU_FMI2SLAVE_SETREAL,"d",Py_BuildValue,vr,nvr,values);
+
+  auto builder = [](fmi2Real val) -> PyObject* {return Py_BuildValue("d",val);};
+  return InvokeFmiSetFunction<fmi2Real>(PYFMU_FMI2SLAVE_SETREAL,builder,vr,nvr,values);
 }
 
 fmi2Status PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t nvr,
                                        const fmi2Boolean *values)
 {
-  PyGIL g;
 
-  return InvokeFmiSetFunction(PYFMU_FMI2SLAVE_SETBOOLEAN,"d",Py_BuildValue,vr,nvr,values);
-
-
-  PyObject *vrs = PyList_New(nvr);
-  PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++)
-  {
-    PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-    PyList_SetItem(refs, i, PyBool_FromLong(values[i]));
-  }
-
-  auto f =
-      PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETBOOLEAN, "(OO)", vrs, refs);
-  Py_DECREF(vrs);
-  Py_DECREF(refs);
-  if (f == nullptr)
-  {
-    logger->fatal("wrapper", "call to setBoolean failed resulted in error : {}", get_py_exception());
-  }
-  Py_DECREF(f);
-  propagate_python_log_messages();
-  return fmi2OK;
+    auto builder = [](fmi2Boolean val) -> PyObject* {return PyBool_FromLong((long)val);};
+    return InvokeFmiSetFunction<fmi2Boolean>(fmi2SetBoolean,builder,vr,nvr,values);
 }
 
 fmi2Status PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr,
                                       const fmi2String *value)
 {
-  PyGIL g;
 
-  PyObject *vrs = PyList_New(nvr);
-  PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++)
-  {
-    PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-    PyList_SetItem(refs, i, Py_BuildValue("s", value[i]));
-  }
-
-  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETSTRING, "(OO)", vrs, refs);
-  Py_DECREF(vrs);
-  Py_DECREF(refs);
-  if (f == nullptr)
-  {
-    logger->fatal("wrapper", "call to setString failed resulted in error : {}", get_py_exception());
-    return fmi2Fatal;
-  }
-  Py_DECREF(f);
-  propagate_python_log_messages();
-  return fmi2OK;
+  auto builder = [](fmi2String val) -> PyObject* {return Py_BuildValue("s",val);};
+  return InvokeFmiSetFunction<fmi2String>(fmi2SetString,builder,vr,nvr,values);
 }
 
 PyObjectWrapper::~PyObjectWrapper()
