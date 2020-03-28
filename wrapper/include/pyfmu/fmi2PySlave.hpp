@@ -12,6 +12,7 @@
 #include "pyfmu/pyCompatability.hpp"
 
 // Names of functions invoked on the slave
+// FMI 2
 #define PYFMU_FMI2SLAVE_SETUPEXPERIMENT "_setup_experiment"
 #define PYFMU_FMI2SLAVE_ENTERINITIALIZATIONMODE "_enter_initialization_mode"
 #define PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE "_exit_initialization_mode"
@@ -27,16 +28,15 @@
 #define PYFMU_FMI2SLAVE_GETBOOLEAN "_get_boolean"
 #define PYFMU_FMI2SLAVE_GETINTEGER "_get_integer"
 #define PYFMU_FMI2SLAVE_GETSTRING "_get_string"
-
+// LOGGING
 #define PYFMU_FMI2SLAVE_GETLOGSIZE "_get_log_size"
 #define PYFMU_FMI2SLAVE_POPLOGMESSAGES "_pop_log_messages"
 
-
-
+// Log category
+#define PYFMU_WRAPPER_LOG_CATEGORY "wrapper"
 
 namespace pyfmu
 {
-
 
 class PyObjectWrapper
 {
@@ -46,13 +46,13 @@ public:
 
     explicit PyObjectWrapper(PyObjectWrapper &&other);
 
-    fmi2Status setupExperiment(fmi2Boolean toleranceDefined,fmi2Real tolerance, fmi2Real startTime, fmi2Boolean stopTimeDefined, fmi2Real stopTime);
+    fmi2Status setupExperiment(fmi2Boolean toleranceDefined, fmi2Real tolerance, fmi2Real startTime, fmi2Boolean stopTimeDefined, fmi2Real stopTime);
 
     fmi2Status enterInitializationMode();
 
     fmi2Status exitInitializationMode();
 
-    fmi2Status doStep(fmi2Real currentTime, fmi2Real stepSize,fmi2Boolean noSetFMUStatePriorToCurrentPoint);
+    fmi2Status doStep(fmi2Real currentTime, fmi2Real stepSize, fmi2Boolean noSetFMUStatePriorToCurrentPoint);
 
     fmi2Status reset();
 
@@ -87,6 +87,88 @@ private:
 
     Logger *logger;
 
+    template <typename... Args>
+    /**
+     * @brief Invokes the specified FMI method on the slave using a format string and a list of arguments
+     * 
+     * @param name 
+     * @param formatStr 
+     * @return fmi2Status 
+     */
+    fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args &... args) const
+    {
+
+        // TODO would be very nice to print args as well
+        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY, "calling {} with arguments", name);
+
+        PyObject *f = PyObject_CallMethod(pInstance_, name.c_str(), formatStr.c_str(), args...);
+        if (f == nullptr)
+        {
+            logger->fatal(PYFMU_WRAPPER_LOG_CATEGORY, "call to {} failed with exception : {}", name, get_py_exception());
+            return fmi2Fatal;
+        }
+        long ls = PyLong_AsLong(f);
+        Py_DECREF(f);
+        if (ls == -1)
+        {
+            logger->fatal(
+                PYFMU_WRAPPER_LOG_CATEGORY,
+                "call to {} was succesfull, but return value could not be converted into an long as expected : {}",
+                name,
+                get_py_exception());
+
+            return fmi2Fatal;
+        }
+
+        if (ls < fmi2Status::fmi2OK || ls > fmi2Status::fmi2Pending)
+        {
+            logger->fatal(
+                PYFMU_WRAPPER_LOG_CATEGORY,
+                "call to setupExperiment was succesfull, return value was : {} a long as expected, but does not match any fmi2Status",
+                ls);
+            return fmi2Fatal;
+        }
+
+        propagate_python_log_messages();
+        fmi2Status s = static_cast<fmi2Status>(ls);
+        return s;
+    }
+
+    /**
+     * @brief Generic implementation of all fmiSetXXX functions
+     * 
+     * @tparam T 
+     * @param build_formatter 
+     * @param setter_name 
+     * @param vr 
+     * @param nvr 
+     * @param values 
+     * @return fmi2Status 
+     */
+    template<typename T>
+    fmi2Status InvokeFmiSetFunction(
+        const std::string &setter_name,
+        const std::string &build_formatter,
+        PyObject* (*buildValueFunc)(const char*,...),
+        const fmi2ValueReference *vr,
+        std::size_t nvr, const T *values) const
+        {
+            PyGIL g;
+
+            PyObject *vrs = PyList_New(nvr);
+            PyObject *refs = PyList_New(nvr);
+            for (int i = 0; i < nvr; i++)
+            {
+                PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
+                PyList_SetItem(refs, i, Py_BuildValue(build_formatter.c_str(), values[i]));
+            }
+
+            auto status = InvokeFmiOnSlave(setter_name, "(OO)", vrs, refs);
+            Py_DECREF(vrs);
+            Py_DECREF(refs);
+            return status;
+        }
+
     /**
      * @brief Import and instantiate main class in the current Python interpreter.
      * 
@@ -108,7 +190,6 @@ private:
     * @details Two methods are __get_log_size__ and __get_log_messages__ are defined in the FMI2Slave classes.
     */
     void propagate_python_log_messages() const;
-
 
     //fmi2Status call_py_func(std::string function_name, PyObject* args, PyObject* kwargs);
 };

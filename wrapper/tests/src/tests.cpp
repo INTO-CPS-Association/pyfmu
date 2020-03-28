@@ -59,7 +59,7 @@ TEST_CASE("PyObjectWrapper")
     fmi2Status s;
     const char* categories[] = {"logAll"};
     
-
+    fmi2SetDebugLogging(c,true,1,categories);
     s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True, end_time);
     REQUIRE(s == fmi2OK);
     s = fmi2EnterInitializationMode(c);

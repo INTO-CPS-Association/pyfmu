@@ -699,7 +699,7 @@ class Fmi2Slave:
 
         assert(s_fmi is not None)
 
-        return s_fmi
+        return s_fmi.value
 
     def _define_variable(self, sv: Fmi2ScalarVariable):
 
