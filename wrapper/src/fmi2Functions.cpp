@@ -136,7 +136,7 @@ fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
   try
   {
     auto cc = reinterpret_cast<PyObjectWrapper *>(c);
-    return cc->setupExperiment(startTime);
+    return cc->setupExperiment(toleranceDefined,tolerance,startTime,stopTimeDefined,stopTime);
   }
   catch (exception)
   {
@@ -365,12 +365,12 @@ fmi2Status fmi2GetRealOutputDerivatives(fmi2Component c,
 }
 
 fmi2Status fmi2DoStep(fmi2Component c, fmi2Real currentCommunicationPoint,
-                      fmi2Real communicationStepSize, fmi2Boolean)
+                      fmi2Real communicationStepSize, fmi2Boolean noSetFMUStatePriorToCurrentPoint)
 {
   try
   {
     auto cc = reinterpret_cast<PyObjectWrapper *>(c);
-    return cc->doStep(currentCommunicationPoint, communicationStepSize);
+    return cc->doStep(currentCommunicationPoint, communicationStepSize,noSetFMUStatePriorToCurrentPoint);
   }
   catch (exception)
   {

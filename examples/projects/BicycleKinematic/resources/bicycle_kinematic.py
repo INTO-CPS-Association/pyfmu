@@ -89,7 +89,7 @@ class Bicycle_Kinematic(Fmi2Slave):
         self.psi = self.psi0
         self.v = self.v0
 
-    def do_step(self, current_time: float, step_size: float):
+    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
 
         #bundle the parameters in the function call
         def fun(t,state):
@@ -123,5 +123,5 @@ if __name__ == "__main__":
     model.v0 = 1
     model.exit_initialization_mode()
     
-    model.do_step(0.0,0.01)
+    model.do_step(0.0,1,True)
     test = 10

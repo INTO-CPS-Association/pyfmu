@@ -44,14 +44,16 @@ class Fmi2LogMessage:
             Fmi2LogMessage(Fmi2Status.OK,"misc","foo() was called")
             ```
         """
+
+
         if(not isinstance(status, Fmi2Status)):
-            raise RuntimeError("")
+            raise ValueError(f'unable to create message, category : {status} does is not a valid FMI status.')
 
         if(not isinstance(category, str)):
-            raise RuntimeError("")
+            raise ValueError(f'unable to create message, category : {category} is not a string.')
 
         if(not isinstance(message, str)):
-            raise RuntimeError()
+            raise ValueError(f'unable to create message, message : {message} is not a string.')
 
         self.status: Fmi2Status = status
         self.category: str = category
@@ -104,7 +106,6 @@ class Fmi2Logger():
             self._active_categories = self._active_categories.difference(
                 categories)
 
-
     def register_log_category(self, category: str, aliases=None, predicate=None) -> None:
         """Registers a new log category
 
@@ -112,8 +113,9 @@ class Fmi2Logger():
             category {str} -- [description]
 
         Keyword Arguments:
-            aliases {[type]} -- [description] (default: {None})
-            predicate {[type]} -- [description] (default: {None})
+            aliases {[type]} -- a list of aliases for the category (default: {None})
+            predicate {[type]} -- a predicate function which takes as input a message and whether it should be logged. (default: {None})
+
         """
 
         if(aliases != None and predicate != None):
@@ -141,7 +143,31 @@ class Fmi2Logger():
     def log(self, message: str,  category: str = _default_category, status=Fmi2Status.ok) -> None:
 
 
-        if(category == None):
+        statusArgs_to_category = {
+
+            None : Fmi2Status.ok,
+
+            Fmi2Status.ok : Fmi2Status.ok,
+            'ok' : Fmi2Status.ok,
+
+            Fmi2Status.warning : Fmi2Status.warning,
+            'warning' : Fmi2Status.warning,
+
+            Fmi2Status.discard : Fmi2Status.discard,
+            'discard' : Fmi2Status.discard,
+
+            Fmi2Status.error : Fmi2Status.error,
+            'error' : Fmi2Status.error,
+
+            Fmi2Status.fatal : Fmi2Status.fatal,
+            'fatal' : Fmi2Status.fatal,
+
+            Fmi2Status.pending : Fmi2Status.pending,
+            'pending' : Fmi2Status.pending
+        }
+
+        
+        if(category is None):
             category = _default_category
             
         msg = Fmi2LogMessage(status, category, message)
@@ -259,3 +285,15 @@ class Fmi2Logger():
 
     def __len__(self):
         return len(self._log_stack)
+
+    @property
+    def active_categories(self):
+        """Categories which are marked as active.
+        """
+        return self._active_categories
+
+    @property
+    def available_categories(self):
+        """Categories which have been declared and can potentially be marked as active by the tool.
+        """
+        return self._categories_to_predicates.keys()

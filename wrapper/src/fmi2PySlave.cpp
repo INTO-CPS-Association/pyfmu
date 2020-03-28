@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <utility>
+#include <regex>
 
 #include "fmt/format.h"
 
@@ -158,18 +159,24 @@ PyObjectWrapper::PyObjectWrapper(PyObjectWrapper &&other) : pModule_(other.pModu
 {
 }
 
-fmi2Status PyObjectWrapper::setupExperiment(double startTime)
+fmi2Status PyObjectWrapper::setupExperiment(fmi2Boolean toleranceDefined,
+                                            fmi2Real tolerance, fmi2Real startTime,
+                                            fmi2Boolean stopTimeDefined, fmi2Real stopTime)
 {
   PyGIL g;
-  auto f = PyObject_CallMethod(pInstance_, "setup_experiment", "(d)", startTime);
-  propagate_python_log_messages();
+
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETUPEXPERIMENT, "(d)", startTime);
+  
   if (f == nullptr)
   {
     logger->fatal("wrapper", "call to setupExperiment failed with exception : {}", get_py_exception());
     return fmi2Fatal;
   }
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
+
+  
 }
 
 fmi2Status PyObjectWrapper::enterInitializationMode()
@@ -177,13 +184,14 @@ fmi2Status PyObjectWrapper::enterInitializationMode()
 
   PyGIL g;
   auto f =
-      PyObject_CallMethod(pInstance_, "enter_initialization_mode", nullptr);
+      PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_ENTERINITIALIZATIONMODE, nullptr);
   if (f == nullptr)
   {
     logger->fatal("wrapper", "call to enterInitializationMode failed with exception : {}", get_py_exception());
     return fmi2Fatal;
   }
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -191,31 +199,36 @@ fmi2Status PyObjectWrapper::exitInitializationMode()
 {
   PyGIL g;
 
-  auto f = PyObject_CallMethod(pInstance_, "exit_initialization_mode", nullptr);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_EXITINITIALIZATIONMODE, nullptr);
   if (f == nullptr)
   {
     logger->fatal("wrapper", "call to exitInitializationMode failed with exception : {}", get_py_exception());
     return fmi2Fatal;
   }
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
-fmi2Status PyObjectWrapper::doStep(double currentTime, double stepSize)
+fmi2Status PyObjectWrapper::doStep(fmi2Real currentTime, fmi2Real stepSize,fmi2Boolean noSetFMUStatePriorToCurrentPoint)
 {
   PyGIL g;
 
-  auto f = PyObject_CallMethod(pInstance_, "do_step", "(dd)", currentTime, stepSize);
+  
+  auto pyNoSetPrior = PyBool_FromLong(noSetFMUStatePriorToCurrentPoint);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_DOSTEP, "(ddO)", currentTime, stepSize,pyNoSetPrior);
 
   if (f == nullptr)
   {
     logger->fatal("wrapper", "call to doStep failed with exception : {}", get_py_exception());
+    propagate_python_log_messages();
+
     return fmi2Fatal;
   }
 
-  propagate_python_log_messages();
-
   Py_DECREF(f);
+  Py_DECREF(pyNoSetPrior);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -223,13 +236,14 @@ fmi2Status PyObjectWrapper::reset()
 {
   PyGIL g;
 
-  auto f = PyObject_CallMethod(pInstance_, "reset", nullptr);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_RESET, nullptr);
   if (f == nullptr)
   {
     logger->fatal("wrapper", "call to reset resulted in error: {}", get_py_exception());
     return fmi2Status::fmi2Fatal;
   }
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -237,13 +251,14 @@ fmi2Status PyObjectWrapper::terminate()
 {
   PyGIL g;
 
-  auto f = PyObject_CallMethod(pInstance_, "terminate", nullptr);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_TERMINATE, nullptr);
   if (f == nullptr)
   {
     logger->fatal("wrapper", "terminate call resulted in error: {}", get_py_exception());
     return fmi2Status::fmi2Fatal;
   }
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -260,7 +275,7 @@ fmi2Status PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t
     PyList_SetItem(refs, i, Py_BuildValue("i", 0));
   }
   auto f =
-      PyObject_CallMethod(pInstance_, "__get_integer__", "(OO)", vrs, refs);
+      PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_GETINTEGER, "(OO)", vrs, refs);
   Py_DECREF(vrs);
   if (f == nullptr)
   {
@@ -283,6 +298,7 @@ fmi2Status PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t
   }
 
   Py_DECREF(refs);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -299,7 +315,7 @@ fmi2Status PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nv
     PyList_SetItem(refs, i, Py_BuildValue("d", 0.0));
   }
 
-  auto f = PyObject_CallMethod(pInstance_, "__get_real__", "(OO)", vrs, refs);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_GETREAL, "(OO)", vrs, refs);
 
   if (f == nullptr)
   {
@@ -334,7 +350,7 @@ fmi2Status PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nv
   }
 
   Py_DECREF(refs);
-
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -351,7 +367,7 @@ fmi2Status PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t
     PyList_SetItem(refs, i, Py_BuildValue("i", 0));
   }
   auto f =
-      PyObject_CallMethod(pInstance_, "__get_boolean__", "(OO)", vrs, refs);
+      PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_GETBOOLEAN, "(OO)", vrs, refs);
   Py_DECREF(vrs);
   if (f == nullptr)
   {
@@ -372,6 +388,7 @@ fmi2Status PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t
   }
 
   Py_DECREF(refs);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -387,7 +404,7 @@ fmi2Status PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t 
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
     PyList_SetItem(refs, i, Py_BuildValue("s", ""));
   }
-  auto f = PyObject_CallMethod(pInstance_, "__get_string__", "(OO)", vrs, refs);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_GETSTRING, "(OO)", vrs, refs);
   Py_DECREF(vrs);
   if (f == nullptr)
   {
@@ -408,10 +425,11 @@ fmi2Status PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t 
   }
 
   Py_DECREF(refs);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
-fmi2Status PyObjectWrapper::setDebugLogging(bool loggingOn, size_t nCategories, const char *const categories[]) const
+fmi2Status PyObjectWrapper::setDebugLogging(fmi2Boolean loggingOn, size_t nCategories, const char *const categories[]) const
 {
   PyGIL g;
   auto py_categories = PyList_New(nCategories);
@@ -427,7 +445,7 @@ fmi2Status PyObjectWrapper::setDebugLogging(bool loggingOn, size_t nCategories, 
     }
   }
 
-  auto f = PyObject_CallMethod(pInstance_, "__set_debug_logging__", "(iO)", loggingOn, py_categories);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETDEBUGLOGGING, "(iO)", loggingOn, py_categories);
   Py_DECREF(py_categories);
 
   if (f == nullptr)
@@ -435,10 +453,9 @@ fmi2Status PyObjectWrapper::setDebugLogging(bool loggingOn, size_t nCategories, 
     logger->error("wrapper", "Call to setDebugLogging failed due to : {}", get_py_exception());
     return fmi2Error;
   }
-  propagate_python_log_messages();
 
   Py_DECREF(f);
-
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -455,7 +472,7 @@ fmi2Status PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t
     PyList_SetItem(refs, i, Py_BuildValue("i", values[i]));
   }
 
-  auto f = PyObject_CallMethod(pInstance_, "__set_integer__", "(OO)", vrs, refs);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETINTEGER, "(OO)", vrs, refs);
   Py_DECREF(vrs);
   Py_DECREF(refs);
 
@@ -466,6 +483,7 @@ fmi2Status PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t
   }
 
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -475,16 +493,16 @@ fmi2Status PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nv
   PyGIL g;
 
   PyObject *vrs = PyList_New(nvr);
-  PyObject *refs = PyList_New(nvr);
+  PyObject *vals = PyList_New(nvr);
   for (int i = 0; i < nvr; i++)
   {
     PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-    PyList_SetItem(refs, i, Py_BuildValue("d", values[i]));
+    PyList_SetItem(vals, i, Py_BuildValue("d", values[i]));
   }
 
-  auto f = PyObject_CallMethod(pInstance_, "__set_real__", "(OO)", vrs, refs);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETREAL, "(OO)", vrs, vals);
   Py_DECREF(vrs);
-  Py_DECREF(refs);
+  Py_DECREF(vals);
 
   if (f == nullptr)
   {
@@ -493,6 +511,7 @@ fmi2Status PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nv
   }
 
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -510,7 +529,7 @@ fmi2Status PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t
   }
 
   auto f =
-      PyObject_CallMethod(pInstance_, "__set_boolean__", "(OO)", vrs, refs);
+      PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETBOOLEAN, "(OO)", vrs, refs);
   Py_DECREF(vrs);
   Py_DECREF(refs);
   if (f == nullptr)
@@ -518,6 +537,7 @@ fmi2Status PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t
     logger->fatal("wrapper", "call to setBoolean failed resulted in error : {}", get_py_exception());
   }
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -534,7 +554,7 @@ fmi2Status PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t 
     PyList_SetItem(refs, i, Py_BuildValue("s", value[i]));
   }
 
-  auto f = PyObject_CallMethod(pInstance_, "__set_string__", "(OO)", vrs, refs);
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETSTRING, "(OO)", vrs, refs);
   Py_DECREF(vrs);
   Py_DECREF(refs);
   if (f == nullptr)
@@ -543,6 +563,7 @@ fmi2Status PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t 
     return fmi2Fatal;
   }
   Py_DECREF(f);
+  propagate_python_log_messages();
   return fmi2OK;
 }
 
@@ -568,11 +589,11 @@ void PyObjectWrapper::propagate_python_log_messages() const
 {
   PyGIL g;
 
-  auto f = PyObject_CallMethod(pInstance_, "__get_log_size__", "()");
+  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_GETLOGSIZE, "()");
 
   if (f == nullptr)
   {
-    logger->error("Failed to read log messages from the Python instance. Call to __get_log_size__ failed due to : {}", get_py_exception());
+    logger->error("Failed to read log messages from the Python instance. Call to _get_log_size failed due to : {}", get_py_exception());
     return;
   }
   Py_DECREF(f);
@@ -580,14 +601,14 @@ void PyObjectWrapper::propagate_python_log_messages() const
 
   if (n_messages == -1)
   {
-    logger->error("Failed to read log messages from the python instance. Call to __get_log_size__ returned invalid type: {}", get_py_exception());
+    logger->error("Failed to read log messages from the python instance. Call to _get_log_size returned invalid type: {}", get_py_exception());
     return;
   }
 
   if (n_messages == 0)
     return;
 
-  f = PyObject_CallMethod(pInstance_, "__pop_log_messages__", "(i)", n_messages);
+  f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_POPLOGMESSAGES, "(i)", n_messages);
 
   if (f == nullptr)
   {
@@ -614,8 +635,16 @@ void PyObjectWrapper::propagate_python_log_messages() const
       logger->warning("wrapper", msg);
     }
     fmi2Status status = (fmi2Status)(PyLong_AsLong(py_status));
-    const char *category = pyfmu::pyCompat::PyUnicode_AsUTF8(py_category);
-    const char *message = pyfmu::pyCompat::PyUnicode_AsUTF8(py_message);
+    auto category = pyfmu::pyCompat::PyUnicode_AsString(py_category);
+    auto message = pyfmu::pyCompat::PyUnicode_AsString(py_message);
+
+    // we need to escape '{' and '}' which are common in Python's output
+    auto re_left = std::regex("\\{");
+    auto re_right = std::regex("\\}");
+    message = std::regex_replace(message,re_left,"{{");
+    message = std::regex_replace(message,re_right,"}}");
+
+
 
     logger->log(status, category, message);
   }

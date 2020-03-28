@@ -231,16 +231,30 @@ def _write_modelDescription_to_archive(project : PyfmuProject, archive : PyfmuAr
     archive.model_description_path = archive_model_description_path
 
 def _write_slaveConfiguration_to_archive(project : PyfmuProject, archive : PyfmuArchive) -> PyfmuArchive:
+    """Writes the configuration file to the archive used to instantiate and configure the FMI2 slave during runtime.
+
     
+    Arguments:
+        project {PyfmuProject} -- the source project from which the configuration is generated
+        archive {PyfmuArchive} -- the archive to which the configuration will be added
+    
+    Returns:
+        PyfmuArchive -- Archive descriptor
+    """
     archive_slave_configuration_path = archive.root / 'resources' / 'slave_configuration.json'
 
     # currently project and slave configuration contains same info
     slave_configuration  = project.project_configuration
+    slave_configuration['logging'] = {
+        'override_log_categories' : [
+
+        ]
+    }
 
     makedirs(archive_slave_configuration_path.parent)
 
     with open(archive_slave_configuration_path,'w') as f:
-        json.dump(slave_configuration,f)
+        json.dump(slave_configuration,f,indent=4)
 
     archive.slave_configuration_path = archive_slave_configuration_path
     archive.slave_configuration = slave_configuration

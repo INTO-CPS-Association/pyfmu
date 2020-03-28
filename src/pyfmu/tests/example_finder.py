@@ -1,14 +1,15 @@
-import os
 from os.path import dirname, join
 from tempfile import mkdtemp
 from shutil import rmtree, copytree
 from pathlib import Path
-import stat
 
 
-from pyfmu.builder.export import export_project, PyfmuProject, PyfmuArchive
+from pyfmu.builder import export_project, PyfmuProject, PyfmuArchive, compress, rm
 
 
+_ssp_examples = [
+    'SumOfSines'
+]
 
 _correct_example = {
     'Adder',
@@ -28,11 +29,13 @@ def get_example_directory() -> Path:
     """
     Returns the path to the example projects
     """
-    p = Path(__file__).parent.parent.parent.parent / 'examples' / 'projects'
+    p = Path(__file__).parent.parent.parent.parent / 'examples'
     if(not p.is_dir()):
-        raise FileNotFoundError('Expected example directory : {p} does not appear to exist. Ensure the directory exists at the specified path or update this function.')
-    
-    return p 
+        raise FileNotFoundError(
+            'Expected example directory : {p} does not appear to exist. Ensure the directory exists at the specified path or update this function.')
+
+    return p
+
 
 def get_incorrect_examples():
     """Returns the set of examples that are expected to fail
@@ -43,6 +46,7 @@ def get_incorrect_examples():
 
     return _incorrect_examples
 
+
 def get_correct_examples():
     """Returns the set of examples that are expected to work correctly.
 
@@ -50,6 +54,7 @@ def get_correct_examples():
         [Set] -- The set of all examples which should function correctly.
     """
     return _correct_example
+
 
 def get_all_examples():
     """Returns the set of all available examples including the ones that are expected to fail.
@@ -60,15 +65,39 @@ def get_all_examples():
     return get_correct_examples() | get_incorrect_examples()
 
 
+def get_system_example(name: str) -> Path:
+
+
+    """Returns the path to the specified SSP example.
+
+    Arguments:
+        name {str} -- name of the example
+        zipped {bool} -- returns path to zipped archive
+
+    Returns:
+        Path -- path to the example
+    """
+
+    if(name not in _ssp_examples):
+        raise ValueError(
+            f'Unable to get path to ssp example: {name}, the project is not recognized')
+
+    path = get_example_directory() / 'ssp' / name
+
+    assert(path.exists())
+
+    return path
+
 
 def get_example_project(name: str) -> Path:
-    """ Gets the path to a specific example project, to get an fmu use get_example_fmu(...)
+    """ Gets the path to a specific example project.
     """
     if(name not in get_all_examples()):
         raise ValueError(
-            f'Failed to resolve the path to the example project. The project {name} does not exist.')
+            f"""Failed to resolve the path to the example project.
+            The project {name} does not exist.""")
 
-    p = get_example_directory() / name
+    p = get_example_directory() / 'projects' / name
 
     return p
 
@@ -93,7 +122,7 @@ class ExampleProject():
         ...
     ```
 
-    The example project generated as a copy of an example project inside a temporary folder, which is freed after the with statement terminates.   
+    The example project generated as a copy of an example project inside a temporary folder, which is freed after the with statement terminates.
     Modifications of properties such as its model description can be made through its properties:
     ```
     with ExampleProject('Adder') as p:
@@ -122,7 +151,7 @@ class ExampleProject():
         return self.project
 
     def __exit__(self, exception_type, exception_value, traceback):
-        rmtree(self.tmpdir)
+        rm(self.tmpdir)
 
 
 class ExampleArchive():
@@ -136,7 +165,7 @@ class ExampleArchive():
         ...
     ```
 
-    The example project is exported as an FMU to a temporary folder, which is automatically freed after the with statement terminates.   
+    The example project is exported as an FMU to a temporary folder, which is automatically freed after the with statement terminates.
     """
 
     def __init__(self, project_name: str):
@@ -152,19 +181,27 @@ class ExampleArchive():
         return self.archive
 
     def __exit__(self, exception_type, exception_value, traceback):
+        rm(self.tmpdir)
 
-        import platform
 
-        # TODO
-        # Currently the clean up mechanism does not work with FMPy on windows
-        # It seems like the dll is still loaded when the function is called, resulting in a windows "access denied" error when trying to delete it.
-        if(platform.system() == "Windows"):
-            return
+class ExampleSystem():
+    """Context manager for exporting example SSP projects for testing.
+    """
+    def __init__(self, name, zipped=True):
 
-        for root, dirs, files in os.walk(self.tmpdir, topdown=False):
-            for name in files:
-                filename = os.path.join(root, name)
-                os.chmod(filename, stat.S_IWUSR)
-                os.remove(filename)
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
+        in_dir = get_system_example(name)
+
+        if(zipped):
+            system_path = compress(in_dir, extension='ssp')
+        else:
+            system_path = Path(mkdtemp()) / in_dir.name
+            copytree(in_dir, system_path)
+            rmtree(in_dir)
+
+        self._system_path = system_path
+
+    def __enter__(self):
+        return self._system_path
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        rm(self._system_path)

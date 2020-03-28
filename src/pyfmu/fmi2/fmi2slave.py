@@ -1,19 +1,30 @@
 from abc import ABC, abstractmethod
 from typing import List, Iterable, Tuple
 from uuid import uuid4
+import inspect
 import logging
+import json
+from pathlib import Path
+import os
+import sys
 
-from pyfmu.fmi2 import Fmi2ScalarVariable,Fmi2LogMessage, Fmi2Logger,Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
+from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2LogMessage, Fmi2Logger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
+############### CONFIGURATION ###############
+_slave_configuration_name = "slave_configuration.json"
 
-_internal_log_catergory = 'pyfmu'
+############### LOGGING OF FMI INTERFACE ###############
+_internal_log_catergory = 'fmi2slave'
+_internal_throw_category = Fmi2Status.fatal # category if an FMI method implementation fails
+_internal_invalid_status_category = Fmi2Status.fatal # category if an FMI method returns and invalid status
+_logging_override_name = "pyfmu_log_all_override"
 
 log = logging.getLogger('fmu')
 
 
 class Fmi2Slave:
 
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True):
+    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, add_logging_override_param=True):
         """Constructs a FMI2
 
         Arguments:
@@ -25,6 +36,7 @@ class Fmi2Slave:
             version {str} -- [description] (default: {""})
             description {str} -- [description] (default: {""})
             standard_log_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
+            add_logging_override_param {bool} -- if true, add a boolean parameter to the FMU which allows it to log all, useful for FMPy (default: {True}).
         """
 
         self.author = author
@@ -39,8 +51,92 @@ class Fmi2Slave:
         self.used_value_references = {}
 
         self.logger = Fmi2Logger()
+
         if(standard_log_categories):
             self.logger.register_all_standard_categories()
+
+        if(enable_fmi_call_logging):
+            self.logger.register_log_category(_internal_log_catergory)
+            #self.set_debug_logging(True,[_internal_log_catergory])
+            self.logger.log(
+                'FMI call logging enabled, all fmi calls will be logged',_internal_log_catergory)
+
+        
+        self._configure()
+
+    def _configure(self):
+        """ Performs configuration of the FMI slave based on the contents of the slave configuration file.
+
+            The configuration function is only available for Fmi2Slaves which are running from inside an FMU, e.g. they have a slave_configuration.json
+
+            Options:
+                1. Logging, allows the user to override log settings.
+        """
+
+        if(not self._is_running_as_fmu):
+            self.log("Skipping configuration due to the FMU running in project-mode",_internal_log_catergory)            
+
+        try:
+            
+            self.log(f"Trying to locate configuration file : {_slave_configuration_name} in Python Path : {sys.path}",_internal_log_catergory)
+
+            config_path = None
+
+            for potential in sys.path:
+                
+                p = Path(potential) / _slave_configuration_name
+                
+                if(p.is_file()):
+                    config_path = p
+                    break
+            else:
+                self.log('Configuration process failed the file could not be found in Pythons path, continuing using defaults',_internal_log_catergory)
+                return
+
+            with open(config_path,'r') as f:
+                config = json.load(f)
+                
+                # 1. Logging
+                cats = config['logging']['override_log_categories']
+
+                if(len(cats) != 0):
+                    self.log(f'Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active',_internal_log_catergory)
+                    self._set_debug_logging(True,cats)
+                    
+
+        except Exception as e:
+            print(e)
+            self.log(f'Configuration process failed due to error : {e}, continuing using default options', _internal_log_catergory,Fmi2Status.warning)
+
+    def _set_resources_path(self, path):
+        """Called by the wrapper to set the path to resource folder.
+        
+        This is used for configuration.
+
+        Arguments:
+            path {[str]} -- Path to the resources folder
+        """          
+
+        self._resources_path = Path(path)
+
+    def _is_running_as_project(self):
+        """Returns true if the Fmi2Slave is running inside a project that has not yet been exported.
+        """
+        return not self._is_running_as_fmu
+        
+    def _is_running_as_fmu(self):
+        """Returns true if the FMI2Slave is running from inside an exported FMU
+        """
+        for potential in sys.path:
+        
+            p = Path(potential) / _slave_configuration_name
+            
+            if(p.is_file()):
+                return True
+
+        return False
+
+    # REGISTER VARIABLES AND LOG CATEGORIES
 
     def register_variable(self,
                           name: str,
@@ -51,7 +147,7 @@ class Fmi2Slave:
                           start=None,
                           description: str = "",
                           define_attribute: bool = True,
-                          value_reference: int = None
+                          value_reference: int = None,
                           ):
         """Add a variable to the model such as an input, output or parameter.
 
@@ -153,7 +249,7 @@ class Fmi2Slave:
             Fmi2Causality.local: Fmi2Causality.local,
             'local': Fmi2Causality.local,
 
-            Fmi2Causality.independent : Fmi2Causality.independent,
+            Fmi2Causality.independent: Fmi2Causality.independent,
             'independent': Fmi2Causality.independent,
         }
         initial_aliases = {
@@ -218,23 +314,23 @@ class Fmi2Slave:
         variabilityAndCausality_to_intial = {
             (Fmi2Variability.constant, Fmi2Causality.local): case_a,
             (Fmi2Variability.constant, Fmi2Causality.output): case_a,
-            (Fmi2Variability.fixed, Fmi2Causality.parameter) : case_a,
-            (Fmi2Variability.tunable, Fmi2Causality.parameter) : case_a,
+            (Fmi2Variability.fixed, Fmi2Causality.parameter): case_a,
+            (Fmi2Variability.tunable, Fmi2Causality.parameter): case_a,
 
             (Fmi2Variability.fixed, Fmi2Causality.calculatedParameter): case_b,
             (Fmi2Variability.fixed, Fmi2Causality.local): case_b,
             (Fmi2Variability.tunable, Fmi2Causality.calculatedParameter): case_b,
             (Fmi2Variability.tunable, Fmi2Causality.local): case_b,
-      
-    
+
+
             (Fmi2Variability.discrete, Fmi2Causality.output): case_c,
             (Fmi2Variability.discrete, Fmi2Causality.local): case_c,
             (Fmi2Variability.continuous, Fmi2Causality.output): case_c,
             (Fmi2Variability.continuous, Fmi2Causality.local): case_c,
 
-            (Fmi2Variability.discrete, Fmi2Causality.input) : case_de,
-            (Fmi2Variability.continuous, Fmi2Causality.input) : case_de,
-            (Fmi2Variability.continuous, Fmi2Causality.independent) : case_de,
+            (Fmi2Variability.discrete, Fmi2Causality.input): case_de,
+            (Fmi2Variability.continuous, Fmi2Causality.input): case_de,
+            (Fmi2Variability.continuous, Fmi2Causality.independent): case_de,
         }
 
         if(initial is None):
@@ -288,7 +384,6 @@ class Fmi2Slave:
             raise ValueError(
                 f'Illegal combination of causality : {causality} and variablity : {variability}. The combination is not permitted.')
 
-
         #v1. type and causality
         if(data_type is not Fmi2DataTypes.real and variability is Fmi2Variability.continuous):
             raise ValueError(
@@ -304,7 +399,7 @@ class Fmi2Slave:
             value_reference = self._acquire_unused_value_reference()
 
         var = Fmi2ScalarVariable(name=name, data_type=data_type, initial=initial, causality=causality,
-                             variability=variability, description=description, start=start, value_reference=value_reference)
+                                 variability=variability, description=description, start=start, value_reference=value_reference)
 
         self.vars.append(var)
 
@@ -312,8 +407,9 @@ class Fmi2Slave:
             self._define_variable(var)
 
     def register_log_category(self, name: str):
-        """Registers a new log category.
-        This information is used by co-simulation engines to filter messages
+        """Registers a new log category which will be visible to the simulation tool..
+        This information is used by co-simulation engines to filter messages.
+
 
         Arguments:
             name {str} -- name of the category.
@@ -326,27 +422,83 @@ class Fmi2Slave:
         ```
         """
 
+        self.logger.register_log_category(name)
+
+    def _acquire_unused_value_reference(self) -> int:
+        """ Returns the an unused value reference
+        """
+        while(True):
+            vr = self.value_reference_counter
+            self.value_reference_counter += 1
+
+            if(vr not in self.used_value_references):
+                return vr
+
+    # FMI FUNCTIONS
+
+    def _setup_experiment(self,
+                          start_time: float,
+                          tolerance: float = None,
+                          stop_time: float = None):
+
+        return self._do_fmi_call(
+            self.setup_experiment,
+            start_time,
+            stop_time, tolerance)
+
+    def setup_experiment(self,
+                         start_time: float,
+                         tolerance: float = None,
+                         stop_time: float = None):
         pass
 
-    def setup_experiment(self, start_time: float):
-        pass
+    def _enter_initialization_mode(self):
+        return self._do_fmi_call(self.enter_initialization_mode)
 
     def enter_initialization_mode(self):
         pass
 
+    def _exit_initialization_mode(self):
+
+        return self._do_fmi_call(self.exit_initialization_mode)
+
     def exit_initialization_mode(self):
         pass
 
-    def do_step(self, current_time: float, step_size: float) -> bool:
+    def _do_step(self,
+                 current_time: float,
+                 step_size: float,
+                 no_set_fmu_state_prior: bool):
+
+        return self._do_fmi_call(self.do_step, current_time,
+                                 step_size, no_set_fmu_state_prior)
+
+    def do_step(self,
+                current_time: float,
+                step_size: float,
+                no_set_fmu_state_prior: bool):
         pass
+
+    def _reset(self):
+        return self._do_fmi_call(self.reset)
 
     def reset(self):
         pass
 
+    def _terminate(self):
+        return self._do_fmi_call(self.terminate)
+
     def terminate(self):
         pass
 
-    def __set_debug_logging__(self, logging_on: bool, categories: Iterable[str]) -> None:
+    def _set_debug_logging(self, logging_on: bool, categories: Iterable[str]) -> None:
+
+        return self._do_fmi_call(
+            self.set_debug_logging,
+            logging_on,
+            categories)
+
+    def set_debug_logging(self, logging_on: bool, categories: Iterable[str]):
         """Defines the set of active log categories for which log messages will logged.
         Messages logged to any other categories will be ignored.
 
@@ -386,14 +538,187 @@ class Fmi2Slave:
             # standard logging
             fmu = MyFMU()
             fmu.standard_log_catgories()
-            fmu.__set_debug_logging__({'LogAll'})
+            fmu._set_debug_logging({'LogAll'})
 
             fmu.log(Fmi2Status.ok,'logEvents',)
 
         ```
         """
-
         self.logger.set_active_log_categories(logging_on, categories)
+
+    def _get_integer(self, vrs, refs):
+        return self._do_fmi_call(self.get_integer, vrs, refs)
+
+    def get_integer(self, vrs, refs):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_integer():
+                refs[i] = getattr(self, var.name)
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type Integer!")
+
+    def _get_real(self, vrs, refs):
+        return self._do_fmi_call(self.get_real, vrs, refs)
+
+    def get_real(self, vrs, refs):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_real():
+                refs[i] = getattr(self, var.name)
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type Real!")
+
+    def _get_boolean(self, vrs, refs):
+        return self._do_fmi_call(self.get_boolean, vrs, refs)
+
+    def get_boolean(self, vrs, refs):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_boolean():
+                refs[i] = getattr(self, var.name)
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type Boolean!")
+
+    def _get_string(self, vrs, refs):
+        return self._do_fmi_call(self.get_string, vrs, refs)
+
+    def get_string(self, vrs, refs):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_string():
+                refs[i] = getattr(self, var.name)
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type String!")
+
+    def _set_integer(self, vrs, values):
+        return self._do_fmi_call(self.set_integer, vrs, values)
+
+    def set_integer(self, vrs, values):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_integer:
+                setattr(self, var.name, values[i])
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type Integer!")
+
+    def _set_real(self, vrs, values):
+        return self._do_fmi_call(self.set_real, vrs, values)
+
+    def set_real(self, vrs, values):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_real():
+                setattr(self, var.name, values[i])
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type Real!")
+
+    def _set_boolean(self, vrs, values):
+        return self._do_fmi_call(self.set_boolean, vrs, values)
+
+    def set_boolean(self, vrs, values):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_boolean():
+                setattr(self, var.name, values[i])
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type Boolean!")
+
+    def _set_string(self, vrs, values):
+        return self._do_fmi_call(self.set_string, vrs, values)
+
+    def set_string(self, vrs, values):
+        for i in range(len(vrs)):
+            vr = vrs[i]
+            var = self.vars[vr]
+            if var.is_string():
+                setattr(self, var.name, values[i])
+            else:
+                raise Exception(
+                    f"Variable with valueReference={vr} is not of type String!")
+
+    def _do_fmi_call(self, f, *args, **kwargs) -> Fmi2Status:
+        """ Performs the call to the fmi function implemented by the subclass and returns the status.
+
+        Purpose of the function is:
+        1. logging of the function calls
+        2. handle exceptions in implementation
+        3. convert return values to FMI status values
+
+        Arguments:
+            f {[type]} -- the function to be invoked.
+        """
+
+        if(not callable(f)):
+            raise TypeError(
+                f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
+
+        try:
+            self.log(
+                f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}', _internal_log_catergory)
+            s = f(*args, **kwargs)
+        except Exception as e:
+            self.log(
+                f'Call resulted in an exception being raise : {e}. Treating this as a {_internal_throw_category}.', _internal_log_catergory, _internal_throw_category)
+            return _internal_invalid_status_category
+        # convert return status to appropritate fmi status
+        return_to_status = {
+            None: Fmi2Status.ok,
+            True: Fmi2Status.ok,
+            False: Fmi2Status.fatal,
+            Fmi2Status.ok: Fmi2Status.ok,
+            Fmi2Status.warning: Fmi2Status.warning,
+            Fmi2Status.error: Fmi2Status.error,
+            Fmi2Status.fatal: Fmi2Status.fatal,
+            Fmi2Status.pending: Fmi2Status.pending,
+        }
+
+        s_fmi = None
+
+        if(s in return_to_status):
+            s_fmi = return_to_status[s]
+            self.log(
+                f'Call was succesful, status returned : {s} treated as : {s_fmi}', _internal_log_catergory, s_fmi)
+        else:
+            s_fmi = Fmi2Status.warning
+            self.log(
+                f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
+
+        assert(s_fmi is not None)
+
+        return s_fmi
+
+    def _define_variable(self, sv: Fmi2ScalarVariable):
+
+        if(not hasattr(self, sv.name)):
+            log.debug(f'adding')
+
+            setattr(self, sv.name, sv.start)
+            return
+
+        if(sv.initial in {Fmi2Initial.exact, Fmi2Initial.approx}):
+            old = getattr(self, sv.name)
+            new = sv.start
+
+            if(old != new):
+                log.warning(
+                    "start value variable defined using the 'register_variable' function does not match initial value")
+                setattr(self, sv.name, new)
+
+    # Logging
 
     def log(self, message: str, category=None, status=Fmi2Status.ok) -> None:
         """Logs a message to the fmi interface.
@@ -413,7 +738,15 @@ class Fmi2Slave:
 
         self.logger.log(message, category, status)
 
-    def __pop_log_messages__(self, n: int) -> Tuple[str, str, str]:
+    def _get_log_size(self):
+        """Returns the number of log messages that are currently on the log stack.
+
+        Returns:
+            int -- [description]
+        """
+        return len(self.logger)
+
+    def _pop_log_messages(self, n: int):
         """Function called by the wrapper to fetch log messages
 
         Arguments:
@@ -432,117 +765,6 @@ class Fmi2Slave:
 
         return messages_tuples
 
-    def __get_log_size__(self) -> int:
-        """Returns the number of log messages that are currently on the log stack.
-
-        Returns:
-            int -- [description]
-        """
-        return len(self.logger)
-
-    def __get_integer__(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_integer():
-                refs[i] = getattr(self, var.name)
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Integer!")
-
-    def __get_real__(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_real():
-                refs[i] = getattr(self, var.name)
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Real!")
-
-    def __get_boolean__(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_boolean():
-                refs[i] = getattr(self, var.name)
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Boolean!")
-
-    def __get_string__(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_string():
-                refs[i] = getattr(self, var.name)
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type String!")
-
-    def __set_integer__(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_integer:
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Integer!")
-
-    def __set_real__(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_real():
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Real!")
-
-    def __set_boolean__(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_boolean():
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Boolean!")
-
-    def __set_string__(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_string():
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type String!")
-
-    def _define_variable(self, sv: Fmi2ScalarVariable):
-
-        if(not hasattr(self, sv.name)):
-            log.debug(f'adding')
-
-            setattr(self, sv.name, sv.start)
-            return
-
-        if(sv.initial in {Fmi2Initial.exact, Fmi2Initial.approx}):
-            old = getattr(self, sv.name)
-            new = sv.start
-
-            if(old != new):
-                log.warning(
-                    "start value variable defined using the 'register_variable' function does not match initial value")
-                setattr(self, sv.name, new)
-
-    def _acquire_unused_value_reference(self) -> int:
-        """ Returns the an unused value reference
-        """
-        while(True):
-            vr = self.value_reference_counter
-            self.value_reference_counter += 1
-
-            if(vr not in self.used_value_references):
-                return vr
+    @property
+    def available_categories(self):
+        return self.logger.available_categories

@@ -13,6 +13,8 @@ from pyfmu.fmi2 import Fmi2Causality
 
 def extract_model_description_v2(fmu_instance) -> str:
     
+    # 2.2.1 p.29) Structure
+    
     data_time_obj = datetime.datetime.now()
     date_str_xsd = datetime.datetime.strftime(data_time_obj, '%Y-%m-%dT%H:%M:%SZ')
 
@@ -27,12 +29,19 @@ def extract_model_description_v2(fmu_instance) -> str:
     fmd.set('variableNamingConvention', 'structured')
     fmd.set("generationTool", 'pyfmu')
 
+    #
     cs = ET.SubElement(fmd,'CoSimulation')
     cs.set("modelIdentifier", 'pyfmu')
     cs.set('needsExecutionTool','true')
     
-    
+    # 2.2.4 p.42) Log categories:
+    cs = ET.SubElement(fmd,'LogCategories')
+    for ac in fmu_instance.available_categories:
+        c = ET.SubElement(cs,'Category')
+        c.set('name',ac)
 
+
+    # 2.2.7 p.47) ModelVariables
     mvs = ET.SubElement(fmd,'ModelVariables')
     
     variable_index = 0
@@ -64,7 +73,7 @@ def extract_model_description_v2(fmu_instance) -> str:
         val = ET.SubElement(sv, t)
 
         if(var.start is not None):
-            s = str(var.start)
+            s = str(var.start).lower()
             val.set("start", s)
         
         variable_index += 1
@@ -85,6 +94,8 @@ def extract_model_description_v2(fmu_instance) -> str:
         os = ET.SubElement(ms, 'InitialUnknowns')
         for idx,o in outputs:
             ET.SubElement(os,'Unknown',{'index' : str(idx), 'dependencies' : ''})
+    
+
     
 
     try:

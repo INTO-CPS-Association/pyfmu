@@ -1,0 +1,7 @@
+{
+    "main_script": "adder.py",
+    "main_class": "Adder",
+    "logging": {
+        "override_log_categories": ["logAll"]
+    }
+}
