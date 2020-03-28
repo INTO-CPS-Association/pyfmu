@@ -184,8 +184,6 @@ class ExampleArchive():
         rm(self.tmpdir)
 
 
-
-
 class ExampleSystem():
     """Context manager for exporting example SSP projects for testing.
     """
