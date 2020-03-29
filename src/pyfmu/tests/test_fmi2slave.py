@@ -39,8 +39,9 @@ def test_inputsUseStartValue():
     d.register_variable("a",data_type = Fmi2DataTypes.real,causality=Fmi2Causality.input, start=start,value_reference=vr)
 
     result = [0.0]
+    s = d._get_real([vr],result)
 
-    d._get_real([vr],result)
+    assert(s == Fmi2Status.ok.value)
     assert(result[0] == start)
 
 def test_parametersUseStartValue():
@@ -53,7 +54,8 @@ def test_parametersUseStartValue():
 
     result = [0.0]
 
-    d._get_real([vr],result)
+    s = d._get_real([vr],result)
+    assert(s == Fmi2Status.ok.value)
     assert(result[0] == start)
 
 def test_registerVariable_acceptsStrings():
@@ -125,6 +127,46 @@ def test_registerVariable_defaultStartValues():
     assert(len(v_sa) == 1)
     
 
+def test_setXXX_onlyAcceptsCorrectType():
+
+
+    fmu = Fmi2Slave("")
+    
+    fmu.register_variable("r",'real','input')
+    fmu.register_variable("i",'integer','input','discrete')
+    fmu.register_variable("b",'boolean','input','discrete')
+    fmu.register_variable("s",'string','input','discrete')
+
+    combinations = {
+        'real' : {0.0, 1.0},
+        'integer' : {1,0},
+        'boolean' : {True,False},
+        'string' : {"", "hello world!"}
+    }
+
+    s = fmu._set_real([0],[0.0]) # integer is incorrect
+    assert(s == Fmi2Status.ok.value)
+
+    for i,(func,t) in enumerate([
+        (fmu._set_real,'real'),
+        (fmu._set_integer,'integer'),
+        (fmu._set_boolean,'boolean'),
+        (fmu._set_string,'string')]):
+        
+        not_valid = set()
+        
+        for c in [k for k in combinations if k != t]:
+            not_valid.update(combinations[c])
+            
+        for valid in combinations[t]:
+            s = func([i],[valid]) 
+            assert s == Fmi2Status.ok.value
+
+            
+    
+
+
+    
 
     
 
@@ -142,11 +184,8 @@ def test_setDebugLogging():
     
     assert(fmu._get_log_size() == 0)
 
-    fmu.set_debug_logging(True,["logAll"])
-
-    fmu.log("test")
-
-    assert(fmu._get_log_size() == 1)
+    s = fmu._set_debug_logging(True,["logAll"])
+    assert(s == Fmi2Status.ok.value)
     
 
 def test_get_log_size():

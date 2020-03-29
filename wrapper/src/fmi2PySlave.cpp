@@ -13,6 +13,7 @@
 #include "pyfmu/fmi2PySlaveConfiguration.hpp"
 #include "pyfmu/fmi2PySlaveLogging.hpp"
 #include "pyfmu/pyCompatability.hpp"
+#include "pyfmu/fmi2Config.hpp"
 
 using namespace fmt;
 using namespace pyconfiguration;
@@ -21,28 +22,36 @@ using namespace filesystem;
 
 
 
-// template <>
-// struct fmt::formatter<PyObject*> {
-//   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-//   template <typename FormatContext>
-//   auto format(const PyObject*& d, FormatContext& ctx) {
-//     return format_to(ctx.out(), "python object pointer ");
-//   }
-// };
-
-template <>
-struct fmt::formatter<PyObject> {
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  template <typename FormatContext>
-  auto format(const PyObject& d, FormatContext& ctx) {
-    return format_to(ctx.out(), "python object ");
-  }
-};
 
 namespace pyfmu
 {
+
+
+static PyObject* logCallback(PyObject* self, PyObject* args)
+{ 
+  PyGIL g;
+
+  // extract logging context from capsule
+  Logger* logger = (Logger*)PyCapsule_GetPointer(self,nullptr);
+  
+  fmi2Status status;
+  const char* message;
+  const char* category;
+
+  int s = PyArg_Parse(args,"(iss)",&status,&category,&message);
+
+  if(s == 0)
+  {
+    logger->ok("Logger callback called, but wrapper was unable to parse arguments : {}.", get_py_exception());
+  }
+  else
+  {
+    logger->log(status,category,message);
+  }
+
+  Py_RETURN_NONE;
+}
 
 
 /**
@@ -117,6 +126,25 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
     throw runtime_error(msg);
   }
 
+
+
+  // pass logging function to python slave
+  // since the callback must be a free function, we need to somehow pass a pointer to the concrete logger instance
+  // for this we use "capsules" which allow opaque pointers to be passed between modules.
+  PyMethodDef pCallbackDef = {
+    "logCallback",
+    logCallback,
+    METH_VARARGS,
+    ""};
+  
+  auto loggerCapsule = PyCapsule_New(logger,nullptr,nullptr);
+  auto pCallbackFunc = PyCFunction_New(&pCallbackDef,loggerCapsule);
+  auto f = PyObject_CallMethod(pInstance_, "_register_log_callback", "(O)", pCallbackFunc);
+
+  if(f == nullptr)
+  {
+    logger->error(PYFMU_WRAPPER_LOG_CATEGORY,"Failed to register callback for logging: {}",get_py_exception());
+  }
   propagate_python_log_messages();
   logger->ok("wrapper", "Sucessfully created an instance of class: {} defined in module: {}", main_class, module_name);
 }

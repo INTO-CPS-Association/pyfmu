@@ -39,6 +39,8 @@
 namespace pyfmu
 {
 
+
+
 class PyObjectWrapper
 {
 
@@ -253,7 +255,7 @@ private:
     */
     void propagate_python_log_messages() const;
 
-    //fmi2Status call_py_func(std::string function_name, PyObject* args, PyObject* kwargs);
+
 };
 
 } // namespace pyfmu

@@ -796,6 +796,19 @@ class Fmi2Slave:
 
         return messages_tuples
 
+    """Called by the wrapper to register a log callback function.
+    """
+    def _register_log_callback(self,callback):
+
+        print(f"callback registered {callback}")
+        t = (0,_internal_log_catergory,"log callback registered")
+        callback(0,_internal_log_catergory,"log callback registered")
+        #callback(t)
+        #args = (0,_internal_log_catergory,"log callback function registered")
+        #callback(args) 
+        #self._log_callback = callback
+        
+
     @property
     def available_categories(self):
         return self.logger.available_categories
