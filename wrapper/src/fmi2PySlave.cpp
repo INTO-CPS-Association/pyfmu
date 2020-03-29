@@ -449,15 +449,15 @@ fmi2Status PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t
 {
 
     auto builder = [](fmi2Boolean val) -> PyObject* {return PyBool_FromLong((long)val);};
-    return InvokeFmiSetFunction<fmi2Boolean>(fmi2SetBoolean,builder,vr,nvr,values);
+    return InvokeFmiSetFunction<fmi2Boolean>(PYFMU_FMI2SLAVE_SETBOOLEAN,builder,vr,nvr,values);
 }
 
 fmi2Status PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr,
-                                      const fmi2String *value)
+                                      const fmi2String *values)
 {
 
   auto builder = [](fmi2String val) -> PyObject* {return Py_BuildValue("s",val);};
-  return InvokeFmiSetFunction<fmi2String>(fmi2SetString,builder,vr,nvr,values);
+  return InvokeFmiSetFunction<fmi2String>(PYFMU_FMI2SLAVE_SETSTRING,builder,vr,nvr,values);
 }
 
 PyObjectWrapper::~PyObjectWrapper()
