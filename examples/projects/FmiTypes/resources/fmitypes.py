@@ -47,7 +47,11 @@ if __name__ == "__main__":
         fmu.integer_in = int(i)
         fmu.boolean_in = bool(i)
         fmu.string_in = str(i)
-        fmu.do_step(i,i,False)
+
+        fmu._set_real([0],[1.0])
+        
+        s = fmu._do_step(i,i,False)
+        assert s == Fmi2Status.ok.value
         assert fmu.real_in == fmu.real_out
         assert fmu.integer_in == fmu.integer_out
         assert fmu.boolean_in == fmu.boolean_out

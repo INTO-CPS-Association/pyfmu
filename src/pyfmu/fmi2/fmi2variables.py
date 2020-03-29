@@ -53,6 +53,8 @@ class Fmi2ScalarVariable(ABC):
         self.start = start
         self.value_reference = value_reference
         
+    def is_type(self, t : Fmi2DataTypes):
+        return self.data_type == t
 
     def is_real(self) -> bool:
         return self.data_type == Fmi2DataTypes.real

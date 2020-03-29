@@ -15,11 +15,19 @@ _slave_configuration_name = "slave_configuration.json"
 
 ############### LOGGING OF FMI INTERFACE ###############
 _internal_log_catergory = 'fmi2slave'
-_internal_throw_category = Fmi2Status.fatal # category if an FMI method implementation fails
-_internal_invalid_status_category = Fmi2Status.fatal # category if an FMI method returns and invalid status
+# category if an FMI method implementation fails
+_internal_throw_category = Fmi2Status.fatal
+# category if an FMI method returns and invalid status
+_internal_invalid_status_category = Fmi2Status.fatal
 _logging_override_name = "pyfmu_log_all_override"
 
 log = logging.getLogger('fmu')
+
+############### ERRORNEOUS READING ###############
+_read_wrong_type_status = Fmi2Status.discard
+_invalid_fmi_invalid_arguments = Fmi2Status.error
+_invalid_return_type_status = Fmi2Status.error
+_invalid_external_call_status = Fmi2Status.fatal
 
 
 class Fmi2Slave:
@@ -45,7 +53,7 @@ class Fmi2Slave:
         self.modelName = modelName
         self.license = license
         self.guid = uuid4()
-        self.vars = []
+        self.vars: Fmi2ScalarVariable = []
         self.version = version
         self.value_reference_counter = 0
         self.used_value_references = {}
@@ -57,12 +65,18 @@ class Fmi2Slave:
 
         if(enable_fmi_call_logging):
             self.logger.register_log_category(_internal_log_catergory)
-            #self.set_debug_logging(True,[_internal_log_catergory])
+            # self.set_debug_logging(True,[_internal_log_catergory])
             self.logger.log(
-                'FMI call logging enabled, all fmi calls will be logged',_internal_log_catergory)
+                'FMI call logging enabled, all fmi calls will be logged', _internal_log_catergory)
 
-        
         self._configure()
+
+        self.type_to_tuple = {
+            Fmi2DataTypes.integer: (int, "integer"),
+            Fmi2DataTypes.real: (float, "real"),
+            Fmi2DataTypes.boolean: (bool, "boolean"),
+            Fmi2DataTypes.string: (str, "string")
+        }
 
     def _configure(self):
         """ Performs configuration of the FMI slave based on the contents of the slave configuration file.
@@ -74,48 +88,52 @@ class Fmi2Slave:
         """
 
         if(not self._is_running_as_fmu):
-            self.log("Skipping configuration due to the FMU running in project-mode",_internal_log_catergory)            
+            self.log("Skipping configuration due to the FMU running in project-mode",
+                     _internal_log_catergory)
 
         try:
-            
-            self.log(f"Trying to locate configuration file : {_slave_configuration_name} in Python Path : {sys.path}",_internal_log_catergory)
+
+            self.log(
+                f"Trying to locate configuration file : {_slave_configuration_name} in Python Path : {sys.path}", _internal_log_catergory)
 
             config_path = None
 
             for potential in sys.path:
-                
+
                 p = Path(potential) / _slave_configuration_name
-                
+
                 if(p.is_file()):
                     config_path = p
                     break
             else:
-                self.log('Configuration process failed the file could not be found in Pythons path, continuing using defaults',_internal_log_catergory)
+                self.log(
+                    'Configuration process failed the file could not be found in Pythons path, continuing using defaults', _internal_log_catergory)
                 return
 
-            with open(config_path,'r') as f:
+            with open(config_path, 'r') as f:
                 config = json.load(f)
-                
+
                 # 1. Logging
                 cats = config['logging']['override_log_categories']
 
                 if(len(cats) != 0):
-                    self.log(f'Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active',_internal_log_catergory)
-                    self._set_debug_logging(True,cats)
-                    
+                    self.log(
+                        f'Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active', _internal_log_catergory)
+                    self._set_debug_logging(True, cats)
 
         except Exception as e:
             print(e)
-            self.log(f'Configuration process failed due to error : {e}, continuing using default options', _internal_log_catergory,Fmi2Status.warning)
+            self.log(
+                f'Configuration process failed due to error : {e}, continuing using default options', _internal_log_catergory, Fmi2Status.warning)
 
     def _set_resources_path(self, path):
         """Called by the wrapper to set the path to resource folder.
-        
+
         This is used for configuration.
 
         Arguments:
             path {[str]} -- Path to the resources folder
-        """          
+        """
 
         self._resources_path = Path(path)
 
@@ -123,14 +141,14 @@ class Fmi2Slave:
         """Returns true if the Fmi2Slave is running inside a project that has not yet been exported.
         """
         return not self._is_running_as_fmu
-        
+
     def _is_running_as_fmu(self):
         """Returns true if the FMI2Slave is running from inside an exported FMU
         """
         for potential in sys.path:
-        
+
             p = Path(potential) / _slave_configuration_name
-            
+
             if(p.is_file()):
                 return True
 
@@ -168,7 +186,7 @@ class Fmi2Slave:
                 data_type,causality,initial and variablity can be defined using string shorthands.
 
             i2. default start values:
-                if data_type is defined but start is undefined, default values are used based on data_type 
+                if data_type is defined but start is undefined, default values are used based on data_type
 
             i3. data type inference:
                 if data_type is undefined but start is defined, data_type is inferred from start's type.
@@ -200,14 +218,14 @@ class Fmi2Slave:
                 Only certain combinations of causality, intial are allowed to provide start values.
                 * [exact|approx] -> must define start
                 * calculated -> must not define start
-                * 
+                *
 
             Ordering:
             i1 -> i2 -> i3 -> v2 -> i4 -> v1 -> v3
 
         """
 
-        #i1. shorthands and aliases
+        # i1. shorthands and aliases
         type_aliases = {
 
             None: None,
@@ -379,12 +397,12 @@ class Fmi2Slave:
                     data_type = start_to_type[t]
                     break
 
-        #v2. causality and variablity
+        # v2. causality and variablity
         if((variability, causality) not in variabilityAndCausality_to_intial):
             raise ValueError(
                 f'Illegal combination of causality : {causality} and variablity : {variability}. The combination is not permitted.')
 
-        #v1. type and causality
+        # v1. type and causality
         if(data_type is not Fmi2DataTypes.real and variability is Fmi2Variability.continuous):
             raise ValueError(
                 f'Illegal combination of type : {data_type} and variability : {variability}. Only real valued variables are allowed to be continuous')
@@ -546,109 +564,123 @@ class Fmi2Slave:
         """
         self.logger.set_active_log_categories(logging_on, categories)
 
-    def _get_integer(self, vrs, refs):
-        return self._do_fmi_call(self.get_integer, vrs, refs)
+    def _get_xxx(self,vrs,values,data_type: Fmi2DataTypes):
+        
+        t, t_name = self.type_to_tuple[data_type]
 
-    def get_integer(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
+        if(not all(isinstance(v, t) for v in values)):
+            self.log(f"Unable to get {t_name}, some of the provided values : {values} are not {t_name}.",
+                     _internal_log_catergory,
+                     _invalid_external_call_status)
+            return _invalid_external_call_status
+
+        if(not all(isinstance(vr, int) for vr in vrs)):
+            self.log(f"Unable to get {t_name}, some of the provided values references : {vrs} are not integers.",
+                     _internal_log_catergory,
+                     _invalid_external_call_status
+                     )
+            return _invalid_external_call_status
+
+        for i,vr in enumerate(vrs):
             var = self.vars[vr]
-            if var.is_integer():
-                refs[i] = getattr(self, var.name)
+            if var.is_type(data_type):
+                values[i] = getattr(self, var.name)
             else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Integer!")
+                self.log(f"Unable to get {t_name}, some references point to variables : {[self.vars[vr] for vr in vrs]} which are not {t_name}s.",
+                    _internal_log_catergory,
+                    _invalid_external_call_status
+                    )
+                return _invalid_external_call_status
 
-    def _get_real(self, vrs, refs):
-        return self._do_fmi_call(self.get_real, vrs, refs)
+        return Fmi2Status.ok  
 
-    def get_real(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
+    def _get_integer(self, vrs, values):
+        return self._do_fmi_call(self.get_integer, vrs, values)
+
+    def get_integer(self, vrs, values):
+        return self._get_xxx(vrs,values,Fmi2DataTypes.integer)
+
+    def _get_real(self, vrs, values):
+        return self._do_fmi_call(self.get_real, vrs, values)
+
+    def get_real(self, vrs, values):
+        return self._get_xxx(vrs,values,Fmi2DataTypes.real)
+
+    def _get_boolean(self, vrs, values):
+        return self._do_fmi_call(self.get_boolean, vrs, values)
+
+    def get_boolean(self, vrs, values):
+       return self._get_xxx(vrs, values, Fmi2DataTypes.boolean)
+
+    def _get_string(self, vrs, values):
+        return self._do_fmi_call(self.get_string, vrs, values)
+
+    def get_string(self, vrs, values):
+        return self._get_xxx(vrs, values, Fmi2DataTypes.string)
+
+    def _set_xxx(self, vrs, values, data_type: Fmi2DataTypes):
+        """Generic implementation of setter methods used for set_real, set_integer, set_boolean and set_string
+
+        Arguments:
+            vrs {List[int]} -- List of value references of the variables to be set
+            values {List[]} -- List of the values which must be assigned to the specified references.
+            data_type {Fmi2DataTypes} -- The datatype "expected" data type of the variable, used for validation.
+
+        Returns:
+            [FmiStatus] -- a status indicating whether the call was succesful
+        """
+
+        t, t_name = self.type_to_tuple[data_type]
+
+        if(not all(isinstance(v, t) for v in values)):
+            self.log(f"Unable to set {t_name}, some of the provided values : {values} are not {t_name}.",
+                     _internal_log_catergory,
+                     _invalid_external_call_status)
+            return _invalid_external_call_status
+
+        if(not all(isinstance(vr, int) for vr in vrs)):
+            self.log(f"Unable to set {t_name}, some of the provided values references : {vrs} are not integers.",
+                     _internal_log_catergory,
+                     _invalid_external_call_status
+                     )
+            return _invalid_external_call_status
+
+        for i, vr in enumerate(vrs):
             var = self.vars[vr]
-            if var.is_real():
-                refs[i] = getattr(self, var.name)
+            if var.is_type(data_type):
+                setattr(self, var.name, values[i])
             else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Real!")
+                self.log(
+                    f"Unable to set variables. Variable with value reference {vr} is not an {t_name}",
+                    _internal_log_catergory,
+                    _invalid_external_call_status)
+                return _invalid_external_call_status
 
-    def _get_boolean(self, vrs, refs):
-        return self._do_fmi_call(self.get_boolean, vrs, refs)
-
-    def get_boolean(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_boolean():
-                refs[i] = getattr(self, var.name)
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Boolean!")
-
-    def _get_string(self, vrs, refs):
-        return self._do_fmi_call(self.get_string, vrs, refs)
-
-    def get_string(self, vrs, refs):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_string():
-                refs[i] = getattr(self, var.name)
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type String!")
+        return Fmi2Status.ok
 
     def _set_integer(self, vrs, values):
         return self._do_fmi_call(self.set_integer, vrs, values)
 
     def set_integer(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_integer:
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Integer!")
+        return self._set_xxx(vrs, values, Fmi2DataTypes.integer)
 
     def _set_real(self, vrs, values):
         return self._do_fmi_call(self.set_real, vrs, values)
 
     def set_real(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_real():
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Real!")
+        return self._set_xxx(vrs, values, Fmi2DataTypes.real)
 
     def _set_boolean(self, vrs, values):
         return self._do_fmi_call(self.set_boolean, vrs, values)
 
     def set_boolean(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_boolean():
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type Boolean!")
+        return self._set_xxx(vrs, values, Fmi2DataTypes.boolean)
 
     def _set_string(self, vrs, values):
         return self._do_fmi_call(self.set_string, vrs, values)
 
     def set_string(self, vrs, values):
-        for i in range(len(vrs)):
-            vr = vrs[i]
-            var = self.vars[vr]
-            if var.is_string():
-                setattr(self, var.name, values[i])
-            else:
-                raise Exception(
-                    f"Variable with valueReference={vr} is not of type String!")
+        return self._set_xxx(vrs, values, Fmi2DataTypes.string)
 
     def _do_fmi_call(self, f, *args, **kwargs) -> Fmi2Status:
         """ Performs the call to the fmi function implemented by the subclass and returns the status.
@@ -681,6 +713,7 @@ class Fmi2Slave:
             False: Fmi2Status.fatal,
             Fmi2Status.ok: Fmi2Status.ok,
             Fmi2Status.warning: Fmi2Status.warning,
+            Fmi2Status.discard: Fmi2Status.discard,
             Fmi2Status.error: Fmi2Status.error,
             Fmi2Status.fatal: Fmi2Status.fatal,
             Fmi2Status.pending: Fmi2Status.pending,
@@ -696,8 +729,6 @@ class Fmi2Slave:
             s_fmi = Fmi2Status.warning
             self.log(
                 f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
-
-        assert(s_fmi is not None)
 
         return s_fmi.value
 

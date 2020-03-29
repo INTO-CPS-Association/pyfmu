@@ -99,10 +99,8 @@ private:
     fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args... args) const
     {
 
-        // TODO would be very nice to print args as well
-        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY, "calling {} with arguments", name);
-
         PyObject *f = PyObject_CallMethod(pInstance_, name.c_str(), formatStr.c_str(), args...);
+        propagate_python_log_messages();
         if (f == nullptr)
         {
             logger->fatal(PYFMU_WRAPPER_LOG_CATEGORY, "call to {} failed with exception : {}", name, get_py_exception());
@@ -230,7 +228,6 @@ private:
 
         Py_DECREF(vrs);
         Py_DECREF(refs);
-        propagate_python_log_messages();
         return status;
     }
 

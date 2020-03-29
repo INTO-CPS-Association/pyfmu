@@ -19,6 +19,28 @@ using namespace pyconfiguration;
 using namespace std;
 using namespace filesystem;
 
+
+
+// template <>
+// struct fmt::formatter<PyObject*> {
+//   constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+//   template <typename FormatContext>
+//   auto format(const PyObject*& d, FormatContext& ctx) {
+//     return format_to(ctx.out(), "python object pointer ");
+//   }
+// };
+
+template <>
+struct fmt::formatter<PyObject> {
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(const PyObject& d, FormatContext& ctx) {
+    return format_to(ctx.out(), "python object ");
+  }
+};
+
 namespace pyfmu
 {
 
@@ -199,8 +221,12 @@ fmi2Status PyObjectWrapper::exitInitializationMode()
 
 fmi2Status PyObjectWrapper::doStep(fmi2Real currentTime, fmi2Real stepSize, fmi2Boolean noSetFMUStatePriorToCurrentPoint)
 {
+
+  
+
   PyGIL g;
   auto pyNoSetPrior = PyBool_FromLong(noSetFMUStatePriorToCurrentPoint);
+
   auto status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_DOSTEP, "(ddO)", currentTime, stepSize, pyNoSetPrior);
   Py_DECREF(pyNoSetPrior);
   return status;
@@ -254,7 +280,7 @@ fmi2Status PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t
 {
 
   auto buildFunc = []() -> PyObject* {
-    return Py_BuildValue("i", 0);
+    return PyBool_FromLong(0);
   };
 
   auto convertFunc =  [](PyObject* obj) -> fmi2Boolean {

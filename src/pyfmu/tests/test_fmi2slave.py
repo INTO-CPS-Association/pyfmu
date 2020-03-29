@@ -38,7 +38,7 @@ def test_inputsUseStartValue():
 
     d.register_variable("a",data_type = Fmi2DataTypes.real,causality=Fmi2Causality.input, start=start,value_reference=vr)
 
-    result = [0]
+    result = [0.0]
 
     d._get_real([vr],result)
     assert(result[0] == start)
@@ -51,7 +51,7 @@ def test_parametersUseStartValue():
 
     d.register_variable("a",data_type=Fmi2DataTypes.real,variability=Fmi2Variability.fixed,causality = Fmi2Causality.parameter,start=start,value_reference=vr)
 
-    result = [0]
+    result = [0.0]
 
     d._get_real([vr],result)
     assert(result[0] == start)
