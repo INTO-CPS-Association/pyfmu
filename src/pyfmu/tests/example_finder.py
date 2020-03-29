@@ -17,7 +17,8 @@ _correct_example = {
     'SineGenerator',
     'LoggerFMU',
     "BicycleKinematic",
-    "LivePlotting"
+    "LivePlotting",
+    'FmiTypes'
 }
 
 _incorrect_examples = {
