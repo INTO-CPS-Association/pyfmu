@@ -201,7 +201,6 @@ TEST_CASE("URI Parsing")
 
   SECTION("Does not accept other schemes than file")
   {
-
     REQUIRE_THROWS([]() {
       string invalid_uri = "otherscheme:///C:/somedir/resources";
 

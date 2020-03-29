@@ -6,6 +6,7 @@
 #include <filesystem>
 
 #include <Python.h>
+#include <fmt/ranges.h>
 
 #include "fmi/fmi2TypesPlatform.h"
 #include "pyfmu/fmi2PySlaveLogging.hpp"
@@ -153,6 +154,15 @@ private:
         std::size_t nvr, const T *values) const
         {
             PyGIL g;
+
+
+            std::vector<fmi2ValueReference> vrArray(vr,vr+nvr);
+            std::vector<T> valuesArray(values,values+nvr);
+            logger->ok(
+                PYFMU_WRAPPER_LOG_CATEGORY,
+                "Calling {} with value references: {} and values: {}",setter_name, vrArray,valuesArray);
+
+            
 
             PyObject *vrs = PyList_New(nvr);
             PyObject *refs = PyList_New(nvr);
