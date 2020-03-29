@@ -22,25 +22,6 @@ using namespace filesystem;
 namespace pyfmu
 {
 
-/**
- * @brief Converts the a long into a fmi2Status. Uses pass by reference to return the status.
- * 
- * @param longStatus long representing the status of the FMU
- * @param status reference to the status
- * @return true if long can be converted into valid fmi2Status
- * @return false if unable to convert the long into a valid fmi2Status
- */
-bool longToFmiStatus(long longStatus, fmi2Status &status)
-{
-
-  if (longStatus < fmi2Status::fmi2OK || longStatus > fmi2Status::fmi2Pending)
-  {
-    return false;
-  }
-
-  status = (fmi2Status)longStatus;
-  return true;
-}
 
 /**
  * @brief Appends path of resources folder to the Python interpreter path. This
@@ -184,33 +165,22 @@ fmi2Status PyObjectWrapper::setupExperiment(fmi2Boolean toleranceDefined,
                                             fmi2Boolean stopTimeDefined, fmi2Real stopTime)
 {
   PyGIL g;
-
-  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_SETUPEXPERIMENT, "(d)", startTime);
-
-  if (f == nullptr)
+  
+  fmi2Status status;
+  if(toleranceDefined && stopTimeDefined)
   {
-    logger->fatal("wrapper", "call to setupExperiment failed with exception : {}", get_py_exception());
-    return fmi2Fatal;
+    status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_SETUPEXPERIMENT, "(ddd)",startTime,tolerance,stopTime);
+  }
+  else if(toleranceDefined)
+  {
+    status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_SETUPEXPERIMENT, "(ddO)",startTime,tolerance,Py_None);
+  }
+  else
+  {
+    status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_SETUPEXPERIMENT, "(dOd)",startTime,Py_None,stopTime);
   }
 
-  long ls = PyLong_AsLong(f);
-  Py_DECREF(f);
-  if (ls == -1)
-  {
-    logger->fatal("wrapper", "call to setupExperiment was succesfull, but return value could not be converted into an long as expected : {}", get_py_exception());
-    return fmi2Fatal;
-  }
-
-  fmi2Status s;
-  bool validStatus = longToFmiStatus(ls, s);
-
-  if (!validStatus)
-  {
-    logger->fatal("wrapper", "call to setupExperiment was succesfull, return value was a long as expected, but does not match any fmi2Status : {}", validStatus);
-  }
-
-  propagate_python_log_messages();
-  return fmi2OK;
+  return status;
 }
 
 fmi2Status PyObjectWrapper::enterInitializationMode()
@@ -294,38 +264,14 @@ fmi2Status PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t
 fmi2Status PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nvr,
                                     fmi2Real *values) const
 {
-  PyGIL g;
+  auto buildFunc = []() -> PyObject* {
+    return Py_BuildValue("d", 0.0);
+  };
 
-  PyObject *vrs = PyList_New(nvr);
-  PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++)
-  {
-    PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-    PyList_SetItem(refs, i, Py_BuildValue("d", 0.0));
-  }
-
-  auto status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_GETREAL, "(OO)", vrs, refs);
-
-  if (status > fmi2Discard)
-  {
-    Py_DECREF(vrs);
-    Py_DECREF(refs);
-    return status;
-  }
-
-  for (int i = 0; i < nvr; i++)
-  {
-    PyObject *value = PyList_GetItem(refs, i);
-    if (value == nullptr)
-    {
-      logger->fatal("wrapper", "call to getReal failed, unable to convert to c-types, error : {}", get_py_exception());
-      return fmi2Fatal;
-    }
-    values[i] = PyFloat_AsDouble(value);
-  }
-
-  Py_DECREF(vrs);
-  Py_DECREF(refs);
+  auto convertFunc =  [](PyObject* obj) -> fmi2Real {
+    return (fmi2Real)PyFloat_AsDouble(obj);
+  };
+  auto status = InvokeFmiGetXXXFunction<fmi2Real>(PYFMU_FMI2SLAVE_GETREAL,buildFunc,convertFunc,vr,nvr,values);
   return status;
 }
 

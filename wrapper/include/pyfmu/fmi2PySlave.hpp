@@ -96,7 +96,7 @@ private:
      * @param formatStr 
      * @return fmi2Status 
      */
-    fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args &... args) const
+    fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args... args) const
     {
 
         // TODO would be very nice to print args as well
@@ -146,37 +146,93 @@ private:
      * @param values 
      * @return fmi2Status 
      */
-    template<typename T>
+    template <typename T>
     fmi2Status InvokeFmiSetFunction(
         const std::string &setter_name,
-        std::function<PyObject*(T value)> buildValueFunc,
+        std::function<PyObject *(T value)> buildValueFunc,
         const fmi2ValueReference *vr,
         std::size_t nvr, const T *values) const
+    {
+        PyGIL g;
+
+        std::vector<fmi2ValueReference> vrArray(vr, vr + nvr);
+        std::vector<T> valuesArray(values, values + nvr);
+        logger->ok(
+            PYFMU_WRAPPER_LOG_CATEGORY,
+            "Calling {} with value references: {} and values: {}", setter_name, vrArray, valuesArray);
+
+        PyObject *vrs = PyList_New(nvr);
+        PyObject *refs = PyList_New(nvr);
+        for (int i = 0; i < nvr; i++)
         {
-            PyGIL g;
+            PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
+            PyList_SetItem(refs, i, buildValueFunc(values[i]));
+        }
 
+        auto status = InvokeFmiOnSlave(setter_name, "(OO)", vrs, refs);
+        Py_DECREF(vrs);
+        Py_DECREF(refs);
+        return status;
+    }
 
-            std::vector<fmi2ValueReference> vrArray(vr,vr+nvr);
-            std::vector<T> valuesArray(values,values+nvr);
-            logger->ok(
-                PYFMU_WRAPPER_LOG_CATEGORY,
-                "Calling {} with value references: {} and values: {}",setter_name, vrArray,valuesArray);
+    /**
+     * @brief Generic implementation of fmi2GetXXX functions.
+     * 
+     * @tparam T 
+     * @param getter_name name of the getter function of the python object
+     * @param buildFunc function used to build the elements of the list passed to the python
+     * @param getterFunc function used to convert the return python object into C types
+     * @param vr value references
+     * @param nvr number of variables
+     * @param values values which will be overwritten by the values read from the slave.
+     * @return fmi2Status 
+     */
+    template <typename T>
+    fmi2Status InvokeFmiGetXXXFunction(
+        const std::string& getter_name,
+        std::function<PyObject *()> buildFunc,
+        std::function<T(PyObject *)> convertFunc,
+        const fmi2ValueReference *vr,
+        std::size_t nvr,
+        T *values) const
+    {
+        PyGIL g;
 
-            
+        PyObject *vrs = PyList_New(nvr);
+        PyObject *refs = PyList_New(nvr);
+        for (int i = 0; i < nvr; i++)
+        {
+            PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
+            PyList_SetItem(refs, i, buildFunc());
+        }
 
-            PyObject *vrs = PyList_New(nvr);
-            PyObject *refs = PyList_New(nvr);
-            for (int i = 0; i < nvr; i++)
-            {
-                PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-                PyList_SetItem(refs, i, buildValueFunc(values[i]));
-            }
+        auto status = InvokeFmiOnSlave(getter_name, "(OO)", vrs, refs);
 
-            auto status = InvokeFmiOnSlave(setter_name, "(OO)", vrs, refs);
+        if (status > fmi2Discard)
+        {
             Py_DECREF(vrs);
             Py_DECREF(refs);
             return status;
         }
+
+        for (int i = 0; i < nvr; i++)
+        {
+            PyObject *value = PyList_GetItem(refs, i);
+
+            if (value == nullptr)
+            {
+                logger->fatal("wrapper", "call to getInterger failed, unable to convert to c-types, error : {}", get_py_exception());
+                return fmi2Fatal;
+            }
+
+            values[i] = convertFunc(value);
+        }
+
+        Py_DECREF(vrs);
+        Py_DECREF(refs);
+        propagate_python_log_messages();
+        return status;
+    }
 
     /**
      * @brief Import and instantiate main class in the current Python interpreter.
