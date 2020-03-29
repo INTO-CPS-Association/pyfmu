@@ -223,41 +223,15 @@ fmi2Status PyObjectWrapper::terminate()
 fmi2Status PyObjectWrapper::getInteger(const fmi2ValueReference *vr, std::size_t nvr,
                                        fmi2Integer *values) const
 {
-  PyGIL g;
 
-  PyObject *vrs = PyList_New(nvr);
-  PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++)
-  {
-    PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-    PyList_SetItem(refs, i, Py_BuildValue("i", 0));
-  }
+  auto buildFunc = []() -> PyObject* {
+    return Py_BuildValue("i", 0);
+  };
 
-  auto status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_GETINTEGER, "(OO)", vrs, refs);
-
-  if (status > fmi2Discard)
-  {
-    Py_DECREF(vrs);
-    Py_DECREF(refs);
-    return status;
-  }
-
-  for (int i = 0; i < nvr; i++)
-  {
-    PyObject *value = PyList_GetItem(refs, i);
-
-    if (value == nullptr)
-    {
-      logger->fatal("wrapper", "call to getInterger failed, unable to convert to c-types, error : {}", get_py_exception());
-      return fmi2Fatal;
-    }
-
-    values[i] = static_cast<int>(PyLong_AsLong(value));
-  }
-
-  Py_DECREF(vrs);
-  Py_DECREF(refs);
-  propagate_python_log_messages();
+  auto convertFunc =  [](PyObject* obj) -> fmi2Integer {
+    return (fmi2Integer)PyLong_AsLong(obj);
+  };
+  auto status = InvokeFmiGetXXXFunction<fmi2Integer>(PYFMU_FMI2SLAVE_GETINTEGER,buildFunc,convertFunc,vr,nvr,values);
   return status;
 }
 
@@ -278,76 +252,32 @@ fmi2Status PyObjectWrapper::getReal(const fmi2ValueReference *vr, std::size_t nv
 fmi2Status PyObjectWrapper::getBoolean(const fmi2ValueReference *vr, std::size_t nvr,
                                        fmi2Boolean *values) const
 {
-  PyGIL g;
 
-  PyObject *vrs = PyList_New(nvr);
-  PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++)
-  {
-    PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-    PyList_SetItem(refs, i, Py_BuildValue("i", 0));
-  }
+  auto buildFunc = []() -> PyObject* {
+    return Py_BuildValue("i", 0);
+  };
 
-  auto status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_GETBOOLEAN, "(OO)", vrs, refs);
-
-  if (status > fmi2Discard)
-  {
-    Py_DECREF(vrs);
-    Py_DECREF(refs);
-    return status;
-  }
-
-  for (int i = 0; i < nvr; i++)
-  {
-    PyObject *value = PyList_GetItem(refs, i);
-    if (value == nullptr)
-    {
-      logger->fatal("wrapper", "call to getBoolean failed, unable to convert to c-types, error : {}", get_py_exception());
-      return fmi2Fatal;
-    }
-    values[i] = PyObject_IsTrue(value);
-  }
-
-  Py_DECREF(vrs);
-  Py_DECREF(refs);
+  auto convertFunc =  [](PyObject* obj) -> fmi2Boolean {
+    return PyObject_IsTrue(obj);
+  };
+  auto status = InvokeFmiGetXXXFunction<fmi2Boolean>(PYFMU_FMI2SLAVE_GETBOOLEAN,buildFunc,convertFunc,vr,nvr,values);
   return status;
 }
 
 fmi2Status PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t nvr,
                                       fmi2String *values) const
 {
-  PyGIL g;
 
-  PyObject *vrs = PyList_New(nvr);
-  PyObject *refs = PyList_New(nvr);
-  for (int i = 0; i < nvr; i++)
-  {
-    PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-    PyList_SetItem(refs, i, Py_BuildValue("s", ""));
-  }
 
-  auto status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_GETSTRING, "(OO)", vrs, refs);
-  if (status > fmi2Discard)
-  {
-    Py_DECREF(vrs);
-    Py_DECREF(refs);
-    return status;
-  }
+  auto buildFunc = []() -> PyObject* {
+    return Py_BuildValue("s", "");
+  };
 
-  for (int i = 0; i < nvr; i++)
-  {
-    PyObject *value = PyList_GetItem(refs, i);
-    if (value == nullptr)
-    {
-      logger->fatal("wrapper", "call to getBoolean failed, unable to convert to c-types, error : {}", get_py_exception());
-      return fmi2Fatal;
-    }
-    values[i] = pyfmu::pyCompat::PyUnicode_AsUTF8(value);
-  }
-
-  Py_DECREF(refs);
-  propagate_python_log_messages();
-  return fmi2OK;
+  auto convertFunc =  [](PyObject* obj) -> fmi2String {
+    return pyfmu::pyCompat::PyUnicode_AsUTF8(obj);
+  };
+  auto status = InvokeFmiGetXXXFunction<fmi2String>(PYFMU_FMI2SLAVE_GETREAL,buildFunc,convertFunc,vr,nvr,values);
+  return status;
 }
 
 fmi2Status PyObjectWrapper::setDebugLogging(fmi2Boolean loggingOn, size_t nCategories, const char *const categories[]) const
@@ -377,28 +307,28 @@ fmi2Status PyObjectWrapper::setInteger(const fmi2ValueReference *vr, std::size_t
                                        const fmi2Integer *values)
 { 
   auto builder = [](fmi2Integer val) -> PyObject* {return Py_BuildValue("i",val);};
-  return InvokeFmiSetFunction<fmi2Integer>(PYFMU_FMI2SLAVE_SETINTEGER,builder,vr,nvr,values);
+  return InvokeFmiSetXXXFunction<fmi2Integer>(PYFMU_FMI2SLAVE_SETINTEGER,builder,vr,nvr,values);
 }
 
 fmi2Status PyObjectWrapper::setReal(const fmi2ValueReference *vr, std::size_t nvr,
                                     const fmi2Real *values)
 {
   auto builder = [](fmi2Real val) -> PyObject* {return Py_BuildValue("d",val);};
-  return InvokeFmiSetFunction<fmi2Real>(PYFMU_FMI2SLAVE_SETREAL,builder,vr,nvr,values);
+  return InvokeFmiSetXXXFunction<fmi2Real>(PYFMU_FMI2SLAVE_SETREAL,builder,vr,nvr,values);
 }
 
 fmi2Status PyObjectWrapper::setBoolean(const fmi2ValueReference *vr, std::size_t nvr,
                                        const fmi2Boolean *values)
 {
     auto builder = [](fmi2Boolean val) -> PyObject* {return PyBool_FromLong((long)val);};
-    return InvokeFmiSetFunction<fmi2Boolean>(PYFMU_FMI2SLAVE_SETBOOLEAN,builder,vr,nvr,values);
+    return InvokeFmiSetXXXFunction<fmi2Boolean>(PYFMU_FMI2SLAVE_SETBOOLEAN,builder,vr,nvr,values);
 }
 
 fmi2Status PyObjectWrapper::setString(const fmi2ValueReference *vr, std::size_t nvr,
                                       const fmi2String *values)
 {
   auto builder = [](fmi2String val) -> PyObject* {return Py_BuildValue("s",val);};
-  return InvokeFmiSetFunction<fmi2String>(PYFMU_FMI2SLAVE_SETSTRING,builder,vr,nvr,values);
+  return InvokeFmiSetXXXFunction<fmi2String>(PYFMU_FMI2SLAVE_SETSTRING,builder,vr,nvr,values);
 }
 
 PyObjectWrapper::~PyObjectWrapper()

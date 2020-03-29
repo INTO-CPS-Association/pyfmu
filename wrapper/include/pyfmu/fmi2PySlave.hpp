@@ -147,7 +147,7 @@ private:
      * @return fmi2Status 
      */
     template <typename T>
-    fmi2Status InvokeFmiSetFunction(
+    fmi2Status InvokeFmiSetXXXFunction(
         const std::string &setter_name,
         std::function<PyObject *(T value)> buildValueFunc,
         const fmi2ValueReference *vr,
