@@ -27,7 +27,14 @@ using namespace filesystem;
 namespace pyfmu
 {
 
-
+/**
+ * @brief Callaback function used by the Python slave to do logging.
+ * This function must be a free function. As such the logger is injected using a PyCapsule.
+ * 
+ * @param self a PyCapsule object used to pass a point
+ * @param args a python tuple of status,category and string (int,string,string)
+ * @return PyObject* 
+ */
 static PyObject* logCallback(PyObject* self, PyObject* args)
 { 
   PyGIL g;
@@ -43,7 +50,7 @@ static PyObject* logCallback(PyObject* self, PyObject* args)
 
   if(s == 0)
   {
-    logger->ok("Logger callback called, but wrapper was unable to parse arguments : {}.", get_py_exception());
+    logger->warning("Logger callback called, but wrapper was unable to parse arguments : {}.", get_py_exception());
   }
   else
   {
@@ -115,7 +122,7 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
   }
 
   logger->ok("wrapper", "Definition of class {} was successfully read, attempting create an instance.", main_class);
-
+  //PyObject* PyObject_Call(PyObject *callable, PyObject *args, PyObject *kwargs) https://docs.python.org/3/c-api/object.html
   pInstance_ = PyObject_CallFunctionObjArgs(pClass_, nullptr);
 
   if (pInstance_ == nullptr)
@@ -125,7 +132,6 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
     logger->fatal("wrapper", msg);
     throw runtime_error(msg);
   }
-
 
 
   // pass logging function to python slave
@@ -143,10 +149,12 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
 
   if(f == nullptr)
   {
-    logger->error(PYFMU_WRAPPER_LOG_CATEGORY,"Failed to register callback for logging: {}",get_py_exception());
+    string msg = fmt::format("wrapper", "Failed to register callback for logging. An exception was thrown in Python: {}", get_py_exception());
+    logger->error(PYFMU_WRAPPER_LOG_CATEGORY,msg);
+    throw runtime_error(msg);
   }
-  propagate_python_log_messages();
-  logger->ok("wrapper", "Sucessfully created an instance of class: {} defined in module: {}", main_class, module_name);
+  
+  logger->ok("wrapper", "Successfully created an instance of class: {} defined in module: {}", main_class, module_name);
 }
 
 PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(logger)
@@ -401,69 +409,6 @@ PyObjectWrapper &PyObjectWrapper::operator=(PyObjectWrapper &&other)
   this->pInstance_ = other.pInstance_;
   this->logger = move(other.logger);
   return *this;
-}
-
-void PyObjectWrapper::propagate_python_log_messages() const
-{
-  PyGIL g;
-
-  auto f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_GETLOGSIZE, "()");
-
-  if (f == nullptr)
-  {
-    logger->error("Failed to read log messages from the Python instance. Call to _get_log_size failed due to : {}", get_py_exception());
-    return;
-  }
-  Py_DECREF(f);
-  long n_messages = PyLong_AsLong(f);
-
-  if (n_messages == -1)
-  {
-    logger->error("Failed to read log messages from the python instance. Call to _get_log_size returned invalid type: {}", get_py_exception());
-    return;
-  }
-
-  if (n_messages == 0)
-    return;
-
-  f = PyObject_CallMethod(pInstance_, PYFMU_FMI2SLAVE_POPLOGMESSAGES, "(i)", n_messages);
-
-  if (f == nullptr)
-  {
-    logger->error("Failed to read log messages from the python instacnce. Call to __pop_log_messages failed : {}", get_py_exception());
-  }
-
-  for (int i = 0; i < n_messages; ++i)
-  {
-    PyObject *value = PyList_GetItem(f, i);
-
-    if (value == nullptr)
-    {
-      logger->warning("wrapper", "Failed to parse read log message : {}", get_py_exception());
-      return;
-    }
-
-    PyObject *py_status = PyTuple_GetItem(value, 0);
-    PyObject *py_category = PyTuple_GetItem(value, 1);
-    PyObject *py_message = PyTuple_GetItem(value, 2);
-
-    if (py_status == nullptr || py_category == nullptr || py_message == nullptr)
-    {
-      auto msg = "Failed to read log messages, unable to unpack message tuples";
-      logger->warning("wrapper", msg);
-    }
-    fmi2Status status = (fmi2Status)(PyLong_AsLong(py_status));
-    auto category = pyfmu::pyCompat::PyUnicode_AsString(py_category);
-    auto message = pyfmu::pyCompat::PyUnicode_AsString(py_message);
-
-    // we need to escape '{' and '}' which are common in Python's output
-    auto re_left = std::regex("\\{");
-    auto re_right = std::regex("\\}");
-    message = std::regex_replace(message, re_left, "{{");
-    message = std::regex_replace(message, re_right, "}}");
-
-    logger->log(status, category, message);
-  }
 }
 
 } // namespace pyfmu

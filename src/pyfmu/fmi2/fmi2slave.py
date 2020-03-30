@@ -8,7 +8,7 @@ from pathlib import Path
 import os
 import sys
 
-from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2LogMessage, Fmi2Logger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
+from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2CallbackLogger, Fmi2NullLogger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
 ############### CONFIGURATION ###############
 _slave_configuration_name = "slave_configuration.json"
@@ -23,7 +23,7 @@ _logging_override_name = "pyfmu_log_all_override"
 
 log = logging.getLogger('fmu')
 
-############### ERRORNEOUS READING ###############
+############### ERRONEOUS READING ###############
 _read_wrong_type_status = Fmi2Status.discard
 _invalid_fmi_invalid_arguments = Fmi2Status.error
 _invalid_return_type_status = Fmi2Status.error
@@ -31,8 +31,17 @@ _invalid_external_call_status = Fmi2Status.fatal
 
 
 class Fmi2Slave:
-
-    def __init__(self, modelName: str, author="", copyright="", version="", description="", standard_log_categories=True, enable_fmi_call_logging=True, add_logging_override_param=True):
+    
+    def __init__(self,
+                 modelName: str,
+                 author="",
+                 copyright="",
+                 version="",
+                 description="",
+                 logging_callback = None,
+                 standard_log_categories=True,
+                 enable_fmi_call_logging=True,
+                 add_logging_override_param=True):
         """Constructs a FMI2
 
         Arguments:
@@ -58,14 +67,17 @@ class Fmi2Slave:
         self.value_reference_counter = 0
         self.used_value_references = {}
 
-        self.logger = Fmi2Logger()
+
+        if(logging_callback): 
+            self.logger = Fmi2CallbackLogger(logging_callback)
+        else:
+            self.logger = Fmi2NullLogger()
 
         if(standard_log_categories):
             self.logger.register_all_standard_categories()
 
         if(enable_fmi_call_logging):
             self.logger.register_log_category(_internal_log_catergory)
-            # self.set_debug_logging(True,[_internal_log_catergory])
             self.logger.log(
                 'FMI call logging enabled, all fmi calls will be logged', _internal_log_catergory)
 
@@ -564,8 +576,8 @@ class Fmi2Slave:
         """
         self.logger.set_active_log_categories(logging_on, categories)
 
-    def _get_xxx(self,vrs,values,data_type: Fmi2DataTypes):
-        
+    def _get_xxx(self, vrs, values, data_type: Fmi2DataTypes):
+
         t, t_name = self.type_to_tuple[data_type]
 
         if(not all(isinstance(v, t) for v in values)):
@@ -581,36 +593,36 @@ class Fmi2Slave:
                      )
             return _invalid_external_call_status
 
-        for i,vr in enumerate(vrs):
+        for i, vr in enumerate(vrs):
             var = self.vars[vr]
             if var.is_type(data_type):
                 values[i] = getattr(self, var.name)
             else:
                 self.log(f"Unable to get {t_name}, some references point to variables : {[self.vars[vr] for vr in vrs]} which are not {t_name}s.",
-                    _internal_log_catergory,
-                    _invalid_external_call_status
-                    )
+                         _internal_log_catergory,
+                         _invalid_external_call_status
+                         )
                 return _invalid_external_call_status
 
-        return Fmi2Status.ok  
+        return Fmi2Status.ok
 
     def _get_integer(self, vrs, values):
         return self._do_fmi_call(self.get_integer, vrs, values)
 
     def get_integer(self, vrs, values):
-        return self._get_xxx(vrs,values,Fmi2DataTypes.integer)
+        return self._get_xxx(vrs, values, Fmi2DataTypes.integer)
 
     def _get_real(self, vrs, values):
         return self._do_fmi_call(self.get_real, vrs, values)
 
     def get_real(self, vrs, values):
-        return self._get_xxx(vrs,values,Fmi2DataTypes.real)
+        return self._get_xxx(vrs, values, Fmi2DataTypes.real)
 
     def _get_boolean(self, vrs, values):
         return self._do_fmi_call(self.get_boolean, vrs, values)
 
     def get_boolean(self, vrs, values):
-       return self._get_xxx(vrs, values, Fmi2DataTypes.boolean)
+        return self._get_xxx(vrs, values, Fmi2DataTypes.boolean)
 
     def _get_string(self, vrs, values):
         return self._do_fmi_call(self.get_string, vrs, values)
@@ -766,7 +778,6 @@ class Fmi2Slave:
 
 
         """
-
         self.logger.log(message, category, status)
 
     def _get_log_size(self):
@@ -798,16 +809,16 @@ class Fmi2Slave:
 
     """Called by the wrapper to register a log callback function.
     """
-    def _register_log_callback(self,callback):
+
+    def _register_log_callback(self, callback):
 
         print(f"callback registered {callback}")
-        t = (0,_internal_log_catergory,"log callback registered")
-        callback(0,_internal_log_catergory,"log callback registered")
-        #callback(t)
+        t = (0, _internal_log_catergory, "log callback registered")
+        callback(0, _internal_log_catergory, "log callback registered")
+        # callback(t)
         #args = (0,_internal_log_catergory,"log callback function registered")
-        #callback(args) 
+        # callback(args)
         #self._log_callback = callback
-        
 
     @property
     def available_categories(self):
