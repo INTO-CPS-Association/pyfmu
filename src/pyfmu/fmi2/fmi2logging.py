@@ -91,17 +91,17 @@ class Fmi2LoggerBase(ABC):
 
         # if neither aliases or predicate is registed log category and category are associated
         if(aliases == None and predicate == None):
-            def default_predicated(msg):
+            def default_predicated(s,c,m):
                 nonlocal category
-                return msg.category == category
+                return c == category
 
             predicate = default_predicated
 
         if(aliases):
 
-            def alias_predicate(msg):
+            def alias_predicate(s,c,m):
                 nonlocal aliases
-                return msg.category in aliases
+                return c in aliases
 
             predicate = alias_predicate
 
@@ -142,14 +142,13 @@ class Fmi2LoggerBase(ABC):
             
         msg = (status, category, message)
         
-
         # log only for the active categories
         activate_categories_to_predicates = { c:p for c,p in self._categories_to_predicates.items() if c in self._active_categories}
 
         # an message should be logged if a predicate exists which matches it.
         for p in activate_categories_to_predicates.values():
             
-            if(p(msg) == True):
+            if(p(status,category,message) == True):
                 
                 self._do_log(status, category, message)
                 break
@@ -165,40 +164,40 @@ class Fmi2LoggerBase(ABC):
             raise ValueError(
                 f'Unable to register standard log categories. The specified categories could not be converted to a set.') from e
 
-        def events_predicate(msg):
-            c = msg.category.lower()
+        def events_predicate(status,category,message):
+            c = category.lower()
             matches = {'event', 'events'}
             return c in matches
 
-        def sls_predicate(msg):
-            c = msg.category.lower()
+        def sls_predicate(status,category,message):
+            c = category.lower()
             matches = {'singularlinearsystem', 'singularlinearsystems', 'sls'}
             return c in matches
 
-        def nls_predicate(msg):
-            c = msg.category.lower()
+        def nls_predicate(status,category,message):
+            c = category.lower()
             matches = {'nonlinearsystem', 'nonlinearsystems', 'nls'}
             return c in matches
 
-        def dss_predicate(msg):
-            c = msg.category.lower()
+        def dss_predicate(status,category,message):
+            c = category.lower()
             matches = {'dynamicstateselection', 'dss'}
             return c in matches
 
-        def warning_predicate(msg):
-            return msg.status == Fmi2Status.warning
+        def warning_predicate(status,category,message):
+            return status == Fmi2Status.warning
 
-        def discard_predicate(msg):
-            return msg.status == Fmi2Status.discard
+        def discard_predicate(status,category,message):
+            return status == Fmi2Status.discard
 
-        def error_predicate(msg):
-            return msg.status == Fmi2Status.error
+        def error_predicate(status,category,message):
+            return status == Fmi2Status.error
 
-        def fatal_predicate(msg):
-            return msg.status == Fmi2Status.fatal
+        def fatal_predicate(status,category,message):
+            return status == Fmi2Status.fatal
 
-        def pending_predicate(msg):
-            return msg.status == Fmi2Status.pending
+        def pending_predicate(status,category,message):
+            return status == Fmi2Status.pending
 
         def all_predicate(_):
             return True

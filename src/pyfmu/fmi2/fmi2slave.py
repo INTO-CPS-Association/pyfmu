@@ -39,10 +39,11 @@ class Fmi2Slave:
                  version="",
                  description="",
                  logging_callback = None,
+                 logging_logAll = False,
                  logging_stdout = False,
-                 standard_log_categories=True,
-                 enable_fmi_call_logging=True,
-                 add_logging_override_param=True):
+                 logging_add_standard_categories=True,
+                 logging_slave_fmi_calls=True
+                 ):
         """Constructs a FMI2
 
         Arguments:
@@ -53,7 +54,7 @@ class Fmi2Slave:
             copyright {str} -- [description] (default: {""})
             version {str} -- [description] (default: {""})
             description {str} -- [description] (default: {""})
-            standard_log_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
+            logging_add_standard_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
             add_logging_override_param {bool} -- if true, add a boolean parameter to the FMU which allows it to log all, useful for FMPy (default: {True}).
         """
 
@@ -71,21 +72,16 @@ class Fmi2Slave:
 
         if(logging_callback): 
             self.logger = Fmi2CallbackLogger(logging_callback, logging_stdout)
-
-            self._set_debug_logging(True,["logAll"]) # TODO remove
-            self.logger.register_all_standard_categories()
-
-            self.log("Callback successfully passed to slave",_internal_log_catergory)
         else:
             self.logger = Fmi2NullLogger()
+        
 
-        if(standard_log_categories):
+        if(logging_add_standard_categories):
                 self.logger.register_all_standard_categories()
 
-        if(enable_fmi_call_logging):
+        if(logging_slave_fmi_calls):
             self.logger.register_log_category(_internal_log_catergory)
-            self.logger.log(
-                'FMI call logging enabled, all fmi calls will be logged', _internal_log_catergory)
+            self.logger.log('FMI call logging enabled, all fmi calls will be logged', _internal_log_catergory)
 
         self._configure()
 

@@ -2,7 +2,7 @@ from pyfmu.fmi2 import Fmi2Slave, Fmi2DataTypes, Fmi2Causality, Fmi2Variability,
 
 
 class Adder(Fmi2Slave):
-    
+
     def __init__(self):
         super().__init__("Adder")
 
@@ -16,7 +16,7 @@ class Dummy(Fmi2Slave):
         super().__init__("Dummy")
 
 class Tests_fmi2Slave:
-    
+
     def test_register_variable_implicitly_defines_attribute(self):
 
         a = Adder()
@@ -28,11 +28,10 @@ class Tests_fmi2Slave:
         assert(a.a == 0)
         assert(a.b == 0)
 
-
 def test_inputsUseStartValue():
-    
+
     d = Dummy()
-    
+
     start = 10
     vr = 0
 
@@ -73,7 +72,7 @@ def test_registerVariable_acceptsStrings():
 def test_registerVariable_infersDataTypeFromStart():
 
     s = Fmi2Slave("")
-    s.register_variable('a',causality='input',start=1.0)    
+    s.register_variable('a',causality='input',start=1.0)
     matches = [v for v in s.vars if v.data_type is Fmi2DataTypes.real]
 
     assert(len(matches) is 1)
@@ -93,12 +92,12 @@ def test_registerVariable_defaultStartValues():
     assert(s.ie == 0)
     assert(s.be == False)
     assert(s.se == "")
-    
+
     v_re = [v for v in s.vars if v.name == 're']
     v_ie = [v for v in s.vars if v.name == 'ie']
     v_be = [v for v in s.vars if v.name == 'be']
     v_se = [v for v in s.vars if v.name == 'se']
-    
+
     assert(len(v_re) == 1)
     assert(len(v_ie) == 1)
     assert(len(v_be) == 1)
@@ -120,18 +119,18 @@ def test_registerVariable_defaultStartValues():
     v_ia = [v for v in s.vars if v.name == 'ia']
     v_ba = [v for v in s.vars if v.name == 'ba']
     v_sa = [v for v in s.vars if v.name == 'sa']
-    
+
     assert(len(v_ra) == 1)
     assert(len(v_ia) == 1)
     assert(len(v_ba) == 1)
     assert(len(v_sa) == 1)
-    
+
 
 def test_setXXX_onlyAcceptsCorrectType():
 
 
     fmu = Fmi2Slave("")
-    
+
     fmu.register_variable("r",'real','input')
     fmu.register_variable("i",'integer','input','discrete')
     fmu.register_variable("b",'boolean','input','discrete')
@@ -152,68 +151,13 @@ def test_setXXX_onlyAcceptsCorrectType():
         (fmu._set_integer,'integer'),
         (fmu._set_boolean,'boolean'),
         (fmu._set_string,'string')]):
-        
+
         not_valid = set()
-        
+
         for c in [k for k in combinations if k != t]:
             not_valid.update(combinations[c])
-            
+
         for valid in combinations[t]:
-            s = func([i],[valid]) 
+            s = func([i],[valid])
             assert s == Fmi2Status.ok.value
 
-            
-    
-
-
-    
-
-    
-
-    
-
-
-# test logging functions used by the wrapper
-
-
-def test_setDebugLogging():
-
-    fmu = Fmi2Slave("a")
-
-    fmu.log("test")
-    
-    assert(fmu._get_log_size() == 0)
-
-    s = fmu._set_debug_logging(True,["logAll"])
-    assert(s == Fmi2Status.ok.value)
-    
-
-def test_get_log_size():
-    
-    fmu = Fmi2Slave("logger",standard_log_categories=True)
-    fmu.set_debug_logging(True,["logAll"])
-
-    fmu.log("test 1")
-    
-    assert(fmu._get_log_size() == 1)
-    
-    fmu.log("test 2")
-
-    assert(fmu._get_log_size() == 2)
-
-
-def test_get_log_messages():
-
-    fmu = Fmi2Slave("logger", standard_log_categories=True)
-    fmu._set_debug_logging(True,["logAll"])
-
-    fmu.log("test",category="a",status=Fmi2Status.ok)
-
-    ms = fmu._pop_log_messages(1)
-
-    (status,category,message) = ms[0]
-
-    assert(status == Fmi2Status.ok.value)
-    assert(isinstance(status,int))
-    assert(category == "a")
-    assert(message == 'test')
