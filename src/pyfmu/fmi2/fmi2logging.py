@@ -268,6 +268,11 @@ class Fmi2CallbackLogger(Fmi2LoggerBase):
         if(self._log_stdout):
             print(status,category,message)
 
+        assert isinstance(status.value,int), "status should be int"
+        assert isinstance(category,str), "status should be int"
+        assert isinstance(message,str), "status should be int"
+
+        #print(self._callback)
         self._callback(status.value,category,message)
 
 class Fmi2NullLogger(Fmi2LoggerBase):

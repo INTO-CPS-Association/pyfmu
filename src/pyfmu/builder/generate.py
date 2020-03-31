@@ -119,14 +119,14 @@ class PyfmuProject():
             raise ValueError(
                 'The directory does not contain a resource folder.')
 
-        # 4. main script should exist inside resources.
+        # 4. slave script should exist inside resources.
         has_main_script = (p / 'resources' / main_script).is_file()
 
         if(not has_main_script):
             raise ValueError(
                 f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.')
 
-        # 5. TODO main class should be defined by main script
+        # 5. TODO slave class should be defined by slave script
 
         project = PyfmuProject(root=p,
                                main_script=main_script,
@@ -242,7 +242,7 @@ def create_project(project_path: str, main_class_name: str, overwrite=True) -> P
     project_path : str
         output path of the project
     main_class_name : str
-        name of the main script 
+        name of the slave script 
     overwrite : bool, optional
         if true overwrite any existing files at the specified output path, by default True
 

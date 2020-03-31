@@ -89,6 +89,8 @@ private:
     PyObject *pInstance_;
 
     Logger *logger;
+    PyMethodDef pCallbackDef;
+    PyObject* pCallbackFunc;
 
     template <typename... Args>
     /**
@@ -100,8 +102,6 @@ private:
      */
     fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args... args) const
     {
-
-        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,"Calling {}",name);
 
         PyObject *f = PyObject_CallMethod(pInstance_, name.c_str(), formatStr.c_str(), args...);
         
@@ -237,9 +237,9 @@ private:
     }
 
     /**
-     * @brief Import and instantiate main class in the current Python interpreter.
+     * @brief Import and instantiate slave class in the current Python interpreter.
      * 
-     * Note that the module containing the main class must be in the interpreters path. This can be calling sys.path.append('some_path') on the interpreter.
+     * Note that the module containing the slave class must be in the interpreters path. This can be calling sys.path.append('some_path') on the interpreter.
      * 
      * @param module_name 
      * @param main_class 

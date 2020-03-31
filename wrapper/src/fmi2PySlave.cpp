@@ -45,16 +45,28 @@ static PyObject* logCallback(PyObject* self, PyObject* args)
   fmi2Status status;
   const char* message;
   const char* category;
-
   int s = PyArg_Parse(args,"(iss)",&status,&category,&message);
-  
+
   if(s == 0)
   {
     logger->warning("Logger callback called, but wrapper was unable to parse arguments : {}.", get_py_exception());
   }
   else
   {
-    logger->log(status,category,message);
+    // Escape { and } with {{ and }} to avoid issues with fmt
+    std::regex left("\\{");
+    std::regex right("\\}");
+
+    
+    std::string messageStr(message);
+    std::string categoryStr(category);
+
+    messageStr = std::regex_replace(messageStr,left,"{{");
+    messageStr = std::regex_replace(messageStr,right,"}}");
+    categoryStr = std::regex_replace(categoryStr,left,"{{");
+    categoryStr = std::regex_replace(categoryStr,right,"}}");
+
+    logger->log(status,categoryStr,messageStr);
   }
 
   Py_RETURN_NONE;
@@ -63,7 +75,7 @@ static PyObject* logCallback(PyObject* self, PyObject* args)
 
 /**
  * @brief Appends path of resources folder to the Python interpreter path. This
- * allows the interpreter to locate and load the main script.
+ * allows the interpreter to locate and load the slave script.
  *
  * @param resource_path path to the resources dir supplied when FMU is
  * initialized
@@ -98,7 +110,7 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
   {
 
     auto pyErr = get_py_exception();
-    auto msg = format("module could not be imported. Ensure that main script "
+    auto msg = format("module could not be imported. Ensure that slave script "
                       "defined inside the wrapper configuration matches a "
                       "Python script. Error from python was:\n{}",
                       pyErr);
@@ -106,7 +118,7 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
     throw runtime_error(msg);
   }
 
-  logger->ok("wrapper", "module: {} was successfully imported, attempting to read definition of main class : {} from the module.", module_name, main_class);
+  logger->ok("wrapper", "module: {} was successfully imported, attempting to read definition of slave class : {} from the module.", module_name, main_class);
 
   pClass_ = PyObject_GetAttrString(pModule_, main_class.c_str());
 
@@ -114,7 +126,7 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
   {
     auto pyErr = get_py_exception();
     auto msg = format("Python module: {} was successfully loaded, but the defintion "
-                      "of the main class {} could not be loaded. Ensure that the "
+                      "of the slave class {} could not be loaded. Ensure that the "
                       "specified module contains a definition of the class. Python error was:\n{}\n",
                       module_name, main_class, pyErr);
     logger->fatal("wrapper", msg);
@@ -127,21 +139,24 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
   // pass logging function to python slave
   // since the callback must be a free function, we need to somehow pass a pointer to the concrete logger instance
   // for this we use "capsules" which allow opaque pointers to be passed between modules.
-  PyMethodDef pCallbackDef = {
+  
+
+  pCallbackDef = {
     "logCallback",
     logCallback,
-    METH_VARARGS,
+    METH_VARARGS | METH_KEYWORDS,
     ""};
   
+
   auto loggerCapsule = PyCapsule_New(logger,nullptr,nullptr);
-  auto pCallbackFunc = PyCFunction_New(&pCallbackDef,loggerCapsule);
+  pCallbackFunc = PyCFunction_New(&pCallbackDef,loggerCapsule);
   //auto f = PyObject_CallMethod(pInstance_, "_register_log_callback", "(O)", pCallbackFunc);
 
   //PyObject* PyObject_Call(PyObject *callable, PyObject *args, PyObject *kwargs) https://docs.python.org/3/c-api/object.html
   
   auto args = Py_BuildValue("()");
   auto kwargs = Py_BuildValue("{s:O}","logging_callback", pCallbackFunc);
-  kwargs = Py_BuildValue("{}"); 
+  //kwargs = Py_BuildValue("{}"); 
   
 
 
@@ -206,7 +221,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(lo
   {
     config = read_configuration(config_path, logger);
 
-    logger->ok("wrapper", "successfully read configuration file, specifying the following: main script is: {} and main class is: {}", config.main_script, config.main_class);
+    logger->ok("wrapper", "successfully read configuration file, specifying the following: slave script is: {} and slave class is: {}", config.main_script, config.main_class);
   }
   catch (const exception &e)
   {
@@ -214,7 +229,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(lo
     throw;
   }
 
-  logger->ok("wrapper", "Attempting to instantiate main class : {} declared in module {} which is defined by the script : {}", config.main_class, config.module_name, config.main_script);
+  logger->ok("wrapper", "Attempting to instantiate slave class : {} declared in module {} which is defined by the script : {}", config.main_class, config.module_name, config.main_script);
 
   try
   {
@@ -222,7 +237,7 @@ PyObjectWrapper::PyObjectWrapper(path resource_path, Logger *logger) : logger(lo
   }
   catch (const exception &e)
   {
-    logger->fatal("wrapper", "Instantiation of main class failed with exception : {}", e.what());
+    logger->fatal("wrapper", "Instantiation of slave class failed with exception : {}", e.what());
     throw;
   }
 }
