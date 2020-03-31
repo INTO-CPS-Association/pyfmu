@@ -5,7 +5,7 @@ from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes,
 
 class SineGenerator(Fmi2Slave):
 
-    def __init__(self,*args,**kwargs):
+    def __init__(self, *args, **kwargs):
 
         author = ""
         modelName = "SineGenerator"

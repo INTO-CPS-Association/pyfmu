@@ -3,7 +3,7 @@ from fmpy.ssp.simulation import simulate_ssp
 from pyfmu.tests import ExampleSystem
 
 
-def test_sumOfSines():
+def disable_test_sumOfSines():
     """Sum of two sine waves
     """
     with ExampleSystem('SumOfSines') as s:
