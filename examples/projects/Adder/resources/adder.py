@@ -3,7 +3,7 @@ from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes,
 
 class Adder(Fmi2Slave):
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         author = ""
         modelName = "Adder"
@@ -13,7 +13,9 @@ class Adder(Fmi2Slave):
             modelName=modelName,
             author=author,
             description=description,
-            **kwargs)
+            *args,
+            **kwargs
+            )
 
         self.register_variable("s", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
         self.register_variable("a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0)

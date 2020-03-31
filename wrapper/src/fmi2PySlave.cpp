@@ -366,7 +366,7 @@ fmi2Status PyObjectWrapper::getString(const fmi2ValueReference *vr, std::size_t 
   auto convertFunc =  [](PyObject* obj) -> fmi2String {
     return pyfmu::pyCompat::PyUnicode_AsUTF8(obj);
   };
-  auto status = InvokeFmiGetXXXFunction<fmi2String>(PYFMU_FMI2SLAVE_GETREAL,buildFunc,convertFunc,vr,nvr,values);
+  auto status = InvokeFmiGetXXXFunction<fmi2String>(PYFMU_FMI2SLAVE_GETSTRING,buildFunc,convertFunc,vr,nvr,values);
   return status;
 }
 

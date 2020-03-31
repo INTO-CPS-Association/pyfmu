@@ -2,7 +2,7 @@ from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality, Fmi2Variability,Fmi2DataTypes,Fm
 
 class ConstantSignalGenerator(Fmi2Slave):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         
         author = ""
         modelName = "ConstantSignalGenerator"
@@ -11,7 +11,10 @@ class ConstantSignalGenerator(Fmi2Slave):
         super().__init__(
             modelName=modelName,
             author=author,
-            description=description)
+            description=description
+            *args,
+            **kwargs
+            )
 
 
         self.register_variable("y",data_type=Fmi2DataTypes.real,causality=Fmi2Causality.output)

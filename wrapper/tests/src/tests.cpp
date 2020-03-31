@@ -203,7 +203,7 @@ TEST_CASE("PyObjectWrapper")
       fmi2String get_vals[] = {0};
       s = fmi2GetString(c,get_refs,1,get_vals);
       REQUIRE(s == fmi2OK);
-      REQUIRE(get_vals[0] == "hello world!");
+      REQUIRE(string(get_vals[0]) == "hello world!");
     }
     
     

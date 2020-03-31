@@ -2,7 +2,7 @@ from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality,Fmi2Status,Fmi2Variability,Fmi2Da
 
 class FmiTypes(Fmi2Slave):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         
         author = "Christian Møldrup Legaard"
         modelName = "FmiTypes"
@@ -11,7 +11,10 @@ class FmiTypes(Fmi2Slave):
         super().__init__(
             modelName=modelName,
             author=author,
-            description=description)
+            description=description,
+            *args,
+            **kwargs
+            )
 
         # Inputs, outputs and parameters may be defined using the 'register_variable' function
         self.register_variable("real_in",'real','input')
@@ -30,7 +33,7 @@ class FmiTypes(Fmi2Slave):
         self.boolean_out = self.boolean_in
         self.string_out = self.string_in
 
-    # functions may be overwridden
+    # functions may be overridden
     def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
         self._update()
 
