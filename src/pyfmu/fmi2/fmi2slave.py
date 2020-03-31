@@ -39,6 +39,7 @@ class Fmi2Slave:
                  version="",
                  description="",
                  logging_callback = None,
+                 logging_stdout = False,
                  standard_log_categories=True,
                  enable_fmi_call_logging=True,
                  add_logging_override_param=True):
@@ -69,12 +70,17 @@ class Fmi2Slave:
 
 
         if(logging_callback): 
-            self.logger = Fmi2CallbackLogger(logging_callback)
+            self.logger = Fmi2CallbackLogger(logging_callback, logging_stdout)
+
+            self._set_debug_logging(True,["logAll"]) # TODO remove
+            self.logger.register_all_standard_categories()
+
+            self.log("Callback successfully passed to slave",_internal_log_catergory)
         else:
             self.logger = Fmi2NullLogger()
 
         if(standard_log_categories):
-            self.logger.register_all_standard_categories()
+                self.logger.register_all_standard_categories()
 
         if(enable_fmi_call_logging):
             self.logger.register_log_category(_internal_log_catergory)
@@ -574,7 +580,7 @@ class Fmi2Slave:
 
         ```
         """
-        self.logger.set_active_log_categories(logging_on, categories)
+        self.logger.set_debug_logging(logging_on,categories)
 
     def _get_xxx(self, vrs, values, data_type: Fmi2DataTypes):
 
@@ -707,6 +713,7 @@ class Fmi2Slave:
         """
 
         if(not callable(f)):
+            self.log("Whoops",Fmi2Status.error)
             raise TypeError(
                 f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
 

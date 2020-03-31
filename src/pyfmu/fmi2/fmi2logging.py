@@ -255,13 +255,19 @@ class Fmi2CallbackLogger(Fmi2LoggerBase):
     """Class implementing the FMI2 logging system by providing methods to register and enable specific categories.
     """
 
-    def __init__(self, callback):
+    def __init__(self, callback, log_stdout = False):
 
-        super.__init__()
+        super().__init__()
         self._callback = callback
+        self._log_stdout = log_stdout
+
         
 
     def _do_log(self, status, category, message):
+        
+        if(self._log_stdout):
+            print(status,category,message)
+
         self._callback(status.value,category,message)
 
 class Fmi2NullLogger(Fmi2LoggerBase):

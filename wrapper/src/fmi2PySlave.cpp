@@ -47,7 +47,7 @@ static PyObject* logCallback(PyObject* self, PyObject* args)
   const char* category;
 
   int s = PyArg_Parse(args,"(iss)",&status,&category,&message);
-
+  
   if(s == 0)
   {
     logger->warning("Logger callback called, but wrapper was unable to parse arguments : {}.", get_py_exception());
@@ -121,18 +121,8 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
     throw runtime_error(msg);
   }
 
+
   logger->ok("wrapper", "Definition of class {} was successfully read, attempting create an instance.", main_class);
-  //PyObject* PyObject_Call(PyObject *callable, PyObject *args, PyObject *kwargs) https://docs.python.org/3/c-api/object.html
-  pInstance_ = PyObject_CallFunctionObjArgs(pClass_, nullptr);
-
-  if (pInstance_ == nullptr)
-  {
-    auto pyErr = get_py_exception();
-    auto msg = format("Failed to instantiate class: {}, ensure that the Python script is valid and that defines a parameterless constructor. Python error was:\n{}\n", main_class, pyErr);
-    logger->fatal("wrapper", msg);
-    throw runtime_error(msg);
-  }
-
 
   // pass logging function to python slave
   // since the callback must be a free function, we need to somehow pass a pointer to the concrete logger instance
@@ -145,14 +135,37 @@ void PyObjectWrapper::instantiate_main_class(string module_name,
   
   auto loggerCapsule = PyCapsule_New(logger,nullptr,nullptr);
   auto pCallbackFunc = PyCFunction_New(&pCallbackDef,loggerCapsule);
-  auto f = PyObject_CallMethod(pInstance_, "_register_log_callback", "(O)", pCallbackFunc);
+  //auto f = PyObject_CallMethod(pInstance_, "_register_log_callback", "(O)", pCallbackFunc);
 
-  if(f == nullptr)
+  //PyObject* PyObject_Call(PyObject *callable, PyObject *args, PyObject *kwargs) https://docs.python.org/3/c-api/object.html
+  
+  auto args = Py_BuildValue("()");
+  auto kwargs = Py_BuildValue("{s:O}","logging_callback", pCallbackFunc);
+  kwargs = Py_BuildValue("{}"); 
+  
+
+
+  pInstance_ = PyObject_Call(pClass_, args, kwargs);
+
+  //pInstance_ = PyObject_CallFunctionObjArgs(pClass_, nullptr);
+
+  if (pInstance_ == nullptr)
   {
-    string msg = fmt::format("wrapper", "Failed to register callback for logging. An exception was thrown in Python: {}", get_py_exception());
-    logger->error(PYFMU_WRAPPER_LOG_CATEGORY,msg);
+    auto pyErr = get_py_exception();
+    auto msg = format("Failed to instantiate class: {}, ensure that the Python script is valid and that defines a parameterless constructor. Python error was:\n{}\n", main_class, pyErr);
+    logger->fatal("wrapper", msg);
     throw runtime_error(msg);
   }
+
+
+
+
+  // if(f == nullptr)
+  // {
+  //   string msg = fmt::format("wrapper", "Failed to register callback for logging. An exception was thrown in Python: {}", get_py_exception());
+  //   logger->error(PYFMU_WRAPPER_LOG_CATEGORY,msg);
+  //   throw runtime_error(msg);
+  // }
   
   logger->ok("wrapper", "Successfully created an instance of class: {} defined in module: {}", main_class, module_name);
 }
@@ -357,7 +370,7 @@ fmi2Status PyObjectWrapper::setDebugLogging(fmi2Boolean loggingOn, size_t nCateg
       return fmi2Error;
     }
   }
-
+  auto err = get_py_exception();
   auto status = InvokeFmiOnSlave(PYFMU_FMI2SLAVE_SETDEBUGLOGGING, "(iO)", loggingOn, py_categories);
   Py_DECREF(py_categories);
 

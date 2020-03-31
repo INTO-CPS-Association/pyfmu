@@ -101,11 +101,14 @@ private:
     fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args... args) const
     {
 
+        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,"Calling {}",name);
+
         PyObject *f = PyObject_CallMethod(pInstance_, name.c_str(), formatStr.c_str(), args...);
         
         if (f == nullptr)
         {
-            logger->fatal(PYFMU_WRAPPER_LOG_CATEGORY, "call to {} failed with exception : {}", name, get_py_exception());
+            auto err = get_py_exception();
+            logger->fatal(PYFMU_WRAPPER_LOG_CATEGORY, "call to {} failed with exception : {}", name, err);
             return fmi2Fatal;
         }
         long ls = PyLong_AsLong(f);
@@ -114,7 +117,7 @@ private:
         {
             logger->fatal(
                 PYFMU_WRAPPER_LOG_CATEGORY,
-                "call to {} was succesfull, but return value could not be converted into an long as expected : {}",
+                "call to {} was successful, but return value could not be converted into an long as expected : {}",
                 name,
                 get_py_exception());
 
@@ -125,7 +128,7 @@ private:
         {
             logger->fatal(
                 PYFMU_WRAPPER_LOG_CATEGORY,
-                "call to setupExperiment was succesfull, return value was : {} a long as expected, but does not match any fmi2Status",
+                "call to setupExperiment was successful, return value was : {} a long as expected, but does not match any fmi2Status",
                 ls);
             return fmi2Fatal;
         }
