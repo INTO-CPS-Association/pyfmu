@@ -34,6 +34,8 @@ using namespace filesystem;
 
 bool loggingOn_ = false;
 
+void noOpsLogCallback(fmi2ComponentEnvironment,fmi2String,fmi2Status,fmi2String,fmi2String,...){}
+
 fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                               fmi2String fmuGUID,
                               fmi2String fmuResourceLocation,
@@ -51,8 +53,7 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   }
   else
   {
-    logger = new Logger(functions->componentEnvironment, functions->logger, instanceName);
-    //TODO implement no-ops logger
+    logger = new Logger(functions->componentEnvironment, noOpsLogCallback, instanceName);
   }
 
   if (!Py_IsInitialized())
@@ -72,7 +73,7 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   std::string home_str = ws2s(std::wstring(home));
   std::string path_str = ws2s(std::wstring(path));
 
-  logger->ok("wrapper", "Python interpreter sucessfully initialized, Python home is : {}, Python path is : {}", home_str, path_str);
+  logger->ok("wrapper", "Python interpreter successfully initialized, Python home is : {}, Python path is : {}", home_str, path_str);
 
   logger->ok("wrapper", "Starting initialization of FMU, attempting to parse URI pointing to the FMUs resource directory");
 
@@ -80,7 +81,7 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   try
   {
     resourcesPath = getPathFromFileUri(fmuResourceLocation);
-    logger->ok("wrapper", "Sucessfully parsed the resource folder URI pointing to : {}", resourcesPath.string());
+    logger->ok("wrapper", "Successfully parsed the resource folder URI pointing to : {}", resourcesPath.string());
   }
   catch (const std::exception &)
   {

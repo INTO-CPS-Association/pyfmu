@@ -52,7 +52,7 @@ pyfmu generate --path /someDir/Adder
 ```
 
 This generates an empty project containing the necessary resources and configuration files.
-By default a template of the main class is generated. In this case a file *adder.py* defining the class *Adder* is created.
+By default a template of the slave class is generated. In this case a file *adder.py* defining the class *Adder* is created.
 
 This subclasses the Fmi2Slave class which provides the methods necessary to define the FMU.
 ``` Python

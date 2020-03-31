@@ -65,10 +65,10 @@ This will generate a new project containing two files and a directory:
 - pyfmu
 
 For now we concentrate on the file *adder.py* which contains the definition for the class *Adder*.
-The script is referred to as the *main script* and class defined within it the *main class*.
-When the FMU is instantiated the main class serves as an implementation of the FMU.
+The script is referred to as the *slave script* and class defined within it the *slave class*.
+When the FMU is instantiated the slave class serves as an implementation of the FMU.
 
-By default the generate command creates a template of the main class which must be filled out. 
+By default the generate command creates a template of the slave class which must be filled out. 
   
 .. code-block:: Python
 

@@ -4,6 +4,7 @@
 #include <string>
 #include <ostream>
 #include <optional>
+#include <regex>
 
 #include <Python.h>
 #include <fmt/format.h>

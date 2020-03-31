@@ -193,7 +193,7 @@ def _copy_sources_to_archive(project: PyfmuProject, archive: PyfmuArchive) -> Py
 
     In this case source files refer to files written by the developer.
 
-    NOTE: Currently this only copies main script.
+    NOTE: Currently this only copies slave script.
 
     Arguments:
         project {PyfmuProject} -- [description]
@@ -204,7 +204,7 @@ def _copy_sources_to_archive(project: PyfmuProject, archive: PyfmuArchive) -> Py
 
     if(not main_script_found):
         raise RuntimeError(
-            f'main script: {project.main_script} was not found inside project: {project.root}')
+            f'slave script: {project.main_script} was not found inside project: {project.root}')
 
     archive_main_script_path = archive.root / 'resources' / archive.main_script
 
@@ -306,7 +306,7 @@ def _instantiate_main_class(main_script_path: str, main_class: str):
         main_class_instance = main_class_ctor()
     except Exception as e:
         raise RuntimeError(
-            f"Failed generating model description, The construtor of the main class threw an exception. Ensure that the script defines a parameterless constructor. Error message was: {repr(e)}") from e
+            f"Failed generating model description, The construtor of the slave class threw an exception. Ensure that the script defines a parameterless constructor. Error message was: {repr(e)}") from e
 
     return main_class_instance
 

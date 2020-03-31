@@ -1,20 +1,19 @@
-import sys
 import multiprocessing as mp
 import multiprocessing
 from math import sin
 
-from pyqtgraph.Qt import QtGui, QtCore
+from pyqtgraph.Qt import QtGui
 from pyqtgraph import time
 import numpy as np
 import pyqtgraph as pg
 
 
-from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality, Fmi2Variability,Fmi2DataTypes,Fmi2Initial
+from pyfmu.fmi2 import Fmi2Slave
 
 
 class LivePlotting(Fmi2Slave):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
 
         author = ""
         modelName = "LivePlotting"
@@ -23,7 +22,10 @@ class LivePlotting(Fmi2Slave):
         super().__init__(
             modelName=modelName,
             author=author,
-            description=description)
+            description=description,
+            *args,
+            **kwargs
+        )
 
         self.x0 = 0
         self.y0 = 0
@@ -42,15 +44,6 @@ class LivePlotting(Fmi2Slave):
         self.register_variable('ts', 'real', 'parameter', 'fixed',
                                start=-1, description='simulation time between refresh.')
 
-        # Qt application must run on main thread.
-        # We start a new process to ensure this.
-        # Samples are shared through a buffer
-        ctx = mp.get_context('spawn')
-        self.q = ctx.Queue()
-        self.plot_process = ctx.Process(
-            target=LivePlotting._draw_process_func, args=(self.q,))
-        self._running = True
-
     def terminate(self):
 
         if(not self._running):
@@ -61,21 +54,30 @@ class LivePlotting(Fmi2Slave):
         self.q.put(None)
         try:
             self.plot_process.join()
-        except Exception as _:
+        except Exception:
             pass
-        
 
     def __del__(self):
         if(self._running):
             self.terminate()
 
-   
+    def enter_initialization_mode(self):
+
+        # Qt application must run on main thread.
+        # We start a new process to ensure this.
+        # Samples are shared through a buffer
+        ctx = mp.get_context('spawn')
+        self.q = ctx.Queue()
+        self.plot_process = ctx.Process(
+            target=LivePlotting._draw_process_func, args=(self.q,))
+        self._lastSimTime = 0
 
     def exit_initialization_mode(self):
-        self._lastSimTime = 0
+
+        self._running = True
         self.plot_process.start()
 
-    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
+    def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
 
         time_downsampling = (self.ts != -1)
         if(time_downsampling):
@@ -117,12 +119,8 @@ class LivePlotting(Fmi2Slave):
                 return 0
 
             samples = np.vstack([samples, new_sample])
-            
-            #curve.setData(samples, pen='w',graph="width",symbolPen=(255,255,255))
-            curve.setData(samples, pen='w')
-            
 
-            
+            curve.setData(samples, pen='w')
 
             # performance metrics
             fps = None
@@ -136,11 +134,9 @@ class LivePlotting(Fmi2Slave):
                 fps = fps * (1-s) + (1.0/dt) * s
 
             fps_str = f'fps: {int(fps)}, samples : {len(samples)}'
-            #p1.setTitle('%0.2f fps' % fps)
             p1.setTitle(fps_str)
 
             app.processEvents()
-
 
 
 if __name__ == "__main__":
@@ -156,7 +152,7 @@ if __name__ == "__main__":
     for i in range(n):
         fmu.x0 = i
         fmu.y0 = sin(i*ts)
-        fmu.do_step(i*ts, ts,True)
+        fmu.do_step(i*ts, ts, True)
 
     fmu.terminate()
 
