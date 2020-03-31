@@ -36,7 +36,17 @@ path getPathFromFileUri(string uri)
     throw runtime_error(format("Unable to parse URI string : {}. Ensure that the uri is valid.", uri));
   }
 
+  size_t scheme_len = uri_s.scheme.afterLast -uri_s.scheme.first;
+  std::string scheme(uri_s.scheme.first,scheme_len);
+
+  if(scheme != "file")
+  {
+    uriFreeUriMembersA(&uri_s);
+    throw runtime_error(format("Unable to parse URI string: {}, only file-URI's are supported",uri));
+  }
+  
   uriFreeUriMembersA(&uri_s);
+
 
 #ifdef WIN32
   const size_t bytesNeeded = uri.length() + 1;
@@ -57,7 +67,6 @@ path getPathFromFileUri(string uri)
     delete[] absUri;
     throw runtime_error("Failed to parse extract host specific path from URI.");
   }
-
   path p = weakly_canonical(path(absUri));
   delete[] absUri;
 
