@@ -30,7 +30,7 @@ class Fmi2StdLogCats(Enum):
 
 class Fmi2LoggerBase(ABC):
 
-    
+
     def __init__(self):
 
         self._categories_to_predicates = {}
@@ -50,7 +50,7 @@ class Fmi2LoggerBase(ABC):
             self.log(Fmi2Status.warning, _internal_log_catergory, msg)
             return Fmi2Status.warning
 
-        
+
         if(len(categories) == 0):
             msg = "Failed setting debug categories, list of categories is empty."
             self.log(Fmi2Status.warning, _internal_log_catergory, msg)
@@ -134,22 +134,22 @@ class Fmi2LoggerBase(ABC):
 
         if(status not in statusArgs_to_category):
             raise RuntimeError(f"Unrecognized status: {status}, valid options are : {statusArgs_to_category.keys()}")
-        
+
         status = statusArgs_to_category[status]
 
         if(category is None):
             category = _default_category
-            
+
         msg = (status, category, message)
-        
+
         # log only for the active categories
         activate_categories_to_predicates = { c:p for c,p in self._categories_to_predicates.items() if c in self._active_categories}
 
         # an message should be logged if a predicate exists which matches it.
         for p in activate_categories_to_predicates.values():
-            
+
             if(p(status,category,message) == True):
-                
+
                 self._do_log(status, category, message)
                 break
 
@@ -157,7 +157,24 @@ class Fmi2LoggerBase(ABC):
         pass
 
     def register_standard_categories(self, categories: Iterable[str]) -> None:
+        """Registers the standard log categories defined by FMI2.
 
+        Arguments:
+            categories {Iterable[str]} -- A list of standard categories register.
+            Possible values are:
+            * logEvents
+            * logNonlinearSystems
+            * logNonlinearSystems
+            * logDynamicStateSelection,
+            * logStatusWarning
+            * logStatusDiscard
+            * logStatusError
+            * logStatusFatal
+            * logStatusPending
+            * logAll
+
+        See 2.2.4 p.42 for reference
+        """
         try:
             categories = set(categories)
         except Exception as e:
@@ -230,7 +247,7 @@ class Fmi2LoggerBase(ABC):
             "logNonlinearSystems",
             "logDynamicStateSelection",
             "logStatusWarning",
-            "logStatusWarning",
+            "logStatusDiscard",
             "logStatusError",
             "logStatusFatal",
             "logStatusPending",
@@ -260,10 +277,10 @@ class Fmi2CallbackLogger(Fmi2LoggerBase):
         self._callback = callback
         self._log_stdout = log_stdout
 
-        
+
 
     def _do_log(self, status, category, message):
-        
+
         if(self._log_stdout):
             print(status,category,message)
 
@@ -275,7 +292,7 @@ class Fmi2CallbackLogger(Fmi2LoggerBase):
         self._callback(status.value,category,message)
 
 class Fmi2NullLogger(Fmi2LoggerBase):
-    
+
     def __init__(self):
         super().__init__()
 

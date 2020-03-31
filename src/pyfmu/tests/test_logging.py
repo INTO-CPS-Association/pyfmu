@@ -1,4 +1,4 @@
-from pyfmu.fmi2 import Fmi2CallbackLogger, Fmi2StdLogCats, Fmi2Status, Fmi2Slave
+from pyfmu.fmi2 import Fmi2CallbackLogger, Fmi2Status
 
 
 def test_categoryNotRegistered_notLogged():
@@ -116,12 +116,14 @@ def test_logSingularLinearSystems():
     def callback(s, c, m):
         nonlocal n
         n += 1
-    
+
     cs = ["logSingularLinearSystems"]
 
-    logger = Fmi2CallbackLogger()
+    logger = Fmi2CallbackLogger(callback)
     logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
+    logger.set_debug_logging(True, cs)
+
+    before = n
 
     # category aliases
     logger.log('test', category="SingularLinearSystem")
@@ -136,16 +138,24 @@ def test_logSingularLinearSystems():
     logger.log('test', status=Fmi2Status.fatal)
     logger.log('test', status=Fmi2Status.pending)
 
-    assert(len(logger))
+    assert n == before + 3
 
 
 def test_logNonLinearSystems():
 
+    n = 0
+
+    def callback(s, c, m):
+        nonlocal n
+        n += 1
+
     cs = ["logNonlinearSystems"]
 
-    logger = Fmi2CallbackLogger()
+    logger = Fmi2CallbackLogger(callback)
     logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
+    logger.set_debug_logging(True, cs)
+
+    before = n
 
     # category aliases
     logger.log('test', category="NonLinearSystems")
@@ -160,16 +170,24 @@ def test_logNonLinearSystems():
     logger.log('test', status=Fmi2Status.fatal)
     logger.log('test', status=Fmi2Status.pending)
 
-    assert(len(logger) == 3)
+    assert n == before + 3
 
 
 def test_logDynamicStateSelection():
 
+    n = 0
+
+    def callback(s, c, m):
+        nonlocal n
+        n += 1
+
     cs = ["logDynamicStateSelection"]
 
-    logger = Fmi2CallbackLogger()
+    logger = Fmi2CallbackLogger(callback)
     logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
+    logger.set_debug_logging(True, cs)
+
+    before = n
 
     logger.log('test', category="DynamicStateSelection")
     logger.log('test', category="dynamicstateselection")
@@ -182,195 +200,60 @@ def test_logDynamicStateSelection():
     logger.log('test', status=Fmi2Status.fatal)
     logger.log('test', status=Fmi2Status.pending)
 
-    assert(len(logger) == 3)
+    assert n == before + 3
 
 
-def test_logWarning():
+def test_statusLogLevels():
 
-    cs = ["logStatusWarning"]
+    n = 0
 
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
+    def callback(s, c, m):
+        print(f"{s}{c}{m}")
+        nonlocal n
+        n += 1
 
-    logger.log('test', status=Fmi2Status.ok)
-    assert(len(logger) == 0)
-    logger.log('test', status=Fmi2Status.warning)
-    assert(len(logger) == 1)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
-    assert(len(logger) == 1)
+    logger = Fmi2CallbackLogger(callback)
+    logger.register_all_standard_categories()
 
+    ces = {
+        ("logStatusWarning", Fmi2Status.warning),
+        ("logStatusDiscard", Fmi2Status.discard),
+        ("logStatusError", Fmi2Status.error),
+        ("logStatusFatal", Fmi2Status.fatal),
+        ("logStatusPending", Fmi2Status.pending)
+    }
 
-def test_logError():
+    for ce in ces:
+        c, s = ce
+        others = ces.difference({ce})
+        logger.set_debug_logging(True, [c])
 
-    cs = ["logStatusError"]
+        before = n
+        logger.log("", status=s)
+        assert n == before + 1
 
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
+        for co, so in others:
+            logger.log("", status=so)
 
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    assert(len(logger) == 0)
-    logger.log('test', status=Fmi2Status.error)
-    assert(len(logger) == 1)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
-    assert(len(logger) == 1)
-
-
-def test_logDiscard():
-
-    cs = ["logStatusDiscard"]
-
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
-
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    assert(len(logger) == 0)
-    logger.log('test', status=Fmi2Status.discard)
-    assert(len(logger) == 1)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
-    assert(len(logger) == 1)
-
-
-def test_logFatal():
-
-    cs = ["logStatusFatal"]
-
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
-
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    assert(len(logger) == 0)
-    logger.log('test', status=Fmi2Status.fatal)
-    assert(len(logger) == 1)
-    logger.log('test', status=Fmi2Status.pending)
-    assert(len(logger) == 1)
-
-
-def test_logPending():
-
-    cs = ["logStatusPending"]
-
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
-
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    assert(len(logger) == 0)
-    logger.log('test', status=Fmi2Status.pending)
-    assert(len(logger) == 1)
-
-
-def test_logAll():
-
-    cs = ["logAll"]
-
-    logger = Fmi2CallbackLogger()
-    logger.set_active_log_categories(True, cs)
-    logger.register_standard_categories(cs)
-
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
-
-    assert(len(logger) == 6)
-
-# defaults
+        assert n == before + 1
+        logger.set_debug_logging(False, [c])
 
 
 def test_logDefaultCategory_loggedWithEvent():
 
+    n = 0
+
+    def callback(s, c, m):
+        print(f"{s}{c}{m}")
+        nonlocal n
+        n += 1
+
     cs = ["logEvents"]
 
-    logger = Fmi2CallbackLogger()
+    logger = Fmi2CallbackLogger(callback)
     logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
+    logger.set_debug_logging(True, cs)
 
-    assert(len(logger) == 0)
+    before = n
     logger.log('test')
-    assert(len(logger) == 1)
-
-
-# message stack
-
-def test_len_logIncreasesLength():
-
-    cs = ["logAll"]
-
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
-
-    assert(len(logger) == 0)
-
-    logger.log('test')
-
-    assert(len(logger) == 1)
-
-    logger.log('test')
-
-    assert(len(logger) == 2)
-
-
-def test_len_popDecreasesLength():
-    cs = ["logAll"]
-
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
-
-    assert(len(logger) == 0)
-
-    logger.log('test')
-
-    assert(len(logger) == 1)
-
-    logger.log('test')
-
-    assert(len(logger) == 2)
-
-    logger.pop_messages(1)
-
-    assert(len(logger) == 1)
-
-    logger.pop_messages(1)
-
-    assert(len(logger) == 0)
-
-
-def test_pop_returnsMessagesFifo():
-
-    cs = ["logAll"]
-
-    logger = Fmi2CallbackLogger()
-    logger.register_standard_categories(cs)
-    logger.set_active_log_categories(True, cs)
-
-    logger.log("a")
-    logger.log("b")
-
-    messages = logger.pop_messages(2)
-    messages = [m.message for m in messages]
-
-    assert(messages == ['a', 'b'])
+    assert n == before + 1
