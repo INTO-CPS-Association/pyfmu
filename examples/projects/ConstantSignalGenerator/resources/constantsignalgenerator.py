@@ -11,7 +11,7 @@ class ConstantSignalGenerator(Fmi2Slave):
         super().__init__(
             modelName=modelName,
             author=author,
-            description=description
+            description=description,
             *args,
             **kwargs
             )
