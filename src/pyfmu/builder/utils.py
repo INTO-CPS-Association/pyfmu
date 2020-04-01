@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 from os.path import dirname, isdir, isfile, join, normpath
 import subprocess
+import platform
 
 
 def zipdir(inDir: str, outDir: str):
@@ -27,6 +28,10 @@ def rm(path):
         p {Path} -- path to a directory or a file
     """
 
+    if(platform.system() == "Windows"):
+        print("TODO FIX RM ON WINDOWS!")
+        return
+
     try:
         path = Path(path)
 
@@ -38,7 +43,8 @@ def rm(path):
             raise ValueError('path neither specifies a file nor a directory.')
 
     except Exception as e:
-        raise RuntimeError(f'Unable to remove file/directory: {path} and error was raised: {e}')
+        raise RuntimeError(
+            f'Unable to remove file/directory: {path} and error was raised: {e}')
 
 
 def compress(
@@ -68,7 +74,7 @@ def compress(
             base_name=base_name,
             format=fmt,
             root_dir=root_dir
-            )
+        )
         assert(name_of_archive.exists())
 
         if(extension is not None):

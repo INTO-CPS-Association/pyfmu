@@ -2,6 +2,7 @@ from os.path import dirname, join
 from tempfile import mkdtemp
 from shutil import rmtree, copytree
 from pathlib import Path
+import platform
 
 
 from pyfmu.builder import export_project, PyfmuProject, PyfmuArchive, compress, rm

@@ -20,7 +20,7 @@ setup(
     },
 
     install_requires=[
-        'Jinja2'
+        'Jinja2', 'lxml'
     ],
     extras_require={
 

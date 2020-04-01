@@ -44,9 +44,19 @@ class LivePlotting(Fmi2Slave):
         self.register_variable('ts', 'real', 'parameter', 'fixed',
                                start=-1, description='simulation time between refresh.')
 
+        # Qt application must run on main thread.
+        # We start a new process to ensure this.
+        # Samples are shared through a buffer
+        ctx = mp.get_context('spawn')
+        self.q = ctx.Queue()
+        self.plot_process = ctx.Process(
+            target=LivePlotting._draw_process_func, args=(self.q,))
+        self._lastSimTime = 0
+        self._running = False
+
     def terminate(self):
 
-        if(not self._running):
+        if(not self.plot_process.is_alive()):
             return
 
         # put sentinel object to indicate end of data
@@ -58,19 +68,7 @@ class LivePlotting(Fmi2Slave):
             pass
 
     def __del__(self):
-        if(self._running):
-            self.terminate()
-
-    def enter_initialization_mode(self):
-
-        # Qt application must run on main thread.
-        # We start a new process to ensure this.
-        # Samples are shared through a buffer
-        ctx = mp.get_context('spawn')
-        self.q = ctx.Queue()
-        self.plot_process = ctx.Process(
-            target=LivePlotting._draw_process_func, args=(self.q,))
-        self._lastSimTime = 0
+        self.terminate()
 
     def exit_initialization_mode(self):
 
@@ -156,4 +154,4 @@ if __name__ == "__main__":
 
     fmu.terminate()
 
-    fmu.plot_process.join()
+    # fmu.plot_process.join()
