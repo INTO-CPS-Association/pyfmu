@@ -5,7 +5,7 @@ class FmiTypes(Fmi2Slave):
 
     def __init__(self, *args, **kwargs):
 
-        author = "Christian Moeldrup Legaard"
+        author = "Christian Møldrup Legaard"
         modelName = "FmiTypes"
         description = "FMU for testing different FMI types"
 
