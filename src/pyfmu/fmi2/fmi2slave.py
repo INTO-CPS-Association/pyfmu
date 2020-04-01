@@ -31,16 +31,16 @@ _invalid_external_call_status = Fmi2Status.fatal
 
 
 class Fmi2Slave:
-    
+
     def __init__(self,
                  modelName: str,
                  author="",
                  copyright="",
                  version="",
                  description="",
-                 logging_callback = None,
-                 logging_logAll = False,
-                 logging_stdout = False,
+                 logging_callback=None,
+                 logging_logAll=False,
+                 logging_stdout=False,
                  logging_add_standard_categories=True,
                  logging_slave_fmi_calls=True
                  ):
@@ -68,20 +68,18 @@ class Fmi2Slave:
         self.version = version
         self.value_reference_counter = 0
         self.used_value_references = {}
-
-
-        if(logging_callback): 
+        if(logging_callback):
             self.logger = Fmi2CallbackLogger(logging_callback, logging_stdout)
         else:
             self.logger = Fmi2NullLogger()
-        
 
         if(logging_add_standard_categories):
-                self.logger.register_all_standard_categories()
+            self.logger.register_all_standard_categories()
 
         if(logging_slave_fmi_calls):
             self.logger.register_log_category(_internal_log_catergory)
-            self.logger.log('FMI call logging enabled, all fmi calls will be logged', _internal_log_catergory)
+            self.logger.log(
+                'FMI call logging enabled, all fmi calls will be logged', _internal_log_catergory)
 
         self._configure()
 
@@ -576,7 +574,7 @@ class Fmi2Slave:
 
         ```
         """
-        self.logger.set_debug_logging(logging_on,categories)
+        self.logger.set_debug_logging(logging_on, categories)
 
     def _get_xxx(self, vrs, values, data_type: Fmi2DataTypes):
 
@@ -709,7 +707,7 @@ class Fmi2Slave:
         """
 
         if(not callable(f)):
-            self.log("Whoops",Fmi2Status.error)
+            self.log("Whoops", Fmi2Status.error)
             raise TypeError(
                 f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
 
@@ -750,7 +748,6 @@ class Fmi2Slave:
     def _define_variable(self, sv: Fmi2ScalarVariable):
 
         if(not hasattr(self, sv.name)):
-            log.debug(f'adding')
 
             setattr(self, sv.name, sv.start)
             return
@@ -760,8 +757,10 @@ class Fmi2Slave:
             new = sv.start
 
             if(old != new):
-                log.warning(
-                    "start value variable defined using the 'register_variable' function does not match initial value")
+                self.log(
+                    f"start value variable defined using the 'register_variable' function does not match initial value, using the new value: {new}",
+                    _internal_log_catergory,
+                    Fmi2Status.warning)
                 setattr(self, sv.name, new)
 
     # Logging

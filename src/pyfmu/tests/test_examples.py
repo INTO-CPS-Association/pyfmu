@@ -9,9 +9,7 @@ import pytest
 from fmpy.simulation import simulate_fmu, FMU2Slave
 from fmpy.model_description import read_model_description
 
-from pyfmu.tests import get_all_examples, get_correct_examples, get_incorrect_examples, ExampleArchive
-from pyfmu.resources import Resources
-
+from pyfmu.tests import get_all_examples, get_correct_examples, ExampleArchive
 
 
 def test_shared_library_can_be_loaded():
@@ -27,11 +25,68 @@ def test_shared_library_can_be_loaded():
             elif(sys == 'Linux'):
                 p = archive.wrapper_linux64
             else:
-                raise NotImplementedError(f'Not implemented for platform {sys}')
+                raise NotImplementedError(
+                    f'Not implemented for platform {sys}')
 
             p = str(p.resolve())
 
             cdll.LoadLibrary(p)
+
+
+def test_Adder():
+    with ExampleArchive("Adder") as a:
+
+        p = str(a.root.resolve())
+
+        simulate_fmu(p)
+
+
+def test_BicycleKinematic():
+    with ExampleArchive("BicycleKinematic") as a:
+
+        p = str(a.root.resolve())
+
+        simulate_fmu(p)
+
+
+def test_ConstantSignalGenerator():
+    with ExampleArchive("ConstantSignalGenerator") as a:
+
+        p = str(a.root.resolve())
+
+        simulate_fmu(p)
+
+
+def test_FmiTypes():
+    with ExampleArchive("FmiTypes") as a:
+
+        p = str(a.root.resolve())
+
+        simulate_fmu(p)
+
+
+def test_LivePlotting():
+    with ExampleArchive("LivePlotting") as a:
+
+        p = str(a.root.resolve())
+
+        simulate_fmu(p)
+
+
+def test_LoggerFMU():
+    with ExampleArchive("LoggerFMU") as a:
+
+        p = str(a.root.resolve())
+
+        simulate_fmu(p)
+
+
+def test_SineGenerator():
+    with ExampleArchive("SineGenerator") as a:
+
+        p = str(a.root.resolve())
+
+        simulate_fmu(p)
 
 
 def test_singleInstantiation_canSimulate():
@@ -59,7 +114,6 @@ def test_multipleExports_canSimulate():
             simulate_fmu(path)
 
 
-
 def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
 
     for idx, pname in enumerate(get_correct_examples()):
@@ -68,7 +122,7 @@ def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
 
             print(archive.model_description)
             # seems like fmpy does not accept Path objects
-            path = str(archive.root)
+            # path = str(archive.root)
 
             md = read_model_description(str(archive.root))
 
@@ -153,36 +207,34 @@ def test_Adder():
         instance_a = 'a'
 
         fmu_a = FMU2Slave(guid=md_a.guid,
-                            unzipDirectory=a.root,
-                            modelIdentifier=md_a.coSimulation.modelIdentifier,
-                            instanceName=instance_a,
-                            fmiCallLogger=None)
-
+                          unzipDirectory=a.root,
+                          modelIdentifier=md_a.coSimulation.modelIdentifier,
+                          instanceName=instance_a,
+                          fmiCallLogger=None)
 
         fmu_a.instantiate()
         # set input a
-        fmu_a.setReal([1],[1])
+        fmu_a.setReal([1], [1])
         # set input b
-        fmu_a.setReal([2],[2])
+        fmu_a.setReal([2], [2])
 
-        fmu_a.doStep(0,1)
+        fmu_a.doStep(0, 1)
 
         # read output
         s = fmu_a.getReal([0])[0]
         assert s == 3
+
 
 def test_bicycle():
     with ExampleArchive('BicycleKinematic') as a:
 
         md_a = read_model_description(str(a.root))
 
-
         fmu_a = FMU2Slave(guid=md_a.guid,
-                            unzipDirectory=a.root,
-                            modelIdentifier=md_a.coSimulation.modelIdentifier,
-                            instanceName='a',
-                            fmiCallLogger=None)
+                          unzipDirectory=a.root,
+                          modelIdentifier=md_a.coSimulation.modelIdentifier,
+                          instanceName='a',
+                          fmiCallLogger=None)
 
         fmu_a.instantiate()
-        fmu_a.doStep(0,1)
-
+        fmu_a.doStep(0, 1)

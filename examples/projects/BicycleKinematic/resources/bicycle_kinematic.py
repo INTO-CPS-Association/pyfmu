@@ -2,7 +2,7 @@ from math import cos, sin, atan, tan
 
 from scipy.integrate import solve_ivp
 
-from pyfmu.fmi2 import Fmi2Slave,Fmi2Causality, Fmi2Variability,Fmi2DataTypes,Fmi2Initial, Fmi2Status
+from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
 
 
 class Bicycle_Kinematic(Fmi2Slave):
@@ -19,7 +19,7 @@ class Bicycle_Kinematic(Fmi2Slave):
             description=description,
             *args,
             **kwargs
-            )
+        )
 
         # silience incorrect warnings about undeclared variables
         self.a = 0
@@ -34,10 +34,9 @@ class Bicycle_Kinematic(Fmi2Slave):
 
         # model
         self.register_variable("a", "real", "input",
-                            description='acceleration',start=0)
+                               description='acceleration', start=0)
         self.register_variable("df", "real", "input",
-                               description='steering angle',start=0)
-
+                               description='steering angle', start=0)
 
         self.register_variable("x", "real", "output",
                                description='x position of the robot')
@@ -70,11 +69,10 @@ class Bicycle_Kinematic(Fmi2Slave):
         self.register_variable("v_r", "real", "input", start=0)
 
     @staticmethod
-    def _derivatives(t, state,params):
-        print(t)
-        df,a,lf,lr = params
+    def _derivatives(t, state, params):
+        df, a, lf, lr = params
 
-        _,_,psi,v = state
+        _, _, psi, v = state
 
         beta = atan((lr/(lr+lf)) * tan(df))
 
@@ -83,7 +81,7 @@ class Bicycle_Kinematic(Fmi2Slave):
         psi_d = (v / lr) * sin(beta)
         v_d = a
 
-        return [x_d,y_d,psi_d,v_d]
+        return [x_d, y_d, psi_d, v_d]
 
     def exit_initialization_mode(self):
         # outputs are have initial = calculated
@@ -92,17 +90,16 @@ class Bicycle_Kinematic(Fmi2Slave):
         self.psi = self.psi0
         self.v = self.v0
 
-    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
+    def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
 
-        #bundle the parameters in the function call
-        def fun(t,state):
-            params = (self.df,self.a,self.lf,self.lr)
-            return Bicycle_Kinematic._derivatives(t,state,params)
-            
+        # bundle the parameters in the function call
+        def fun(t, state):
+            params = (self.df, self.a, self.lf, self.lr)
+            return Bicycle_Kinematic._derivatives(t, state, params)
 
-        h0 = (self.x,self.y,self.psi,self.v)
+        h0 = (self.x, self.y, self.psi, self.v)
         end = current_time+step_size
-        t_span = (current_time,end)
+        t_span = (current_time, end)
 
         res = solve_ivp(
             fun,
@@ -110,8 +107,8 @@ class Bicycle_Kinematic(Fmi2Slave):
             h0,
             max_step=step_size,
             t_eval=[end])
-        
-        x,y,psi,v = tuple(res.y)
+
+        x, y, psi, v = tuple(res.y)
         self.x = x[0]
         self.y = y[0]
         self.psi = psi[0]
@@ -125,6 +122,6 @@ if __name__ == "__main__":
     model = Bicycle_Kinematic()
     model.v0 = 1
     model.exit_initialization_mode()
-    
-    model.do_step(0.0,1,True)
+
+    model.do_step(0.0, 1, True)
     test = 10
