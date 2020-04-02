@@ -199,6 +199,13 @@ private:
         std::size_t nvr,
         T *values) const
     {
+        
+        std::vector<fmi2ValueReference> vrArray(vr, vr + nvr);
+        std::vector<T> valuesArray(values, values + nvr);
+        logger->ok(
+            PYFMU_WRAPPER_LOG_CATEGORY,
+            "Calling {} with value references: {} and values: {}", getter_name, vrArray, valuesArray);
+        
         PyGIL g;
 
         PyObject *vrs = PyList_New(nvr);
@@ -211,8 +218,18 @@ private:
 
         auto status = InvokeFmiOnSlave(getter_name, "(OO)", vrs, refs);
 
+        vrArray = std::vector<fmi2ValueReference>(vr, vr + nvr);
+        valuesArray = std::vector<T>(values, values + nvr);
+        logger->ok(
+            PYFMU_WRAPPER_LOG_CATEGORY,
+            "Returned value references: {} and values: {}", vrArray, valuesArray);
+
         if (status > fmi2Discard)
         {
+            
+            logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,
+            "call executed but returned error: {}, with python exception: {}", status, get_py_exception());
+
             Py_DECREF(vrs);
             Py_DECREF(refs);
             return status;
@@ -224,7 +241,7 @@ private:
 
             if (value == nullptr)
             {
-                logger->fatal("wrapper", "call to getInterger failed, unable to convert to c-types, error : {}", get_py_exception());
+                logger->fatal("wrapper", "call executed and returned ok, but unable to convert results to appropriate c-types, python exception : {}", get_py_exception());
                 return fmi2Fatal;
             }
 

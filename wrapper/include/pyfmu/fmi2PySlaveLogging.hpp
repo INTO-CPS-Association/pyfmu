@@ -140,7 +140,7 @@ inline std::string get_py_exception()
   }
   else
   {
-    return "";
+    return "no exception found";
   }
 }
 

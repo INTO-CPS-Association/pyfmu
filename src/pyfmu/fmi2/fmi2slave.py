@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import os
 import sys
+from enum import Enum
 
 from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2CallbackLogger, Fmi2NullLogger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
@@ -23,11 +24,18 @@ _logging_override_name = "pyfmu_log_all_override"
 
 log = logging.getLogger('fmu')
 
-############### ERRONEOUS READING ###############
+############### ERRONEOUS ###############
+_uninitialized_variables_status = Fmi2Status.fatal
 _read_wrong_type_status = Fmi2Status.discard
 _invalid_fmi_invalid_arguments = Fmi2Status.error
 _invalid_return_type_status = Fmi2Status.error
 _invalid_external_call_status = Fmi2Status.fatal
+
+class _Fmi2SlaveErrorDefinitions(Enum):
+    """ Defines which FMI2 error codes should be raised in response to various inconsistencies
+    """
+    uninitialized_variables = Fmi2Status.fatal
+    internal_log_catergory = "fmi2slave"
 
 
 class Fmi2Slave:
@@ -42,7 +50,8 @@ class Fmi2Slave:
                  logging_logAll=False,
                  logging_stdout=False,
                  logging_add_standard_categories=True,
-                 logging_slave_fmi_calls=True
+                 logging_slave_fmi_calls=True,
+                 check_uninitialized_variables = True,
                  ):
         """Constructs a FMI2
 
@@ -68,6 +77,8 @@ class Fmi2Slave:
         self.version = version
         self.value_reference_counter = 0
         self.used_value_references = {}
+        self.check_uninitialized_variables = check_uninitialized_variables
+
         if(logging_callback):
             self.logger = Fmi2CallbackLogger(logging_callback, logging_stdout)
         else:
@@ -489,8 +500,16 @@ class Fmi2Slave:
         pass
 
     def _exit_initialization_mode(self):
+        status = self._do_fmi_call(self.exit_initialization_mode)
+        
+        if(self.check_uninitialized_variables):
+            status_check = self._do_check_variable_initialization()
 
-        return self._do_fmi_call(self.exit_initialization_mode)
+            if(status_check is not Fmi2Status.ok):
+                return status_check.value
+
+        # TODO return most severe
+        return status
 
     def exit_initialization_mode(self):
         pass
@@ -596,6 +615,9 @@ class Fmi2Slave:
         for i, vr in enumerate(vrs):
             var = self.vars[vr]
             if var.is_type(data_type):
+
+                v = getattr(self, var.name)
+                
                 values[i] = getattr(self, var.name)
             else:
                 self.log(f"Unable to get {t_name}, some references point to variables : {[self.vars[vr] for vr in vrs]} which are not {t_name}s.",
@@ -763,6 +785,28 @@ class Fmi2Slave:
                     Fmi2Status.warning)
                 setattr(self, sv.name, new)
 
+
+    def _do_check_variable_initialization(self) -> Fmi2Status:
+        """ Check if variables with initial "calculated" and "approx" are initialized correctly.
+        """
+    
+        missing = []
+        for var in self.vars:
+
+            if(getattr(self,var.name) is None):
+                missing.append(var)
+
+        if(len(missing) != 0):
+            self.log(
+                f"Some variables were left undefined after exit_initialization was called, variables are: {missing}",
+                _Fmi2SlaveErrorDefinitions.internal_log_catergory.value,
+                _Fmi2SlaveErrorDefinitions.uninitialized_variables.value
+                )
+            return _Fmi2SlaveErrorDefinitions.uninitialized_variables.value
+
+        else:
+            return Fmi2Status.ok
+
     # Logging
 
     def log(self, message: str, category=None, status=Fmi2Status.ok) -> None:
@@ -782,45 +826,6 @@ class Fmi2Slave:
         """
         self.logger.log(message, category, status)
 
-    def _get_log_size(self):
-        """Returns the number of log messages that are currently on the log stack.
-
-        Returns:
-            int -- [description]
-        """
-        return len(self.logger)
-
-    def _pop_log_messages(self, n: int):
-        """Function called by the wrapper to fetch log messages
-
-        Arguments:
-            n {int} -- Number of messages to fetch
-        """
-        if(n > len(self.logger)):
-            self.log(
-                f"Unable to pop messages. Requested number of log messages: {n}, is larger than the number currently available: {len(self.logger)}.")
-            return None
-
-        messages = self.logger.pop_messages(n)
-
-        # for convenience we convert the object into tuples
-        messages_tuples = [(m.status.value, m.category, m.message)
-                           for m in messages]
-
-        return messages_tuples
-
-    """Called by the wrapper to register a log callback function.
-    """
-
-    def _register_log_callback(self, callback):
-
-        print(f"callback registered {callback}")
-        t = (0, _internal_log_catergory, "log callback registered")
-        callback(0, _internal_log_catergory, "log callback registered")
-        # callback(t)
-        #args = (0,_internal_log_catergory,"log callback function registered")
-        # callback(args)
-        #self._log_callback = callback
 
     @property
     def available_categories(self):
