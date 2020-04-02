@@ -105,60 +105,6 @@ def _create_archive_directories(archive_path, exist_ok=True):
         raise RuntimeError("Failed to create archive directories")
 
 
-def _resources_to_archive(project_dir, builder_resources_dir, archive_dir):
-
-    # TODO ensure that binaries actually exist
-
-    # copy binaries / python wrapper into archive
-    builder_binaries_dir = join(builder_resources_dir, "wrapper", "binaries")
-    archive_binaries_dir = join(archive_dir, "binaries")
-    copytree(builder_binaries_dir, archive_binaries_dir)
-
-    # copy source files into archive
-    project_resources_dir = join(project_dir, "resources")
-    archive_resources_dir = join(archive_dir, "resources")
-    copytree(project_resources_dir, archive_resources_dir)
-
-
-def _copy_pyfmu_lib_to_archive(archive: PyfmuArchive, project: PyfmuProject = None) -> PyfmuArchive:
-    """ Copies the Python library into the archive.
-
-    If a project is not specified a 'clean' copy from the resources folder is used.
-    Otherwise, if a project is specified the library is copied from this folder instead.
-
-    Arguments:
-        archive {PyfmuArchive} -- The FMU
-
-    Keyword Arguments:
-        project {PyfmuProject} -- If specified, the potentially modified pyfmu library instead of one from the resources. (default: {None})
-    """
-
-    copy_from_resources = project is None
-
-    if(copy_from_resources):
-
-        lib_path = Resources.get().pyfmu_dir
-        err_msg = 'No directory named pyfmu was found in the resources directory, likely this has been deleted.'
-
-    else:
-        lib_path = project.root / 'resources' / 'pyfmu'
-        err_msg = "No directory named pyfmu was found in the projects resources. If the intention is to copy the 'local' library, ensure that is is present in the resources folder of the project. Otherwise, to use a clean copy omit specifying the project."
-
-    lib_exists = lib_path.is_dir()
-
-    if(not lib_exists):
-        raise RuntimeError(
-            f'Failed to copy the library to the archive. {err_msg}')
-
-    archive_lib_dir = archive.root / 'resources' / 'pyfmu'
-
-    copytree(lib_path, archive_lib_dir)
-
-    archive.pyfmu_dir = archive_lib_dir
-
-    return archive
-
-
 def _copy_binaries_to_archive(archive: PyfmuArchive) -> PyfmuArchive:
     """Copies the binaries to the archive.
 
@@ -183,7 +129,7 @@ def _copy_binaries_to_archive(archive: PyfmuArchive) -> PyfmuArchive:
     return archive
 
 
-def _copy_sources_to_archive(project: PyfmuProject, archive: PyfmuArchive) -> PyfmuArchive:
+def _copy_resources_to_archive(project: PyfmuProject, archive: PyfmuArchive) -> PyfmuArchive:
     """Copies the source files of the project into the archive.
 
     Note that that a distinction is made between source files and the pyfmu library.
@@ -210,7 +156,11 @@ def _copy_sources_to_archive(project: PyfmuProject, archive: PyfmuArchive) -> Py
     if(not archive_main_script_path.parent.is_dir()):
         makedirs(archive_main_script_path.parent)
 
-    copyfile(project.main_script_path, archive_main_script_path)
+    #copyfile(project.main_script_path, archive_main_script_path)
+    copy_tree(
+        str(project.resources_dir.resolve()),
+        str(archive.resources_dir.resolve())
+        )
 
     archive.main_script_path = archive_main_script_path
 
@@ -374,7 +324,7 @@ def export_project(project: PyfmuProject, outputPath: Path, overwrite=False, sto
     _write_slaveConfiguration_to_archive(project, archive)
 
     # copy source files to archive
-    _copy_sources_to_archive(project, archive)
+    _copy_resources_to_archive(project, archive)
 
     _copy_binaries_to_archive(archive)
 

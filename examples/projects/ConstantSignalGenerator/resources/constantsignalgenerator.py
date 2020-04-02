@@ -18,7 +18,7 @@ class ConstantSignalGenerator(Fmi2Slave):
 
 
         self.register_variable("y",data_type=Fmi2DataTypes.real,causality=Fmi2Causality.output)
-        self.register_variable("k",data_type=Fmi2DataTypes.real,causality=Fmi2Causality.parameter,variability=Fmi2Variability.fixed, start=0)
+        self.register_variable("k",data_type=Fmi2DataTypes.real,causality=Fmi2Causality.parameter,variability=Fmi2Variability.fixed, start=0.0)
 
 
     def exit_initialization_mode(self):

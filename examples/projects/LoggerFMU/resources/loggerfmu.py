@@ -20,9 +20,9 @@ class LoggerFMU(Fmi2Slave):
         self.register_variable(
             "s", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
         self.register_variable(
-            "a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0)
+            "a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0.0)
         self.register_variable(
-            "b", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0)
+            "b", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0.0)
 
     def exit_initialization_mode(self):
 
@@ -46,4 +46,4 @@ if __name__ == "__main__":
     fmu.exit_initialization_mode()
 
     size = fmu._get_log_size()
-    test = 10
+    test = 10.0

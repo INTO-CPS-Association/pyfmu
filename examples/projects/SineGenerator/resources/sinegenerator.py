@@ -19,9 +19,9 @@ class SineGenerator(Fmi2Slave):
             **kwargs
             )
 
-        self.register_variable("amplitude", 'real', 'parameter', 'fixed', start=1, description='amplitude of the sine wave')
-        self.register_variable("frequency", 'real', 'parameter', 'fixed', start=1, description='frequency of the sine wave')
-        self.register_variable("phase", 'real', 'parameter', 'fixed', start=0, description='phase of the sine wave')
+        self.register_variable("amplitude", 'real', 'parameter', 'fixed', start=1.0, description='amplitude of the sine wave')
+        self.register_variable("frequency", 'real', 'parameter', 'fixed', start=1.0, description='frequency of the sine wave')
+        self.register_variable("phase", 'real', 'parameter', 'fixed', start=0.0, description='phase of the sine wave')
         self.register_variable("y", 'real', 'output',description='output of the generator')
 
     def setup_experiment(self, start_time, stop_time, tolerance):

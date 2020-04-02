@@ -22,21 +22,21 @@ class Bicycle_Kinematic(Fmi2Slave):
         )
 
         # silience incorrect warnings about undeclared variables
-        self.a = 0
-        self.df = 0
-        self.x = 0
-        self.y = 0
-        self.v = 0
-        self.psi = 0
-        self.beta = 0
-        self.lf = 1
-        self.lr = 1
+        self.a = 0.0
+        self.df = 0.0
+        self.x = 0.0
+        self.y = 0.0
+        self.v = 0.0
+        self.psi = 0.0
+        self.beta = 0.0
+        self.lf = 1.0
+        self.lr = 1.0
 
         # model
         self.register_variable("a", "real", "input",
-                               description='acceleration', start=0)
+                               description='acceleration', start=0.0)
         self.register_variable("df", "real", "input",
-                               description='steering angle', start=0)
+                               description='steering angle', start=0.0)
 
         self.register_variable("x", "real", "output",
                                description='x position of the robot')
@@ -53,20 +53,20 @@ class Bicycle_Kinematic(Fmi2Slave):
                                start=1, description='distance from CM to rear wheel')
 
         # Initial values
-        self.x0 = 0
-        self.y0 = 0
-        self.psi0 = 0
-        self.v0 = 0
-        self.register_variable("x0", "real", "parameter", "fixed", start=0)
-        self.register_variable("y0", "real", "parameter", "fixed", start=0)
-        self.register_variable("psi0", "real", "parameter", "fixed", start=0)
-        self.register_variable("v0", "real", "parameter", "fixed", start=0)
+        self.x0 = 0.0
+        self.y0 = 0.0
+        self.psi0 = 0.0
+        self.v0 = 0.0
+        self.register_variable("x0", "real", "parameter", "fixed", start=0.0)
+        self.register_variable("y0", "real", "parameter", "fixed", start=0.0)
+        self.register_variable("psi0", "real", "parameter", "fixed", start=0.0)
+        self.register_variable("v0", "real", "parameter", "fixed", start=0.0)
 
         # reference model
-        self.register_variable("x_r", "real", "input", start=0)
-        self.register_variable("y_r", "real", "input", start=0)
-        self.register_variable("psi_r", "real", "input", start=0)
-        self.register_variable("v_r", "real", "input", start=0)
+        self.register_variable("x_r", "real", "input", start=0.0)
+        self.register_variable("y_r", "real", "input", start=0.0)
+        self.register_variable("psi_r", "real", "input", start=0.0)
+        self.register_variable("v_r", "real", "input", start=0.0)
 
     @staticmethod
     def _derivatives(t, state, params):
@@ -120,8 +120,8 @@ class Bicycle_Kinematic(Fmi2Slave):
 # validation
 if __name__ == "__main__":
     model = Bicycle_Kinematic()
-    model.v0 = 1
+    model.v0 = 1.0
     model.exit_initialization_mode()
 
     model.do_step(0.0, 1, True)
-    test = 10
+    test = 10.0

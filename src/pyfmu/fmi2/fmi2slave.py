@@ -791,14 +791,23 @@ class Fmi2Slave:
         """
     
         missing = []
+        incorrect_type = []
         for var in self.vars:
 
-            if(getattr(self,var.name) is None):
+            a = getattr(self,var.name)
+            if(a is None):
                 missing.append(var)
+            
+            else:
+                t,n = self.type_to_tuple[var.data_type]
 
-        if(len(missing) != 0):
+                if(not isinstance(a,t)):
+                    incorrect_type.append(var)
+
+
+        if(len(missing) != 0 or len(incorrect_type) != 0):
             self.log(
-                f"Some variables were left undefined after exit_initialization was called, variables are: {missing}",
+                f"Some variables were either undefined or of incorrect type after exit_initialization was called, undefined: {missing} incorrect type: {incorrect_type} ",
                 _Fmi2SlaveErrorDefinitions.internal_log_catergory.value,
                 _Fmi2SlaveErrorDefinitions.uninitialized_variables.value
                 )
@@ -824,7 +833,14 @@ class Fmi2Slave:
 
 
         """
-        self.logger.log(message, category, status)
+        try:
+            self.logger.log(message, category, status)
+        except Exception as e:
+            try:
+                self.logger.log(f"Failed to log message: {message} with category: {category} and status: {status} due to exception: {e}",_internal_log_catergory,Fmi2Status.warning)
+            except Exception:
+                print(f"Failed to log orignal message and backup log message: {message} with category: {category} and status: {status}, resorted to stdout")
+            
 
 
     @property

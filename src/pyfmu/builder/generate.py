@@ -58,7 +58,7 @@ class PyfmuProject():
                  main_script_path: Path = None,
                  project_configuration: dict = None,
                  project_configuration_path: Path = None,
-                 pyfmu_dir: Path = None,
+                 resources_dir: Path = None,
                  ):
 
         self.main_class = main_class
@@ -66,7 +66,7 @@ class PyfmuProject():
         self.main_script_path = main_script_path
         self.project_configuration = project_configuration
         self.project_configuration_path = project_configuration_path
-        self.pyfmu_dir = pyfmu_dir
+        self.resources_dir = resources_dir
         self.root = root
 
     @staticmethod
@@ -110,10 +110,10 @@ class PyfmuProject():
         main_script_path = p / 'resources' / main_script
         project_configuration_path = p / 'project.json'
         project_configuration = project_json
-        pyfmu_dir = p / 'resources' / 'pyfmu'
+        resources_dir = p / 'resources'
 
         # 3. Should contain resources folder
-        has_resources = (p / 'resources').is_dir()
+        has_resources = resources_dir.is_dir()
 
         if(not has_resources):
             raise ValueError(
@@ -134,7 +134,7 @@ class PyfmuProject():
                                main_script_path=main_script_path,
                                project_configuration=project_configuration,
                                project_configuration_path=project_configuration_path,
-                               pyfmu_dir=pyfmu_dir
+                               resources_dir=resources_dir
                                )
 
         return project
@@ -172,23 +172,6 @@ def _generate_fmu_template(template_path: str, main_class_name: str, script_outp
 
     with open(script_output_path, 'w') as f:
         f.write(r)
-
-
-def _copy_pyfmu_to_project(project: PyfmuProject) -> PyfmuProject:
-
-    resource_pyfmu_dir = Resources.get().pyfmu_dir
-
-    project_pyfmu_dir = project.root / 'resources' / 'pyfmu'
-
-    try:
-        copytree(resource_pyfmu_dir, project_pyfmu_dir)
-    except Exception as e:
-        raise RuntimeError(
-            "pyfmu library exists but could not be copied the generated project.") from e
-
-    project.pyfmu_dir = project_pyfmu_dir
-
-    return project
 
 
 def _write_templateScript_to_project(project: PyfmuProject):

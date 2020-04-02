@@ -27,22 +27,22 @@ class LivePlotting(Fmi2Slave):
             **kwargs
         )
 
-        self.x0 = 0
-        self.y0 = 0
-        self.interval = -1
-        self.n_samples = -1
+        self.x0 = 0.0
+        self.y0 = 0.0
+        self.interval = -1.0
+        self.n_samples = -1.0
         self.title = 'Robot position'
         self.register_variable('x0', 'real', 'input',
-                               start=0, description='first variable')
+                               start=0.0, description='first variable')
         self.register_variable('y0', 'real', 'input',
-                               start=0, description='second variable')
+                               start=0.0, description='second variable')
 
         self.register_variable('title', 'string', 'parameter', 'fixed',
                                start='Robot position', description='title of the plot')
 
-        self.ts = -1
+        self.ts = -1.0
         self.register_variable('ts', 'real', 'parameter', 'fixed',
-                               start=-1, description='simulation time between refresh.')
+                               start=-1.0, description='simulation time between refresh.')
 
         # Qt application must run on main thread.
         # We start a new process to ensure this.
@@ -51,7 +51,7 @@ class LivePlotting(Fmi2Slave):
         self.q = ctx.Queue()
         self.plot_process = ctx.Process(
             target=LivePlotting._draw_process_func, args=(self.q,))
-        self._lastSimTime = 0
+        self._lastSimTime = 0.0
         self._running = False
 
     def terminate(self):
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     n = 10000
     ts = 0.01
     for i in range(n):
-        fmu.x0 = i
+        fmu.x0 = float(i)
         fmu.y0 = sin(i*ts)
         fmu.do_step(i*ts, ts, True)
 
