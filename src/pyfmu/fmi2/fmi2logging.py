@@ -27,9 +27,7 @@ class Fmi2StdLogCats(Enum):
     logAll = "logAll"
 
 
-
 class Fmi2LoggerBase(ABC):
-
 
     def __init__(self):
 
@@ -49,7 +47,6 @@ class Fmi2LoggerBase(ABC):
             """
             self.log(Fmi2Status.warning, _internal_log_catergory, msg)
             return Fmi2Status.warning
-
 
         if(len(categories) == 0):
             msg = "Failed setting debug categories, list of categories is empty."
@@ -91,7 +88,7 @@ class Fmi2LoggerBase(ABC):
 
         # if neither aliases or predicate is registed log category and category are associated
         if(aliases == None and predicate == None):
-            def default_predicated(s,c,m):
+            def default_predicated(s, c, m):
                 nonlocal category
                 return c == category
 
@@ -99,7 +96,7 @@ class Fmi2LoggerBase(ABC):
 
         if(aliases):
 
-            def alias_predicate(s,c,m):
+            def alias_predicate(s, c, m):
                 nonlocal aliases
                 return c in aliases
 
@@ -111,29 +108,30 @@ class Fmi2LoggerBase(ABC):
 
         statusArgs_to_category = {
 
-            None : Fmi2Status.ok,
+            None: Fmi2Status.ok,
 
-            Fmi2Status.ok : Fmi2Status.ok,
-            'ok' : Fmi2Status.ok,
+            Fmi2Status.ok: Fmi2Status.ok,
+            'ok': Fmi2Status.ok,
 
-            Fmi2Status.warning : Fmi2Status.warning,
-            'warning' : Fmi2Status.warning,
+            Fmi2Status.warning: Fmi2Status.warning,
+            'warning': Fmi2Status.warning,
 
-            Fmi2Status.discard : Fmi2Status.discard,
-            'discard' : Fmi2Status.discard,
+            Fmi2Status.discard: Fmi2Status.discard,
+            'discard': Fmi2Status.discard,
 
-            Fmi2Status.error : Fmi2Status.error,
-            'error' : Fmi2Status.error,
+            Fmi2Status.error: Fmi2Status.error,
+            'error': Fmi2Status.error,
 
-            Fmi2Status.fatal : Fmi2Status.fatal,
-            'fatal' : Fmi2Status.fatal,
+            Fmi2Status.fatal: Fmi2Status.fatal,
+            'fatal': Fmi2Status.fatal,
 
-            Fmi2Status.pending : Fmi2Status.pending,
-            'pending' : Fmi2Status.pending
+            Fmi2Status.pending: Fmi2Status.pending,
+            'pending': Fmi2Status.pending
         }
 
         if(status not in statusArgs_to_category):
-            raise RuntimeError(f"Unrecognized status: {status}, valid options are : {statusArgs_to_category.keys()}")
+            raise RuntimeError(
+                f"Unrecognized status: {status}, valid options are : {statusArgs_to_category.keys()}")
 
         status = statusArgs_to_category[status]
 
@@ -143,17 +141,18 @@ class Fmi2LoggerBase(ABC):
         msg = (status, category, message)
 
         # log only for the active categories
-        activate_categories_to_predicates = { c:p for c,p in self._categories_to_predicates.items() if c in self._active_categories}
+        activate_categories_to_predicates = {
+            c: p for c, p in self._categories_to_predicates.items() if c in self._active_categories}
 
         # an message should be logged if a predicate exists which matches it.
         for p in activate_categories_to_predicates.values():
 
-            if(p(status,category,message) == True):
+            if(p(status, category, message) == True):
 
                 self._do_log(status, category, message)
                 break
 
-    def _do_log(self, message : str ,category :str , status : Fmi2Status):
+    def _do_log(self, message: str, category: str, status: Fmi2Status):
         pass
 
     def register_standard_categories(self, categories: Iterable[str]) -> None:
@@ -181,55 +180,55 @@ class Fmi2LoggerBase(ABC):
             raise ValueError(
                 f'Unable to register standard log categories. The specified categories could not be converted to a set.') from e
 
-        def events_predicate(status,category,message):
+        def events_predicate(status, category, message):
             c = category.lower()
             matches = {'event', 'events'}
             return c in matches
 
-        def sls_predicate(status,category,message):
+        def sls_predicate(status, category, message):
             c = category.lower()
             matches = {'singularlinearsystem', 'singularlinearsystems', 'sls'}
             return c in matches
 
-        def nls_predicate(status,category,message):
+        def nls_predicate(status, category, message):
             c = category.lower()
             matches = {'nonlinearsystem', 'nonlinearsystems', 'nls'}
             return c in matches
 
-        def dss_predicate(status,category,message):
+        def dss_predicate(status, category, message):
             c = category.lower()
             matches = {'dynamicstateselection', 'dss'}
             return c in matches
 
-        def warning_predicate(status,category,message):
+        def warning_predicate(status, category, message):
             return status == Fmi2Status.warning
 
-        def discard_predicate(status,category,message):
+        def discard_predicate(status, category, message):
             return status == Fmi2Status.discard
 
-        def error_predicate(status,category,message):
+        def error_predicate(status, category, message):
             return status == Fmi2Status.error
 
-        def fatal_predicate(status,category,message):
+        def fatal_predicate(status, category, message):
             return status == Fmi2Status.fatal
 
-        def pending_predicate(status,category,message):
+        def pending_predicate(status, category, message):
             return status == Fmi2Status.pending
 
-        def all_predicate(_):
+        def all_predicate(status, category, message):
             return True
 
         predicates = {
-            "logEvents"                 : events_predicate,
-            "logSingularLinearSystems"  : sls_predicate,
-            "logNonlinearSystems"       : nls_predicate,
-            "logDynamicStateSelection"  : dss_predicate,
-            "logStatusWarning"          : warning_predicate,
-            "logStatusDiscard"          : discard_predicate,
-            "logStatusError"            : error_predicate,
-            "logStatusFatal"            : fatal_predicate,
-            "logStatusPending"          : pending_predicate,
-            "logAll"                    : all_predicate
+            "logEvents": events_predicate,
+            "logSingularLinearSystems": sls_predicate,
+            "logNonlinearSystems": nls_predicate,
+            "logDynamicStateSelection": dss_predicate,
+            "logStatusWarning": warning_predicate,
+            "logStatusDiscard": discard_predicate,
+            "logStatusError": error_predicate,
+            "logStatusFatal": fatal_predicate,
+            "logStatusPending": pending_predicate,
+            "logAll": all_predicate
         }
 
         predicate_matches = {cat: pred for cat,
@@ -271,30 +270,29 @@ class Fmi2CallbackLogger(Fmi2LoggerBase):
     """Class implementing the FMI2 logging system by providing methods to register and enable specific categories.
     """
 
-    def __init__(self, callback, log_stdout = False):
+    def __init__(self, callback, log_stdout=False):
 
         super().__init__()
         self._callback = callback
         self._log_stdout = log_stdout
 
-
-
     def _do_log(self, status, category, message):
 
         if(self._log_stdout):
-            print(status,category,message)
+            print(status, category, message)
 
-        assert isinstance(status.value,int), "status should be int"
-        assert isinstance(category,str), "status should be int"
-        assert isinstance(message,str), "status should be int"
+        assert isinstance(status.value, int), "status should be int"
+        assert isinstance(category, str), "status should be int"
+        assert isinstance(message, str), "status should be int"
 
-        #print(self._callback)
-        self._callback(status.value,category,message)
+        # print(self._callback)
+        self._callback(status.value, category, message)
+
 
 class Fmi2NullLogger(Fmi2LoggerBase):
 
     def __init__(self):
         super().__init__()
 
-    def log(self, message, category: str = "", status = None):
+    def log(self, message, category: str = "", status=None):
         pass
