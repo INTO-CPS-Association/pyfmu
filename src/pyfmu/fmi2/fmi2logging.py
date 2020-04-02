@@ -216,7 +216,7 @@ class Fmi2LoggerBase(ABC):
         def pending_predicate(status,category,message):
             return status == Fmi2Status.pending
 
-        def all_predicate(_):
+        def all_predicate(status,category,message):
             return True
 
         predicates = {
