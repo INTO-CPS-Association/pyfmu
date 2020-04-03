@@ -8,7 +8,7 @@ import numpy as np
 import pyqtgraph as pg
 
 
-from pyfmu.fmi2 import Fmi2Slave
+from pyfmu.fmi2 import Fmi2Slave,Fmi2Status
 
 
 class LivePlotting(Fmi2Slave):
@@ -71,7 +71,6 @@ class LivePlotting(Fmi2Slave):
         self.terminate()
 
     def exit_initialization_mode(self):
-
         self._running = True
         self.plot_process.start()
 
@@ -140,10 +139,13 @@ class LivePlotting(Fmi2Slave):
 if __name__ == "__main__":
 
     fmu = LivePlotting()
-
-    fmu.enter_initialization_mode()
     fmu.ts = 0.1
-    fmu.exit_initialization_mode()
+
+    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
+    s = fmu._enter_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
+    s = fmu._exit_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
 
     n = 10000
     ts = 0.01

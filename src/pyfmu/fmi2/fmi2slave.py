@@ -495,22 +495,22 @@ class Fmi2Slave:
         pass
 
     def _enter_initialization_mode(self):
-        return self._do_fmi_call(self.enter_initialization_mode)
+        status = self._do_fmi_call(self.enter_initialization_mode)
 
-    def enter_initialization_mode(self):
-        pass
-
-    def _exit_initialization_mode(self):
-        status = self._do_fmi_call(self.exit_initialization_mode)
-        
         if(self.check_uninitialized_variables):
             status_check = self._do_check_variable_initialization()
 
             if(status_check is not Fmi2Status.ok):
                 return status_check.value
 
-        # TODO return most severe
         return status
+
+    def enter_initialization_mode(self):
+        pass
+
+    def _exit_initialization_mode(self):
+        # TODO return most severe
+        return self._do_fmi_call(self.exit_initialization_mode)
 
     def exit_initialization_mode(self):
         pass

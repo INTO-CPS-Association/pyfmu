@@ -37,14 +37,17 @@ class FmiTypes(Fmi2Slave):
     def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
         self._update()
 
-    def exit_initialization_mode(self):
+    def enter_initialization_mode(self):
         self._update()
 
 
 if __name__ == "__main__":
     fmu = FmiTypes()
-    fmu.enter_initialization_mode()
-    fmu.exit_initialization_mode()
+    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
+    s = fmu._enter_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
+    s = fmu._exit_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
 
     for i in range(100):
         fmu.real_in = float(i)

@@ -1,4 +1,4 @@
-from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2DataTypes
+from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2DataTypes, Fmi2Status
 
 
 class LoggerFMU(Fmi2Slave):
@@ -24,7 +24,7 @@ class LoggerFMU(Fmi2Slave):
         self.register_variable(
             "b", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0.0)
 
-    def exit_initialization_mode(self):
+    def enter_initialization_mode(self):
 
         self.s = self.a + self.b
 
@@ -43,7 +43,11 @@ class LoggerFMU(Fmi2Slave):
 if __name__ == "__main__":
     fmu = LoggerFMU()
     fmu.set_debug_logging(True, ['fmi2slave'])
-    fmu.exit_initialization_mode()
 
-    size = fmu._get_log_size()
+    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
+    s = fmu._enter_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
+    s = fmu._exit_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
+
     test = 10.0

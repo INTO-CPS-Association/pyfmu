@@ -26,7 +26,7 @@ class {{class_name}}(Fmi2Slave):
         self.s = self.a + self.b
         return Fmi2Status.ok
 
-    def exit_initialization_mode(self):
+    def enter_initialization_mode(self):
         self.s = self.a + self.b 
         # No explicit return implies OK
 
@@ -34,8 +34,9 @@ class {{class_name}}(Fmi2Slave):
 # Proper unit testing frameworks may be used as well.
 if __name__ == "__main__":
     fmu = {{class_name}}()
-    fmu.enter_initialization()
-    fmu.exit_initialization()
-    fmu.do_step(0,1,False)
+    fmu._setup_experiment(0)
+    fmu._enter_initialization()
+    fmu._exit_initialization()
+    fmu._do_step(0,1,False)
 
 

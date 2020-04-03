@@ -83,7 +83,7 @@ class Bicycle_Kinematic(Fmi2Slave):
 
         return [x_d, y_d, psi_d, v_d]
 
-    def exit_initialization_mode(self):
+    def enter_initialization_mode(self):
         # outputs are have initial = calculated
         self.x = self.x0
         self.y = self.y0
@@ -121,7 +121,12 @@ class Bicycle_Kinematic(Fmi2Slave):
 if __name__ == "__main__":
     model = Bicycle_Kinematic()
     model.v0 = 1.0
-    model.exit_initialization_mode()
 
-    model.do_step(0.0, 1, True)
+    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
+    s = model._enter_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
+    s = model._exit_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
+
+    model._do_step(0.0, 1, True)
     test = 10.0

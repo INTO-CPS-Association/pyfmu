@@ -1,5 +1,4 @@
-from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial
-
+from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
 
 class Adder(Fmi2Slave):
 
@@ -22,7 +21,7 @@ class Adder(Fmi2Slave):
         self.register_variable("b", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0.0)
 
 
-    def exit_initialization_mode(self):
+    def enter_initialization_mode(self):
         self.s = self.a + self.b
         return True
 
@@ -38,6 +37,12 @@ if __name__ == "__main__":
 
     fmu = Adder(logging_callback=callback)
     fmu._set_debug_logging(True,["logAll"])
+
+    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
+    s = fmu._enter_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
+    s = fmu._exit_initialization_mode()
+    assert(s == Fmi2Status.ok.value)
 
     fmu._do_step(0,1,False)
     fmu._do_step(1,2,False)

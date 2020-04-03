@@ -1,6 +1,6 @@
 from math import sin
 
-from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial
+from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
 
 
 class SineGenerator(Fmi2Slave):
@@ -28,7 +28,7 @@ class SineGenerator(Fmi2Slave):
         # its necessary to record this, to provide correct output at t=t_start
         self.start_time = start_time
 
-    def exit_initialization_mode(self):
+    def enter_initialization_mode(self):
         # output has initial calculated, e.g. it must be defined after the FMU has been initialized.
         self.y = self.amplitude * sin(self.start_time * self.frequency + self.phase)
 
@@ -38,4 +38,12 @@ class SineGenerator(Fmi2Slave):
 
 if __name__ == "__main__":
     s = SineGenerator()
-    s.do_step(0,0,False)
+
+    s._setup_experiment(0)
+    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
+    status = s._enter_initialization_mode()
+    assert(status == Fmi2Status.ok.value)
+    status = s._exit_initialization_mode()
+    assert(status == Fmi2Status.ok.value)
+
+    s._do_step(0,0,False)
