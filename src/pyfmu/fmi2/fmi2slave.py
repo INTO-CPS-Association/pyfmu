@@ -8,6 +8,7 @@ from pathlib import Path
 import os
 import sys
 from enum import Enum
+from traceback import format_exc
 
 from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2CallbackLogger, Fmi2NullLogger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
 
@@ -738,9 +739,10 @@ class Fmi2Slave:
                 f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}', _internal_log_catergory)
             s = f(*args, **kwargs)
         except Exception as e:
+            e_str = self._format_exc()
             self.log(
-                f'Call resulted in an exception being raise : {e}. Treating this as a {_internal_throw_category}.', _internal_log_catergory, _internal_throw_category)
-            return _internal_invalid_status_category
+                f'Call resulted in an exception being raised in Python: {e_str}. Treating this as a {_internal_throw_category}.', _internal_log_catergory, _internal_throw_category)
+            return _internal_invalid_status_category.value
         # convert return status to appropritate fmi status
         return_to_status = {
             None: Fmi2Status.ok,
@@ -763,7 +765,7 @@ class Fmi2Slave:
         else:
             s_fmi = Fmi2Status.warning
             self.log(
-                f'Call was succesful, but returned status : {s} was invalid, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
+                f'Call was executed, but returned status : {s} was unrecognized, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
 
         return s_fmi.value
 
@@ -841,6 +843,9 @@ class Fmi2Slave:
             except Exception:
                 print(f"Failed to log orignal message and backup log message: {message} with category: {category} and status: {status}, resorted to stdout")
             
+
+    def _format_exc(self) -> str:
+        return format_exc()
 
 
     @property

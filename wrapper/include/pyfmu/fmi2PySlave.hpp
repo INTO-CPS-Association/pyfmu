@@ -117,7 +117,7 @@ private:
         {
             logger->fatal(
                 PYFMU_WRAPPER_LOG_CATEGORY,
-                "call to {} was successful, but return value could not be converted into an long as expected : {}",
+                "call to {} was successful, but return value could not be converted into a long as expected : {}",
                 name,
                 get_py_exception());
 
