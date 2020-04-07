@@ -39,11 +39,11 @@ class SineGenerator(Fmi2Slave):
 if __name__ == "__main__":
     s = SineGenerator()
 
-    s._setup_experiment(0)
+    s._setup_experiment(0.0)
     # extra check used to ensure the fmu is initialized according to the standard (not necessary)
     status = s._enter_initialization_mode()
     assert(status == Fmi2Status.ok.value)
     status = s._exit_initialization_mode()
     assert(status == Fmi2Status.ok.value)
 
-    s._do_step(0,0,False)
+    s._do_step(0.0,0.0,False)
