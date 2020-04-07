@@ -1,11 +1,21 @@
 from setuptools import setup, find_packages
+from pathlib import Path
 
-with open("README_PyPI.md", "r") as fh:
-    long_description = fh.read()
+
+
+long_description = """
+# PyFMU
+PyFMU is a set of tools for developing functional-mockup-units (FMUs) using the full power of Python.
+
+## Documentation
+See the online documentation on how to use to tool and FMI in general see the INTO-CPS online documentation:
+
+https://into-cps-application.readthedocs.io
+"""
 
 setup(
     name="pyfmu",
-    version="0.0.2",
+    version="0.0.4",
     author='INTO-CPS Association',
     description='A set of tools for developing functional-mockup-units (FMUs) using the full capabilities of Python.',
     long_description=long_description,
@@ -20,12 +30,12 @@ setup(
     },
 
     install_requires=[
-        'Jinja2', 'lxml'
+        'Jinja2', 'lxml', 'tqdm'
     ],
     extras_require={
 
         "docs": ["Sphinx", "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi"],
-        "tests": ["numpy", "pandas", "pytest", "fmpy", "pyqtgraph", "scipy", "PyQt5"],
+        "tests": ["numpy", "pandas", "pytest", "tox", "fmpy", "pyqtgraph", "scipy", "PyQt5"],
         "gui": []
     },
 

@@ -19,6 +19,7 @@ class SineGenerator(Fmi2Slave):
             **kwargs
             )
 
+        self.set_debug_logging(True,["logAll"])
         self.register_variable("amplitude", 'real', 'parameter', 'fixed', start=1.0, description='amplitude of the sine wave')
         self.register_variable("frequency", 'real', 'parameter', 'fixed', start=1.0, description='frequency of the sine wave')
         self.register_variable("phase", 'real', 'parameter', 'fixed', start=0.0, description='phase of the sine wave')
@@ -30,6 +31,7 @@ class SineGenerator(Fmi2Slave):
 
     def enter_initialization_mode(self):
         # output has initial calculated, e.g. it must be defined after the FMU has been initialized.
+        
         self.y = self.amplitude * sin(self.start_time * self.frequency + self.phase)
 
     def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
