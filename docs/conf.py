@@ -30,8 +30,15 @@ master_doc = 'index'
 # ones.
 extensions = [
     "recommonmark",
-    "sphinx_rtd_theme"
+    "sphinx_rtd_theme",
+    'autoapi.extension'
 ]
+
+# -- API documentation ------------------------------------------------------
+autoapi_type = 'python'
+autoapi_dirs = ["../src/"]
+autoapi_keep_files = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
