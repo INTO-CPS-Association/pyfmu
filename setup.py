@@ -15,7 +15,7 @@ https://into-cps-application.readthedocs.io
 
 setup(
     name="pyfmu",
-    version="0.0.4",
+    version="0.0.3",
     author='INTO-CPS Association',
     description='A set of tools for developing functional-mockup-units (FMUs) using the full capabilities of Python.',
     long_description=long_description,
@@ -35,7 +35,7 @@ setup(
     extras_require={
 
         "docs": ["Sphinx", "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi"],
-        "tests": ["numpy", "pandas", "pytest", "tox", "fmpy==0.2.17", "pyqtgraph", "scipy", "PyQt5"],
+        "tests": ["numpy", "pandas", "pytest", "tox", "fmpy==0.2.17", "pyqtgraph", "scipy", "PyQt5","sphinx-autoapi"],
         "gui": []
     },
 
