@@ -1,6 +1,7 @@
 # documentation
 
 docs/_build
+docs/autoapi
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
