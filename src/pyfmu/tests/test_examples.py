@@ -11,6 +11,11 @@ from fmpy.model_description import read_model_description
 
 from pyfmu.tests import get_all_examples, get_correct_examples, ExampleArchive
 
+def log_callback(e,i,s,c,m):
+    print(f"{i}{s}{c}{m}")
+
+def fmi_logger(m):
+    print(f"{m}")
 
 def test_shared_library_can_be_loaded():
 
@@ -86,32 +91,32 @@ def test_SineGenerator():
 
         p = str(a.root.resolve())
 
-        simulate_fmu(p)
+        simulate_fmu(p,debug_logging=True,logger=log_callback,fmi_call_logger=fmi_logger)
 
 
-def test_singleInstantiation_canSimulate():
+# def test_singleInstantiation_canSimulate():
 
-    for pname in get_correct_examples():
+#     for pname in get_correct_examples():
 
-        with ExampleArchive(pname) as archive:
+#         with ExampleArchive(pname) as archive:
 
-            # seems like fmpy does not accept Path objects
-            path = str(archive.root.resolve())
+#             # seems like fmpy does not accept Path objects
+#             path = str(archive.root.resolve())
 
-            simulate_fmu(path)
+#             simulate_fmu(path)
 
 
-def test_multipleExports_canSimulate():
+# def test_multipleExports_canSimulate():
 
-    for pname in get_correct_examples():
+#     for pname in get_correct_examples():
 
-        with ExampleArchive(pname) as archive:
+#         with ExampleArchive(pname) as archive:
 
-            print(archive.model_description)
-            # seems like fmpy does not accept Path objects
-            path = str(archive.root.resolve())
+#             print(archive.model_description)
+#             # seems like fmpy does not accept Path objects
+#             path = str(archive.root.resolve())
 
-            simulate_fmu(path)
+#             simulate_fmu(path)
 
 
 def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():

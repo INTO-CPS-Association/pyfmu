@@ -34,9 +34,9 @@ class {{class_name}}(Fmi2Slave):
 # Proper unit testing frameworks may be used as well.
 if __name__ == "__main__":
     fmu = {{class_name}}()
-    fmu._setup_experiment(0)
+    fmu._setup_experiment(0.0)
     fmu._enter_initialization()
     fmu._exit_initialization()
-    fmu._do_step(0,1,False)
+    fmu._do_step(0.0,1.0,False)
 
 
