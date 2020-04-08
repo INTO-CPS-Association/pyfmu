@@ -35,7 +35,7 @@ setup(
     extras_require={
 
         "docs": ["Sphinx", "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi"],
-        "tests": ["numpy", "pandas", "pytest", "tox", "fmpy", "pyqtgraph", "scipy", "PyQt5"],
+        "tests": ["numpy", "pandas", "pytest", "tox", "fmpy==0.2.17", "pyqtgraph", "scipy", "PyQt5"],
         "gui": []
     },
 
