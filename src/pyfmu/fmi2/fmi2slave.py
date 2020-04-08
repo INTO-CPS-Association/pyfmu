@@ -483,6 +483,7 @@ class Fmi2Slave:
                           tolerance: float = None,
                           stop_time: float = None):
 
+        self.log("THIS WILL NEVER BE PRINTED",_internal_log_catergory,Fmi2Status.fatal)
         return self._do_fmi_call(
             self.setup_experiment,
             start_time,
@@ -809,7 +810,7 @@ class Fmi2Slave:
 
         if(len(missing) != 0 or len(incorrect_type) != 0):
             self.log(
-                f"Some variables were either undefined or of incorrect type after exit_initialization was called, undefined: {missing} incorrect type: {incorrect_type} ",
+                f"Some variables were either undefined or of incorrect type after enter_initialization was called, undefined: {missing} incorrect type: {incorrect_type} ",
                 _Fmi2SlaveErrorDefinitions.internal_log_catergory.value,
                 _Fmi2SlaveErrorDefinitions.uninitialized_variables.value
                 )

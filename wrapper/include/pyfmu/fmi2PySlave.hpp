@@ -102,6 +102,7 @@ private:
      */
     fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args... args) const
     {
+        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,"Calling: {}",name);
 
         PyObject *f = PyObject_CallMethod(pInstance_, name.c_str(), formatStr.c_str(), args...);
         

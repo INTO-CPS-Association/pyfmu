@@ -32,6 +32,8 @@ using namespace pyfmu;
 using namespace std;
 using namespace filesystem;
 
+bool loggingOn_ = false;
+
 void noOpsLogCallback(fmi2ComponentEnvironment,fmi2String,fmi2Status,fmi2String,fmi2String,...){}
 
 fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
