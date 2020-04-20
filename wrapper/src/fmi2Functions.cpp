@@ -13,6 +13,7 @@
 #include "pyfmu/fmi2PySlave.hpp"
 #include "pyfmu/utils.hpp"
 
+
 using namespace fmt;
 using namespace std;
 using namespace filesystem;
@@ -60,7 +61,11 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   {
 
     logger->ok("wrapper", "Initializing Python interpreter");
+      
+    auto var = Py_GetVersion();
     Py_Initialize();
+    loadPythonSharedObject();
+  
   }
   else
   {

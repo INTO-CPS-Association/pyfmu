@@ -6,6 +6,9 @@
 #include <uriparser/Uri.h>
 #include <fmt/format.h>
 
+#include "pyfmu/pyCompatability.hpp"
+#include "pyfmu/fmi2PySlaveLogging.hpp"
+
 using namespace std;
 using namespace filesystem;
 using namespace fmt;
@@ -122,3 +125,43 @@ string ws2s(const wstring &wstr)
   wstring_convert<convert_typeX, wchar_t> converterX;
   return converterX.to_bytes(wstr);
 }
+
+
+
+#ifdef WIN32
+  // TODO
+#else
+
+#include <dlfcn.h>
+/**
+ * @brief In order to support loading of extension modules such as Numpy it is necessary load libpython3.x.so
+ * Since it 
+ * 
+ */
+void loadPythonSharedObject()
+{
+  
+  //sysconfig.get_config_var('INSTSONAME');
+  pyfmu::pyCompat::PyRun_SimpleString("import sysconfig");
+  
+  
+    auto sysconfig_module = PyImport_ImportModule("sysconfig");
+    auto lib_obj = PyObject_CallMethod(sysconfig_module,"get_config_var","(s)","INSTSONAME");
+    //auto lib_obj = PyEval_CallFunction(get_config_var_func,"INSTSONAME");
+    
+    const char* libpython_name;
+    int s = PyArg_Parse(lib_obj,"s",&libpython_name);
+    auto msg = pyfmu::get_py_exception();
+
+  
+    // auto handle = dlopen("libpython3.7m.so.1.0", RTLD_LAZY | RTLD_GLOBAL);
+    auto handle = dlopen(libpython_name, RTLD_LAZY | RTLD_GLOBAL);
+
+  if(!handle)
+  {
+      fprintf(stderr, " Failed to open library: %s\n", dlerror());
+      exit(EXIT_FAILURE);
+  }
+}
+
+#endif

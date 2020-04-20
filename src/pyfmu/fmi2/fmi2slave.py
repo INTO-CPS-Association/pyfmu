@@ -483,7 +483,9 @@ class Fmi2Slave:
                           tolerance: float = None,
                           stop_time: float = None):
 
-        self.log("THIS WILL NEVER BE PRINTED",_internal_log_catergory,Fmi2Status.fatal)
+        #self.log("THIS WILL NEVER BE PRINTED",_internal_log_catergory,Fmi2Status.fatal)
+        #print(f"{start_time},{tolerance},{stop_time}")
+        
         return self._do_fmi_call(
             self.setup_experiment,
             start_time,
