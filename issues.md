@@ -21,3 +21,6 @@ It is now possible for a statically linked Python to load a C extension built us
 # Distributing a Python interpreter
 https://gregoryszorc.com/blog/2018/12/18/distributing-standalone-python-applications/
 
+# Compiler options
+https://stackoverflow.com/questions/13562708/numpy-import-fails-when-embedding-python-in-c
+https://www.unix.com/programming/28753-export-dynamic.html

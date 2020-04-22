@@ -13,6 +13,14 @@ See the online documentation on how to use to tool and FMI in general see the IN
 https://into-cps-application.readthedocs.io
 """
 
+_extras_require={
+    "build": ["conan"],
+    "docs": ["Sphinx", "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi"],
+    "tests": ["numpy", "pandas", "pytest", "tox", "fmpy==0.2.17", "pyqtgraph", "scipy", "PyQt5"],
+    "gui": []
+}
+_extras_require["develop"] = _extras_require["build"] + _extras_require["docs"] + _extras_require["tests"]  
+
 setup(
     name="pyfmu",
     version="0.0.3",
@@ -32,12 +40,8 @@ setup(
     install_requires=[
         'Jinja2', 'lxml', 'tqdm'
     ],
-    extras_require={
-
-        "docs": ["Sphinx", "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi"],
-        "tests": ["numpy", "pandas", "pytest", "tox", "fmpy==0.2.17", "pyqtgraph", "scipy", "PyQt5"],
-        "gui": []
-    },
+    extras_require=_extras_require,
+    
 
     # resources needed by the CLI to generate and export
     package_data={

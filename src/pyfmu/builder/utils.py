@@ -1,23 +1,26 @@
-from zipfile import ZipFile, ZIP_DEFLATED
-from shutil import make_archive, copytree, move, rmtree
-from tempfile import mkdtemp
-from pathlib import Path
+"""Contains utility functions used throughout the library"""
+
 import os
-from os.path import dirname, isdir, isfile, join, normpath
-import subprocess
 import platform
+import subprocess
+from os.path import basename, dirname, isdir, join
+from pathlib import Path
+from shutil import make_archive, move, rmtree
+from tempfile import mkdtemp
+from zipfile import ZIP_DEFLATED, ZipFile
+
+from pyfmu.types import AnyPath
 
 
 def zipdir(inDir: str, outDir: str):
 
-    if(not isdir(inDir)):
+    if not isdir(inDir):
         raise ValueError("Input path does not correspond to a directory!")
 
-    with ZipFile(outDir, 'w', ZIP_DEFLATED) as zf:
+    with ZipFile(outDir, "w", ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk(inDir):
             for file in files:
-                p = os.path.relpath(os.path.join(root, file),
-                                    os.path.join(inDir, '..'))
+                p = os.path.relpath(os.path.join(root, file), os.path.join(inDir, ".."))
                 zf.write(p)
 
 
@@ -28,70 +31,94 @@ def rm(path):
         p {Path} -- path to a directory or a file
     """
 
-    if(platform.system() == "Windows"):
+    if platform.system() == "Windows":
         print("TODO FIX RM ON WINDOWS!")
         return
 
     try:
         path = Path(path)
 
-        if(path.is_dir()):
+        if path.is_dir():
             rmtree(path)
-        elif(path.is_file()):
+        elif path.is_file():
             path.unlink()
         else:
-            raise ValueError('path neither specifies a file nor a directory.')
+            raise ValueError("path neither specifies a file nor a directory.")
 
     except Exception as e:
         raise RuntimeError(
-            f'Unable to remove file/directory: {path} and error was raised: {e}')
+            f"Unable to remove file/directory: {path} and error was raised: {e}"
+        )
 
 
 def compress(
-        in_dir,
-        out_dir=None,
-        fmt='zip',
-        extension: str = None):
-    """Compresses
+    input_directory: AnyPath,
+    output_directory: AnyPath = None,
+    format="zip",
+    extension: str = None,
+) -> Path:
+    """Compress files within a directory to the specified output directory.
+
+    Examples:
+
+     >>> compress("mydir") # mydir.zip
+     >>> compress("mydir","archive") # archive.zip
+     >>> compress("mydir","archive.zip") # archive.zip.zip
+     >>> compress("mydir","myfmu",extension="fmu") # myfmu.fmu
 
     Arguments:
-        in_dir {[type]} -- the directory to compress
+        input_directory {AnyPath} -- directory containing files to compress
 
     Keyword Arguments:
-        out_dir {[type]} -- output archive (default: {None})
+        output_directory {AnyPath} -- output directory. (default: {None})
+        format {str} -- compression type used to create the archive (default: {"zip"})
+        extension {str} -- if specified replace the default extension (default: {None})
+
+    Returns:
+        Path -- path to the archive
     """
 
     try:
+        input_directory = Path(input_directory)
 
-        root_dir = in_dir
-        base_dir = in_dir.name
-        base_name = Path(mkdtemp()) / base_dir
+        if not input_directory.is_dir():
+            raise ValueError(
+                f"input directory: {input_directory} does not appear to be a directory"
+            )
 
-        name_of_archive = (base_name.parent).resolve() / f'{base_dir}.{fmt}'
+        if output_directory is None:
+            output_directory = input_directory
+        else:
+            output_directory = Path(output_directory)
 
-        assert(not name_of_archive.exists())
-        make_archive(
-            base_name=base_name,
-            format=fmt,
-            root_dir=root_dir
+        root_dir = input_directory
+        base_dir = input_directory
+        base_name = str(output_directory)
+
+        archive_path = Path(
+            make_archive(
+                base_name=base_name, base_dir=base_dir, format=format, root_dir=root_dir
+            )
         )
-        assert(name_of_archive.exists())
+        assert archive_path.is_file()
 
-        if(extension is not None):
-            renamed_name = name_of_archive.name.split('.')[0] + '.' + extension
-            renamed_archive = name_of_archive.parent / renamed_name
+        if extension is not None:
+            renamed_name = f"{archive_path.stem}.{extension}"
+            renamed_archive = archive_path.parent / renamed_name
 
-            assert(not renamed_archive.exists())
-            assert(name_of_archive.exists())
-            move(name_of_archive, renamed_archive)
-            assert(not name_of_archive.exists())
-            assert(renamed_archive.exists())
+            assert not renamed_archive.exists()
+            move(str(archive_path), renamed_archive)
+            assert not output_directory.exists()
+            assert renamed_archive.exists()
 
             return renamed_archive
 
+        return archive_path
+
     except Exception as e:
         raise Exception(
-            f'Unable to compress the archive, an exception was thrown : {e}')
+            f"Unable to compress the archive, an exception was thrown : {e}"
+        )
         raise e
 
 
@@ -109,14 +136,14 @@ class cd:
         os.chdir(self.savedPath)
 
 
-def has_java():
+def has_java() -> bool:
     """Checks if java is available in the system's path.
 
     Returns:
         [bool] -- true if java is available, otherwise false.
     """
     try:
-        subprocess.run(['java', '-v'])
+        subprocess.run(["java", "-v"])
     except Exception:
         return False
 
@@ -130,16 +157,39 @@ def has_fmpy() -> bool:
         bool -- true if FMPy is available, otherwise false.
     """
     try:
-        import fmpy
-    except:
+        import fmpy  # noqa: F401
+    except Exception:
         return False
 
     return True
 
 
-if __name__ == "__main__":
+def system_identifier() -> str:
+    """Returns an identifier consisting of the platform and it architecture.
 
-    from os.path import join, dirname
+    Possible values are: win32, win64, linux32, linux64, darwin32, darwin64
+
+    Returns:
+        str -- hostsystem identifier
+    """
+    sys = platform.system()
+
+    # convert to FMI2 system name scheme
+    pySys_to_FmiSys = {"Windows": "win", "Linux": "linux", "Darwin": "darwin"}
+    sys = pySys_to_FmiSys[sys]
+
+    # arch will be either "32bit" or "64bit"
+    arch, _ = platform.architecture()
+
+    # stip bit part away
+    arch = arch[:2]
+
+    # merge parts to form: windows64, linux64
+    identifier = (sys + arch).lower()
+    return identifier
+
+
+if __name__ == "__main__":
 
     inPath = join(dirname(__file__), "test")
     outpath = join(dirname(__file__), "out.zip")

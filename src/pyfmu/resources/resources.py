@@ -41,3 +41,5 @@ class Resources:
 
         self.VDMCheck2_jar = self.root / 'validation' / 'vdmcheck-0.0.2' / 'fmi2vdm-0.0.2.jar'
         self.VDMCheck3_jar = self.root / 'validation' / 'vdmcheck-0.0.3' / 'fmi2vdm-0.0.3.jar'
+        self.fmuCheck_linux64 = self.root / "validation" / "fmuCheck.linux64"
+        self.fmuCheck_win64 = self.root / "validation" / "fmuCheck.win64.exe"

@@ -134,9 +134,13 @@ string ws2s(const wstring &wstr)
 
 #include <dlfcn.h>
 /**
- * @brief In order to support loading of extension modules such as Numpy it is necessary load libpython3.x.so
- * Since it 
+ * @brief Load libpython3.x.so dynamically and expose symbols to libraries loading pyfmu.so
  * 
+ * Python extension modules such as Numpy depends on libpython as such the wrapper must provide
+ * these symbols. This is done by locating libpython and linking it using dlopen.
+ * By specifiying the RTLD_GLOBAL flag the symbols also become available to Python extension modules
+ * 
+ * https://www.python.org/dev/peps/pep-0384/
  */
 void loadPythonSharedObject()
 {
@@ -147,7 +151,6 @@ void loadPythonSharedObject()
   
     auto sysconfig_module = PyImport_ImportModule("sysconfig");
     auto lib_obj = PyObject_CallMethod(sysconfig_module,"get_config_var","(s)","INSTSONAME");
-    //auto lib_obj = PyEval_CallFunction(get_config_var_func,"INSTSONAME");
     
     const char* libpython_name;
     int s = PyArg_Parse(lib_obj,"s",&libpython_name);
