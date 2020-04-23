@@ -3,11 +3,12 @@
 import os
 import platform
 import subprocess
-from os.path import basename, dirname, isdir, join
+from typing import Optional
+from os.path import dirname, isdir, join
 from pathlib import Path
-from shutil import make_archive, move, rmtree
+from shutil import make_archive, unpack_archive, move, rmtree
 from tempfile import mkdtemp
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import is_zipfile, ZipFile, ZIP_DEFLATED
 
 from pyfmu.types import AnyPath
 
@@ -24,7 +25,7 @@ def zipdir(inDir: str, outDir: str):
                 zf.write(p)
 
 
-def rm(path):
+def rm(path: AnyPath):
     """Delete a file or a directory
 
     Arguments:
@@ -40,8 +41,10 @@ def rm(path):
 
         if path.is_dir():
             rmtree(path)
+            assert not path.is_dir()
         elif path.is_file():
             path.unlink()
+            assert not path.is_file()
         else:
             raise ValueError("path neither specifies a file nor a directory.")
 
@@ -108,7 +111,7 @@ def compress(
 
             assert not renamed_archive.exists()
             move(str(archive_path), renamed_archive)
-            assert not output_directory.exists()
+            assert not archive_path.is_file()
             assert renamed_archive.exists()
 
             return renamed_archive
@@ -120,6 +123,21 @@ def compress(
             f"Unable to compress the archive, an exception was thrown : {e}"
         )
         raise e
+
+
+def decompress(
+    input_archive: AnyPath, output_directory: AnyPath, format: Optional[str] = None,
+) -> None:
+    """Extract archive to specified directory
+
+    Arguments:
+        input_archive {AnyPath} -- archive to extract
+        output_directory {AnyPath} -- directory into which the files are extracted
+
+    Keyword Arguments:
+        format {str} -- specifies the decompression format. If unspecified infer from archive extension (default: {None})
+    """
+    unpack_archive(str(input_archive), output_directory, format=format)
 
 
 class cd:
@@ -187,6 +205,94 @@ def system_identifier() -> str:
     # merge parts to form: windows64, linux64
     identifier = (sys + arch).lower()
     return identifier
+
+
+def is_fmu_archive(path_to_archive: AnyPath) -> bool:
+    """Check if path points to FMU archive.
+
+    For example::
+
+     >>> is_fmu_archive("myfmu.fmu")
+     True
+     >>> is_fmu_arcive("myfmu")
+     False
+     >>> is_fmu_archive("test.txt")
+     False
+
+    Note that this function only does superficial checks of the FMU
+    and does not guarantee the correctness of the FMU.
+
+    Arguments:
+        path_to_archive {AnyPath} -- path to a FMU archive
+
+    Returns:
+        bool -- true if the path refers to a FMU archive, false otherwise
+    """
+    path_to_archive = Path(path_to_archive)
+
+    if not is_zipfile(path_to_archive):
+        return False
+
+    td = Path(mkdtemp())
+
+    decompress(path_to_archive, td, format="zip")
+    is_archive = is_fmu_directory(td)
+    rm(td)
+
+    return is_archive
+
+
+def is_fmu_directory(path_to_directory: AnyPath) -> bool:
+    """Check if path points to FMU directory.
+
+    For example::
+
+     >>> is_fmu_archive("myfmu.fmu")
+     False
+     >>> is_fmu_arcive("myfmu")
+     True
+     >>> is_fmu_archive("test.txt")
+     False
+
+    Note that this function only does superficial checks of the FMU
+    and does not guarantee the correctness of the FMU.
+
+    Arguments:
+        path_to_archive {AnyPath} -- path to a FMU directory
+
+    Returns:
+        bool -- true if the path refers to a FMU directory, false otherwise
+    """
+    path_to_directory = Path(path_to_directory)
+    model_description_path = path_to_directory / "modelDescription.xml"
+    return model_description_path.is_file()
+
+
+class MakeTemporaryArchiveIfDirectory:
+    def __init__(self, path_to_fmu: AnyPath):
+        self.should_cleanup = False
+        path_to_fmu = Path(path_to_fmu)
+
+        if is_fmu_archive(path_to_fmu):
+            self.path_to_fmu = path_to_fmu
+        elif is_fmu_directory(path_to_fmu):
+
+            td = Path(mkdtemp())
+            self.path_to_fmu = compress(path_to_fmu, td, extension="fmu")
+            self.should_cleanup = True
+        else:
+            raise ValueError(
+                "The specified path does not appear to be a FMU archive or directory."
+            )
+
+    def __enter__(self) -> Path:
+        return self.path_to_fmu
+
+    def __exit__(self, type, value, traceback):
+        if self.should_cleanup:
+            assert is_fmu_archive(self.path_to_fmu)
+            rm(self.path_to_fmu)
+            assert not self.path_to_fmu.is_file()
 
 
 if __name__ == "__main__":

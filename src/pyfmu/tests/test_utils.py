@@ -1,7 +1,8 @@
 from os import makedirs
 from pathlib import Path
 
-from pyfmu.builder.utils import compress
+from pyfmu.builder.utils import compress, is_fmu_archive, is_fmu_directory
+from pyfmu.tests import ExampleArchive
 
 
 class TestCompress:
@@ -51,3 +52,15 @@ class TestCompress:
         expected_path = Path(tmpdir) / "mydir.zip"
 
         assert actual_path.samefile(expected_path)
+
+
+def test_is_fmu_directory(tmpdir):
+
+    with ExampleArchive("Adder") as a:
+        assert is_fmu_directory(a.root)
+
+
+def test_is_fmu_archive(tmpdir):
+    with ExampleArchive("Adder") as a:
+        c = compress(a.root, tmpdir, extension="fmu")
+        assert is_fmu_archive(c)
