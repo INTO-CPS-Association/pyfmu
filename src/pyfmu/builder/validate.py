@@ -3,16 +3,13 @@
 import subprocess
 from enum import Enum
 from pathlib import Path
-from tempfile import mkdtemp
 from typing import List
 
 from fmpy import simulate_fmu
 
 from pyfmu.builder.utils import (
-    rm,
     system_identifier,
     has_java,
-    compress,
     TemporaryFMUArchive,
 )
 from pyfmu.resources import Resources
@@ -97,6 +94,7 @@ def validate_fmu(path_to_fmu: AnyPath, tools: List[str]) -> ValidationResult:
         "fmpy": _validate_fmpy,
         "fmucheck": _validate_fmiComplianceChecker,
         "vdmcheck": _validate_vdmcheck,
+        "maestro_v1": _validate_maestro_v1,
     }
 
     unrecognized_tools = [t for t in tools if t not in tool_to_func.keys()]
@@ -207,57 +205,44 @@ def _validate_vdmcheck(
     validation_results.set_result_for("vdmcheck", isValid, result.stdout)
 
 
-def _validate_vdmcheck_old(
-    modelDescription: str,
-    validation_results: ValidationResult,
-    fmi_version=FMI_Versions.FMI2,
-):
-    """Validate the model description using the VDMCheck tool.
+def _validate_maestro_v1(
+    path_to_fmu: AnyPath, validation_results: ValidationResult,
+) -> None:
+    """Validate a FMUs model description using VDMCheck.
+
+    This tool requires that Java is installed in the systems path.
 
     Arguments:
-        modelDescription {str} -- textual representation of the model description.
+        path_to_fmu {AnyPath} -- path to a FMU archive or directory
+        validation_results {ValidationResult} -- structure into which the results are appended
 
     Keyword Arguments:
-        fmi_version {FMI_Versions} -- [description] (default: {FMI_Versions.FMI2})
-
-    Raises:
-        ValueError: Raised if an the fmi_version is unknown or if the tool does not support validation thereof.
-
-    Notes:
-        VDMCheck is implemented in Java, as such it requires java to be available in the path.
+        fmi_version {FMI_Versions} -- FMI version implemented by the FMU (default: {FMI_Versions.FMI2})
     """
+
+    path_to_fmu = Path(path_to_fmu)
 
     if not has_java():
         raise RuntimeError(
-            "Unable to perform validation using VDMCheck, java was not found in the systems path."
+            "Unable to perform validation using Maestro 1, java was not found in the systems path."
         )
 
-    fmi_to_jar = {
-        fmi_version.FMI2: Resources.get().VDMCheck2_jar,
-        fmi_version.FMI3: Resources.get().VDMCheck3_jar,
-    }
+    with TemporaryFMUArchive(path_to_fmu) as p:
 
-    if fmi_version not in fmi_to_jar:
-        raise RuntimeError(
-            f"Unable to perform validation using VDMCheck. Unsupported FMI version: {fmi_version}, supported versions are: {fmi_to_jar.keys()}"
+        jar_path = str(Resources.get().maestro_v1)
+
+        results = subprocess.run(
+            ["java", "-jar", jar_path, "-l", str(p)], capture_output=True
         )
 
-    jar_path = str(fmi_to_jar[fmi_version].resolve())
-    # Run VDMCheck
-    result = subprocess.run(
-        ["java", "-Dfile.encoding=UTF-8", "-jar", jar_path, "-x", modelDescription],
-        capture_output=True,
-    )
+    message = f"""Maestro v1:
+    ============= stdout ===============
+    {results.stdout}
+    ============= stderr ===============
+    {results.stderr}
+    """
 
-    def _vdmcheck_no_errors(results):
-        stdout_contains_no_error = b"no errors found" in results.stdout.lower()
-        stderr_is_empty = results.stderr == b""
-        error_code_ok = results.returncode == 0
-        return stdout_contains_no_error and stderr_is_empty and error_code_ok
-
-    # convert output
-    isValid = _vdmcheck_no_errors(result)
-    validation_results.set_result_for("vdmcheck", isValid, result.stdout)
+    validation_results.set_result_for("maestro_v1", results.returncode == 0, message)
 
 
 def _validate_fmiComplianceChecker(
@@ -301,7 +286,7 @@ def _validate_fmiComplianceChecker(
         {results.stderr}
         """
 
-        validation_results.set_result_for("fmuCheck", results.returncode == 0, message)
+        validation_results.set_result_for("fmucheck", results.returncode == 0, message)
 
 
 def _validate_fmpy(path_to_fmu: AnyPath, validation_results: ValidationResult) -> None:

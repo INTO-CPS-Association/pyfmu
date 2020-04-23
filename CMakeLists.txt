@@ -87,12 +87,13 @@ set(EXTERNAL_LIBS uriparser)
 
 ######################################## LOCATE PYTHON ########################################
 
+set(Python3_USE_STATIC_LIBS FALSE)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 if (WIN32)
   set(Python3_LIBRARIES ${Python3_LIBRARY_DIRS}/python3.lib)
 endif ()
 
-set(Python3_USE_STATIC_LIBS TRUE)
+
 
 ######################################## WRAPPER ########################################
 

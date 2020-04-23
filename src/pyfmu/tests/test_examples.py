@@ -6,7 +6,7 @@ from ctypes import cdll
 import platform
 
 import pytest
-from fmpy.simulation import simulate_fmu, FMU2Slave
+from fmpy.simulation import FMU2Slave
 from fmpy.model_description import read_model_description
 
 from pyfmu.builder import validate_fmu
@@ -22,7 +22,7 @@ def fmi_logger(m):
 
 
 # validate every example with
-_validate_with = ["fmpy", "fmucheck", "vdmcheck"]
+_validate_with = ["fmpy", "fmucheck", "vdmcheck", "maestro_v1"]
 
 
 def test_shared_library_can_be_loaded():
@@ -48,45 +48,43 @@ def test_shared_library_can_be_loaded():
 def test_Adder():
     with ExampleArchive("Adder") as a:
 
-        p = str(a.root.resolve())
-
-        simulate_fmu(p)
+        assert validate_fmu(a.root, _validate_with).valid
 
 
 def test_BicycleKinematic():
     with ExampleArchive("BicycleKinematic") as a:
 
-        validate_fmu(a.root, _validate_with)
+        assert validate_fmu(a.root, _validate_with).valid
 
 
 def test_ConstantSignalGenerator():
     with ExampleArchive("ConstantSignalGenerator") as a:
 
-        validate_fmu(a.root, _validate_with)
+        assert validate_fmu(a.root, _validate_with).valid
 
 
 def test_FmiTypes():
     with ExampleArchive("FmiTypes") as a:
 
-        validate_fmu(a.root, _validate_with)
+        assert validate_fmu(a.root, _validate_with).valid
 
 
 def test_LivePlotting():
     with ExampleArchive("LivePlotting") as a:
 
-        validate_fmu(a.root, _validate_with)
+        assert validate_fmu(a.root, _validate_with).valid
 
 
 def test_LoggerFMU():
     with ExampleArchive("LoggerFMU") as a:
 
-        validate_fmu(a.root, _validate_with)
+        assert validate_fmu(a.root, _validate_with).valid
 
 
 def test_SineGenerator():
     with ExampleArchive("SineGenerator") as a:
 
-        validate_fmu(a.root, _validate_with)
+        assert validate_fmu(a.root, _validate_with).valid
 
 
 def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():

@@ -272,7 +272,7 @@ class TemporaryFMUArchive:
     def __init__(self, path_to_fmu: AnyPath):
         """Creates a temporary FMU archive if the path points to an extracted FMU, otherwise
         do nothing.
-        
+
         In case an archive is created it is automatically removed.
 
         For example:

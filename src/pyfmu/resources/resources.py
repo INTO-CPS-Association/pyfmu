@@ -3,7 +3,8 @@ from pathlib import Path
 
 _resources = None
 
-_wrapper_name = 'pyfmu'
+_wrapper_name = "pyfmu"
+
 
 class Resources:
     """Singleton object representing static resources.
@@ -22,24 +23,29 @@ class Resources:
 
         global _resources
 
-        if(_resources is None):
+        if _resources is None:
             _resources = Resources()
 
         return _resources
 
     def __init__(self):
         self.root = Path(__file__).parent
-        self.pyfmu_dir = self.root / 'pyfmu'
-        self.templates_dir = self.root / 'templates'
-        self.scriptTemplate_path = self.templates_dir / 'fmu.py.j2'
+        self.pyfmu_dir = self.root / "pyfmu"
+        self.templates_dir = self.root / "templates"
+        self.scriptTemplate_path = self.templates_dir / "fmu.py.j2"
 
         # binaries
-        self.binaries_dir: Path = self.root / 'wrapper' / 'binaries'
-        self.wrapper_win64 = self.binaries_dir / 'win64' / (_wrapper_name + '.dll')
-        self.wrapper_linux64 = self.binaries_dir / 'linux64' / (_wrapper_name + '.so')
+        self.binaries_dir: Path = self.root / "wrapper" / "binaries"
+        self.wrapper_win64 = self.binaries_dir / "win64" / (_wrapper_name + ".dll")
+        self.wrapper_linux64 = self.binaries_dir / "linux64" / (_wrapper_name + ".so")
 
-
-        self.VDMCheck2_jar = self.root / 'validation' / 'vdmcheck-0.0.2' / 'fmi2vdm-0.0.2.jar'
-        self.VDMCheck3_jar = self.root / 'validation' / 'vdmcheck-0.0.3' / 'fmi2vdm-0.0.3.jar'
+        # validation
+        self.VDMCheck2_jar = (
+            self.root / "validation" / "vdmcheck-0.0.2" / "fmi2vdm-0.0.2.jar"
+        )
+        self.VDMCheck3_jar = (
+            self.root / "validation" / "vdmcheck-0.0.3" / "fmi2vdm-0.0.3.jar"
+        )
         self.fmuCheck_linux64 = self.root / "validation" / "fmuCheck.linux64"
         self.fmuCheck_win64 = self.root / "validation" / "fmuCheck.win64.exe"
+        self.maestro_v1 = self.root / "validation" / "coe.jar"
