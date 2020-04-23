@@ -84,6 +84,9 @@ def compress(
     try:
         input_directory = Path(input_directory)
 
+        if not input_directory.is_absolute():
+            input_directory = Path.cwd() / input_directory
+
         if not input_directory.is_dir():
             raise ValueError(
                 f"input directory: {input_directory} does not appear to be a directory"
@@ -94,14 +97,11 @@ def compress(
         else:
             output_directory = Path(output_directory)
 
-        root_dir = input_directory
-        base_dir = input_directory
+        root_dir = str(input_directory)
         base_name = str(output_directory)
 
         archive_path = Path(
-            make_archive(
-                base_name=base_name, base_dir=base_dir, format=format, root_dir=root_dir
-            )
+            make_archive(base_name=base_name, format=format, root_dir=root_dir)
         )
         assert archive_path.is_file()
 
@@ -137,7 +137,7 @@ def decompress(
     Keyword Arguments:
         format {str} -- specifies the decompression format. If unspecified infer from archive extension (default: {None})
     """
-    unpack_archive(str(input_archive), output_directory, format=format)
+    unpack_archive(str(input_archive), str(output_directory), format=format)
 
 
 class cd:
@@ -243,7 +243,7 @@ def is_fmu_archive(path_to_archive: AnyPath) -> bool:
 
 
 def is_fmu_directory(path_to_directory: AnyPath) -> bool:
-    """Check if path points to FMU directory.
+    """Check if path points to extracted FMU.
 
     For example::
 
@@ -258,18 +258,37 @@ def is_fmu_directory(path_to_directory: AnyPath) -> bool:
     and does not guarantee the correctness of the FMU.
 
     Arguments:
-        path_to_archive {AnyPath} -- path to a FMU directory
+        path_to_archive {AnyPath} -- path to a extracted FMU
 
     Returns:
-        bool -- true if the path refers to a FMU directory, false otherwise
+        bool -- true if the path refers to a extracted FMU, false otherwise
     """
     path_to_directory = Path(path_to_directory)
     model_description_path = path_to_directory / "modelDescription.xml"
     return model_description_path.is_file()
 
 
-class MakeTemporaryArchiveIfDirectory:
+class TemporaryFMUArchive:
     def __init__(self, path_to_fmu: AnyPath):
+        """Creates a temporary FMU archive if the path points to an extracted FMU, otherwise
+        do nothing.
+        
+        In case an archive is created it is automatically removed.
+
+        For example:
+
+         >>> with TemporaryFMUArchive("myfmu.fmu") as p: # do nothing
+         ...    pass
+         >>> with TemporaryFMUArchive("myfmu") as p: # compress as {tmpname}.fmu
+         ...    pass
+
+
+        Arguments:
+            path_to_fmu {AnyPath} -- [description]
+
+        Raises:
+            ValueError: [description]
+        """
         self.should_cleanup = False
         path_to_fmu = Path(path_to_fmu)
 

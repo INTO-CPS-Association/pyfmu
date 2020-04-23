@@ -1,11 +1,20 @@
+"""Contains functionality for validating FMUs using built-in and third-part checkers."""
+
 import subprocess
 from enum import Enum
 from pathlib import Path
-from tempfile import mkdtemp, tempdir
+from tempfile import mkdtemp
+from typing import List
 
 from fmpy import simulate_fmu
 
-from pyfmu.builder.utils import rm, system_identifier, has_java, compress
+from pyfmu.builder.utils import (
+    rm,
+    system_identifier,
+    has_java,
+    compress,
+    TemporaryFMUArchive,
+)
 from pyfmu.resources import Resources
 from pyfmu.types import AnyPath
 
@@ -43,9 +52,7 @@ class ValidationResult:
         return False not in ss
 
 
-def validate_fmu(
-    path_to_fmu: AnyPath, use_fmpy=True, use_fmucheck=False, use_vdmcheck=False
-) -> ValidationResult:
+def validate_fmu(path_to_fmu: AnyPath, tools: List[str]) -> ValidationResult:
     """Validate an FMU using the specified tools. The FMU may either be an achive or a folder.
 
     Tools:
@@ -85,18 +92,32 @@ def validate_fmu(
         ValidationResult -- structure containing the result of the validation
     """
 
-    path_to_fmu = Path(path_to_fmu)
+    tools = [t.lower() for t in tools]
+    tool_to_func = {
+        "fmpy": _validate_fmpy,
+        "fmucheck": _validate_fmiComplianceChecker,
+        "vdmcheck": _validate_vdmcheck,
+    }
+
+    unrecognized_tools = [t for t in tools if t not in tool_to_func.keys()]
+
+    if len(unrecognized_tools) != 0:
+        raise ValueError(
+            f"""One or more of the specified tools could not be used to validate the FMU.
+        The following tools were not recognized: {unrecognized_tools}"""
+        )
 
     val_results = ValidationResult()
+    path_to_fmu = Path(path_to_fmu)
 
-    if use_fmpy:
-        _validate_fmpy(path_to_fmu, val_results)
-
-    if use_fmucheck:
-        _validate_fmiComplianceChecker(path_to_fmu, val_results)
-
-    if use_vdmcheck:
-        _validate_vdmcheck()
+    for t in tools:
+        f = tool_to_func[t]
+        try:
+            f(path_to_fmu, val_results)
+        except Exception as e:
+            val_results.set_result_for(
+                t, False, f"Validation failed an exception was thrown in Python: {e}"
+            )
 
     return val_results
 
@@ -136,6 +157,57 @@ def validate_modelDescription(
 
 
 def _validate_vdmcheck(
+    path_to_fmu: AnyPath,
+    validation_results: ValidationResult,
+    fmi_version=FMI_Versions.FMI2,
+) -> None:
+    """Validate a FMUs model description using VDMCheck.
+
+    This tool requires that Java is installed in the systems path.
+
+    Arguments:
+        path_to_fmu {AnyPath} -- path to a FMU archive or directory
+        validation_results {ValidationResult} -- structure into which the results are appended
+
+    Keyword Arguments:
+        fmi_version {FMI_Versions} -- FMI version implemented by the FMU (default: {FMI_Versions.FMI2})
+    """
+
+    path_to_fmu = Path(path_to_fmu)
+
+    if not has_java():
+        raise RuntimeError(
+            "Unable to perform validation using VDMCheck, java was not found in the systems path."
+        )
+
+    fmi_to_jar = {
+        FMI_Versions.FMI2: Resources.get().VDMCheck2_jar,
+        FMI_Versions.FMI3: Resources.get().VDMCheck3_jar,
+    }
+
+    if fmi_version not in fmi_to_jar:
+        raise RuntimeError(
+            f"Unable to perform validation using VDMCheck. Unsupported FMI version: {fmi_version}, supported versions are: {fmi_to_jar.keys()}"
+        )
+
+    with TemporaryFMUArchive(path_to_fmu) as p:
+
+        jar_path = str(fmi_to_jar[fmi_version].resolve())
+
+        result = subprocess.run(["java", "-jar", jar_path, str(p)], capture_output=True)
+
+    def _vdmcheck_no_errors(results):
+        stdout_contains_no_error = b"no errors found" in results.stdout.lower()
+        stderr_is_empty = results.stderr == b""
+        error_code_ok = results.returncode == 0
+        return stdout_contains_no_error and stderr_is_empty and error_code_ok
+
+    # convert output
+    isValid = _vdmcheck_no_errors(result)
+    validation_results.set_result_for("vdmcheck", isValid, result.stdout)
+
+
+def _validate_vdmcheck_old(
     modelDescription: str,
     validation_results: ValidationResult,
     fmi_version=FMI_Versions.FMI2,
@@ -196,7 +268,7 @@ def _validate_fmiComplianceChecker(
     Supported platforms are linux64, win64 and darwin64
 
     Arguments:
-        path_to_fmu {AnyPath} -- path to a FMU archive or directory.
+        path_to_fmu {AnyPath} -- path to a FMU archive or directory
         validation_results {ValidationResult} -- structure into which the results are appended
 
     Raises:
@@ -219,35 +291,22 @@ def _validate_fmiComplianceChecker(
 
     executable = str(platform_to_executable[system])
 
-    results = None
+    with TemporaryFMUArchive(path_to_fmu) as archive:
+        results = subprocess.run([executable, str(archive)], capture_output=True)
 
-    should_cleanup_fmu = False
+        message = f""" FMI Compliance Checker:
+        ============= stdout ===============
+        {results.stdout}
+        ============= stderr ===============
+        {results.stderr}
+        """
 
-    """fmuCheck expects a zip-archive. In case the path points to a directory
-    we compress the directory."""
-    if path_to_fmu.is_dir():
-        archive_directory = Path(mkdtemp()) / "fmu_under_test"
-        path_to_archive = compress(path_to_fmu, archive_directory, extension="fmu")
-        should_cleanup_fmu = True
-    else:
-        path_to_archive = path_to_fmu
-
-    try:
-        assert path_to_archive.is_file()
-        results = subprocess.run([executable, str(path_to_fmu)], capture_output=True)
-        validation_results.set_result_for(
-            "fmuCheck", results.stderr == 0, results.stderr
-        )
-    except Exception as e:
-        validation_results.set_result_for("fmuCheck", False, str(e))
-    finally:
-        if should_cleanup_fmu:
-            rm(path_to_fmu)
+        validation_results.set_result_for("fmuCheck", results.returncode == 0, message)
 
 
 def _validate_fmpy(path_to_fmu: AnyPath, validation_results: ValidationResult) -> None:
     """Validate an FMU using FMPy, by loading performing a simulation.
-    
+
     The nature of this simulation is left up to FMPy's implementation.
 
     Arguments:
@@ -255,7 +314,7 @@ def _validate_fmpy(path_to_fmu: AnyPath, validation_results: ValidationResult) -
         validation_results {ValidationResult} -- structure into which the results are appended
     """
     try:
-        simulate_fmu(path_to_fmu)
+        simulate_fmu(str(path_to_fmu))
         validation_results.set_result_for("fmpy", True)
     except Exception as e:
         validation_results.set_result_for("fmpy", False, str(e))
