@@ -237,9 +237,9 @@ def _validate_maestro_v1(
 
     message = f"""Maestro v1:
     ============= stdout ===============
-    {results.stdout.decode}
+    {results.stdout.decode()}
     ============= stderr ===============
-    {results.stderr.decode}
+    {results.stderr.decode()}
     """
 
     validation_results.set_result_for("maestro_v1", results.returncode == 0, message)
