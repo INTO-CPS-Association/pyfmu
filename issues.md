@@ -3,6 +3,9 @@
 ## Showing dynamic symbols
 https://unix.stackexchange.com/questions/282616/why-nm-shows-no-symbols-for-lib-i386-linux-gnu-libc-so-6
 
+## Linker scripts
+https://stackoverflow.com/questions/22764734/linux-equivalent-of-windows-dll-forwarders-or-macos-reexport-library
+
 ## SO-numbers
 https://unix.stackexchange.com/questions/282616/why-nm-shows-no-symbols-for-lib-i386-linux-gnu-libc-so-6
 
