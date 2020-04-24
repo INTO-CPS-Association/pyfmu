@@ -156,7 +156,7 @@ string ws2s(const wstring &wstr)
 }
 
 #ifdef WIN32
-loadPythonSharedObject()
+void loadPythonSharedObject()
 {
 }
 #else
