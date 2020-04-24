@@ -13,6 +13,34 @@ using namespace std;
 using namespace filesystem;
 using namespace fmt;
 
+// Works on windows
+int win_parse_uriparserV1(const char *uri, char *filenname)
+{
+  UriUriA uri1;
+  int err = uriParseSingleUriA(&uri1, uri, nullptr);
+  if (err != 0)
+    return err;
+
+  auto path1_cstr = uri1.pathHead->text.first;
+
+  strcpy(filenname, path1_cstr);
+
+  uriFreeUriMembersA(&uri1);
+  return err;
+}
+
+/**
+ * @brief Seems to fail on windows if only a single drive letter
+ * is used
+ * 
+ * @param uri 
+ * @param filenname 
+ */
+int win_parse_uriparserV2(const char *uri, char *filenname)
+{
+  return uriUriStringToWindowsFilenameA(uri, filenname);
+}
+
 /**
  * @brief Convert file uri to a path
  * 
@@ -61,7 +89,9 @@ path getPathFromFileUri(string uri)
 #ifdef WIN32
   err = uriUriStringToWindowsFilenameA(uri_cstr, absUri);
 #else
-  err = uriUriStringToUnixFilenameA(uri_cstr, absUri);
+
+  // err = uriUriStringToUnixFilenameA(uri_cstr, absUri);
+  err = win_parse_uriparserV1(uri_cstr, absUri);
 #endif
 
   if (err != URI_SUCCESS)
