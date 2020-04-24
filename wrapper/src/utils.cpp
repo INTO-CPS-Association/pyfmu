@@ -87,11 +87,11 @@ path getPathFromFileUri(string uri)
   char *absUri = new char[bytesNeeded];
 
 #ifdef WIN32
-  err = uriUriStringToWindowsFilenameA(uri_cstr, absUri);
+  err = win_parse_uriparserV1(uri_cstr, absUri);
+
 #else
 
-  // err = uriUriStringToUnixFilenameA(uri_cstr, absUri);
-  err = win_parse_uriparserV1(uri_cstr, absUri);
+  err = uriUriStringToUnixFilenameA(uri_cstr, absUri);
 #endif
 
   if (err != URI_SUCCESS)
