@@ -6,6 +6,7 @@ from pyfmu.builder.utils import (
     is_fmu_archive,
     is_fmu_directory,
     TemporaryFMUArchive,
+    rm,
 )
 from pyfmu.tests import ExampleArchive
 
@@ -85,3 +86,11 @@ def test_is_fmu_archive(tmpdir):
     other_dir = Path(tmpdir) / "empty_dir"
     makedirs(other_dir)
     assert not is_fmu_archive(other_dir)
+
+
+def test_rm(tmpdir):
+
+    tmpdir = Path(tmpdir)
+    assert tmpdir.is_dir()
+    rm(tmpdir)
+    assert not tmpdir.is_dir()
