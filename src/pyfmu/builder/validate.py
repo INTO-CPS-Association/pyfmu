@@ -237,9 +237,9 @@ def _validate_maestro_v1(
 
     message = f"""Maestro v1:
     ============= stdout ===============
-    {results.stdout}
+    {results.stdout.decode}
     ============= stderr ===============
-    {results.stderr}
+    {results.stderr.decode}
     """
 
     validation_results.set_result_for("maestro_v1", results.returncode == 0, message)
@@ -281,9 +281,9 @@ def _validate_fmiComplianceChecker(
 
         message = f""" FMI Compliance Checker:
         ============= stdout ===============
-        {results.stdout}
+        {results.stdout.decode()}
         ============= stderr ===============
-        {results.stderr}
+        {results.stderr.decode()}
         """
 
         validation_results.set_result_for("fmucheck", results.returncode == 0, message)
