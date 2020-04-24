@@ -32,21 +32,17 @@ def rm(path: AnyPath):
         p {Path} -- path to a directory or a file
     """
 
-    if platform.system() == "Windows":
-        print("TODO FIX RM ON WINDOWS!")
-        return
-
     try:
         path = Path(path)
 
         if path.is_dir():
             rmtree(path)
             assert not path.is_dir()
-        elif path.is_file():
+        elif path.is_file() or path.is_symlink():
             path.unlink()
             assert not path.is_file()
         else:
-            raise ValueError("path neither specifies a file nor a directory.")
+            raise ValueError("path neither specifies a file, symlink nor a directory.")
 
     except Exception as e:
         raise RuntimeError(
