@@ -3,6 +3,7 @@
 For ease of testing fmpy is used as a cosimulation engine.
 """
 from ctypes import cdll
+import _ctypes
 import platform
 
 import pytest
@@ -23,6 +24,7 @@ def fmi_logger(m):
 
 # validate every example with
 _validate_with = ["fmpy", "fmucheck", "vdmcheck", "maestro_v1"]
+_validate_with = ["fmucheck"]
 
 
 def test_shared_library_can_be_loaded():
@@ -42,7 +44,8 @@ def test_shared_library_can_be_loaded():
 
             p = str(p.resolve())
 
-            cdll.LoadLibrary(p)
+            c = cdll.LoadLibrary(p)
+            _ctypes.FreeLibrary(c._handle)
 
 
 def test_Adder():
@@ -66,7 +69,8 @@ def test_ConstantSignalGenerator():
 def test_FmiTypes():
     with ExampleArchive("FmiTypes") as a:
 
-        assert validate_fmu(a.root, _validate_with).valid
+        res = validate_fmu(a.root, _validate_with)
+        assert res.valid
 
 
 def test_LivePlotting():
@@ -120,6 +124,9 @@ def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
 
             fmu_a.instantiate()
             fmu_b.instantiate()
+
+            fmu_a.freeInstance()
+            fmu_b.freeInstance()
 
 
 def atest_identicalNamesSameTypes_throws():
