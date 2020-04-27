@@ -12,7 +12,7 @@
  * 
  */
 
-#include <Python.h>
+#include "pyfmu/common.hpp"
 
 #include "utils.hpp"
 
@@ -69,15 +69,14 @@ static inline const char *PyUnicode_AsUTF8(PyObject *object)
     size_t n = str.length() + 1;
     char *cstr = new char[n];
     str.copy(cstr, str.length());
-    cstr[n-1] = '\0';
-    
+    cstr[n - 1] = '\0';
 
     return cstr;
 }
 
 static inline std::string PyUnicode_AsString(PyObject *object)
 {
-    const char* cstr = pyCompat::PyUnicode_AsUTF8(object);
+    const char *cstr = pyCompat::PyUnicode_AsUTF8(object);
     std::string str(cstr);
     delete[] cstr;
     return str;

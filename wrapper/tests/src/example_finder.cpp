@@ -6,7 +6,6 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-
 #include "pyfmu/utils.hpp"
 #include "example_finder.hpp"
 
@@ -23,15 +22,15 @@ set<string> examples = {
     "SineGenerator",
     "LoggerFMU",
     "BicycleKinematic",
-    "FmiTypes"
-    };
+    "FmiTypes"};
 
 /**
  * Returns the path to the example projects located in the test directory.
 **/
 fs::path getProjectsRoot()
 {
-    fs::path p = fs::path(__FILE__).parent_path().parent_path().parent_path().parent_path() / "examples" / "projects";
+    fs::path p = fs::absolute(fs::path("examples") / "projects");
+
     return p;
 }
 
@@ -60,6 +59,9 @@ ExampleArchive::ExampleArchive(std::string exampleName) : exampleName(exampleNam
 
     fs::path examplePath = getProjectsRoot() / exampleName;
     fs::path exportPath = this->getRoot();
+
+    examplePath = fs::absolute(examplePath);
+    exportPath = fs::absolute(exportPath);
 
     string exportCommand = format("{} export --project {} --out {}", exporter_script_name, examplePath.string(), exportPath.string());
 

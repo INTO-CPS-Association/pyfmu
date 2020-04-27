@@ -41,11 +41,7 @@ def FMI2_binary_directory_from_hostname() -> Path:
     sys = platform.system()
 
     # convert to FMI2 system name scheme
-    pySys_to_FmiSys = {
-        "Windows": "win",
-        "Linux": "linux",
-        "Darwin": "darwin"
-    }
+    pySys_to_FmiSys = {"Windows": "win", "Linux": "linux", "Darwin": "darwin"}
     sys = pySys_to_FmiSys[sys]
 
     # arch will be either "32bit" or "64bit"
@@ -72,12 +68,12 @@ def _get_input_binary_path_for_host() -> Path:
 
     sys = platform.system()
 
-    build_path = Path(__file__).parent.resolve() / 'build'
+    build_path = Path(__file__).parent.resolve() / "build"
 
-    if(sys == 'Windows'):
-        return build_path / 'pyfmu.dll'
-    elif(sys == "Linux"):
-        return build_path / 'pyfmu.so'
+    if sys == "Windows":
+        return build_path / "pyfmu.dll"
+    elif sys == "Linux":
+        return build_path / "pyfmu.so"
     else:
         NotImplementedError(f"Not supported for platform {sys}")
 
@@ -104,39 +100,38 @@ def _get_output_binary_path_for_host() -> Path:
     sys = platform.system()
 
     wrapper_dir = Resources.get().binaries_dir
-    if(sys == 'Windows'):
-        return wrapper_dir / 'win64' / 'pyfmu.dll'
-    elif(sys == 'Linux'):
-        return wrapper_dir / 'linux64' / 'pyfmu.so'
+    if sys == "Windows":
+        return wrapper_dir / "win64" / "pyfmu.dll"
+    elif sys == "Linux":
+        return wrapper_dir / "linux64" / "pyfmu.so"
     else:
-        raise NotImplementedError(f'Not implmented for {sys}')
+        raise NotImplementedError(f"Not implmented for {sys}")
 
 
 def copy_binaries():
 
     binary_in = _get_input_binary_path_for_host()
 
-    l.debug(f'Looking for compiled binary at path: {binary_in}')
+    l.debug(f"Looking for compiled binary at path: {binary_in}")
 
-    if(not binary_in.is_file()):
-        raise RuntimeError(
-            f'The compiled binary could not be found at: {binary_in}')
+    if not binary_in.is_file():
+        raise RuntimeError(f"The compiled binary could not be found at: {binary_in}")
 
     binary_out = _get_output_binary_path_for_host()
 
-    l.debug('Binaries were found.')
+    l.debug("Binaries were found.")
 
     try:
         os.makedirs(binary_out.parent, exist_ok=True)
 
-        if(binary_out.is_file()):
+        if binary_out.is_file():
             os.remove(binary_out)
 
         copy(binary_in, binary_out)
     except Exception as e:
         raise RuntimeError(
-            f"Failed to copy binaries into the resources, an exception was thrown:\n{e}") from e
-
+            f"Failed to copy binaries into the resources, an exception was thrown:\n{e}"
+        ) from e
 
 
 
@@ -152,19 +147,19 @@ def build():
 
     p = platform.system()
 
-    build_dir = Path(__file__).parent / 'build'
-    l.log(logging.DEBUG, f'Preparing build to folder {build_dir}')
+    build_dir = Path(__file__).parent / "build"
+    l.log(logging.DEBUG, f"Preparing build to folder {build_dir}")
 
     # Create build folder and configure CMake
-    if(not build_dir.is_dir()):
+    if not build_dir.is_dir():
 
-        l.log(logging.DEBUG, 'Build folder does not exists, creating')
+        l.log(logging.DEBUG, "Build folder does not exists, creating")
 
         try:
             os.makedirs(build_dir)
 
         except Exception as e:
-            raise RuntimeError('Failed to create build folder') from e
+            raise RuntimeError("Failed to create build folder") from e
 
     # Do the following:
     # 1. cd into build
@@ -174,85 +169,98 @@ def build():
     with cd(build_dir):
         # Cmake configure
         try:
-            res = subprocess.run(['cmake', '..', '-DCMAKE_BUILD_TYPE=RELEASE'])
-            #res = subprocess.run(['cmake', '..'])
+            res = subprocess.run(["cmake", "..", "-DCMAKE_BUILD_TYPE=RELEASE"])
+            # res = subprocess.run(['cmake', '..'])
 
-            if(res.returncode != 0):
+            if res.returncode != 0:
                 raise RuntimeError(
-                    'CMake configure was called, but returned error code different than 0.')
+                    "CMake configure was called, but returned error code different than 0."
+                )
 
         except Exception as e:
-            raise RuntimeError(f'Calling CMake configure failed.') from e
+            raise RuntimeError(f"Calling CMake configure failed.") from e
 
         # CMake build
         try:
-            l.log(logging.DEBUG, 'Building project')
+            l.log(logging.DEBUG, "Building project")
 
-            if(p == 'Windows'):
-                res = subprocess.run(
-                    ['cmake', '--build', '.', '--config', 'Release'])
+            if p == "Windows":
+                res = subprocess.run(["cmake", "--build", ".", "--config", "Release"])
             else:
-                res = subprocess.run(['cmake', '--build', '.'])
+                res = subprocess.run(["cmake", "--build", "."])
 
-            if(res.returncode != 0):
+            if res.returncode != 0:
                 raise RuntimeError(
-                    'CMake build was called, but returned error code different than 0.')
+                    "CMake build was called, but returned error code different than 0."
+                )
 
         except Exception as e:
             raise RuntimeError(
-                'Failed to build CMake project, exception was thrown') from e
+                "Failed to build CMake project, exception was thrown"
+            ) from e
 
 
 if __name__ == "__main__":
 
+    build()
     parser = argparse.ArgumentParser(
-        description="Script to ease the process of build the wrapper and updating the resources of PyFMU")
+        description="Script to ease the process of build the wrapper and updating the resources of PyFMU"
+    )
 
     parser.add_argument(
-        '--update_wrapper', '-u', action='store_true', help="overwrite the old wrapper library with the newly built one.")
+        "--update_wrapper",
+        "-u",
+        action="store_true",
+        help="overwrite the old wrapper library with the newly built one.",
+    )
 
     parser.add_argument(
-        '--export_examples', '-e', action='store_true', help="Exports all example projects as FMUs with the built wrapper.")
+        "--export_examples",
+        "-e",
+        action="store_true",
+        help="Exports all example projects as FMUs with the built wrapper.",
+    )
 
     args = parser.parse_args()
 
-    l.log(logging.DEBUG, 'Building project.')
+    l.log(logging.DEBUG, "Building project.")
     try:
         build()
     except Exception as e:
-        l.log(logging.ERROR,
-              f'Failed building PyFMU, an exception was thrown:\n{e}')
+        l.log(logging.ERROR, f"Failed building PyFMU, an exception was thrown:\n{e}")
         sys.exit(-1)
 
-    l.debug('Succesfully build project.')
+    l.debug("Succesfully build project.")
 
     should_update_wrapper = args.update_wrapper or args.export_examples
 
-    if(should_update_wrapper):
-        l.debug('Copying the binaries to resource folder')
+    if should_update_wrapper:
+        l.debug("Copying the binaries to resource folder")
 
         try:
             copy_binaries()
             pass
         except Exception as e:
-            l.log(logging.ERROR,
-                  f'Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}')
+            l.log(
+                logging.ERROR,
+                f"Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}",
+            )
             sys.exit(-1)
 
-        l.debug('Binaries were sucessfully copied to resources.')
+        l.debug("Binaries were sucessfully copied to resources.")
 
-    if(args.export_examples):
+    if args.export_examples:
 
         try:
             from pyfmu.tests import export_all
-            
+
         except Exception as e:
-            l.warning('Unable to export projects, pyfmu is not built. To export build the python application first using : "pip install -e ." ')
+            l.warning(
+                'Unable to export projects, pyfmu is not built. To export build the python application first using : "pip install -e ." '
+            )
             sys.exit(-1)
 
         export_all()
 
-        l.debug('Sucessfully exported projects')
-
-    
+        l.debug("Sucessfully exported projects")
 

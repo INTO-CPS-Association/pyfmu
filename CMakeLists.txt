@@ -7,18 +7,18 @@ project(pyfmu-wrapper
 #set(BUILD_SHARED_LIBS ON)
 ######################################## WINDOWS COMPATABILITY ########################################
 if (MSVC)
-  # https://stackoverflow.com/questions/14172856/compile-with-mt-instead-of-md-using-cmake
-  set(CompilerFlags
-          CMAKE_CXX_FLAGS
-          CMAKE_CXX_FLAGS_DEBUG
-          CMAKE_CXX_FLAGS_RELEASE
-          CMAKE_C_FLAGS
-          CMAKE_C_FLAGS_DEBUG
-          CMAKE_C_FLAGS_RELEASE
-          )
-  foreach (CompilerFlag ${CompilerFlags})
-    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-  endforeach ()
+#   # https://stackoverflow.com/questions/14172856/compile-with-mt-instead-of-md-using-cmake
+#   set(CompilerFlags
+#           CMAKE_CXX_FLAGS
+#           CMAKE_CXX_FLAGS_DEBUG
+#           CMAKE_CXX_FLAGS_RELEASE
+#           CMAKE_C_FLAGS
+#           CMAKE_C_FLAGS_DEBUG
+#           CMAKE_C_FLAGS_RELEASE
+#           )
+#   foreach (CompilerFlag ${CompilerFlags})
+#     string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+#   endforeach ()
 
   # Python defines its own snprintf function in case the system does not provide one.
   # Unfortunately this clashes with std::snprintf. The flag HAVE_SNPRINTF determines this behavior.
@@ -127,17 +127,18 @@ target_compile_definitions(pyfmu
 
 
 target_link_libraries(pyfmu
-        PUBLIC 
-        ${Python3_LIBRARIES}
+        
         PRIVATE
         ${CONAN_LIBS}
         ${EXTERNAL_LIBS}
+        ${Python3_LIBRARIES}
         )
 
 ######################################## WRAPPER-TESTS ########################################
 
 add_executable(wrapper-tests
         wrapper/tests/src/tests.cpp
+        #wrapper/tests/src/sandbox.cpp
         wrapper/tests/src/example_finder.cpp
         wrapper/tests/src/tmpdir.cpp
 )
@@ -159,10 +160,10 @@ target_link_libraries(wrapper-tests
 # multi-configuration generators such as MSVC puts different builds in seperate folders
 # we dumpy them in the root of the build to be able to copy them more easily.
 if(MSVC)
-    set_target_properties(pyfmu PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
-    set_target_properties(pyfmu PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
+#     set_target_properties(pyfmu PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
+#     set_target_properties(pyfmu PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
 
 elseif(UNIX)
     
@@ -173,4 +174,3 @@ elseif(UNIX)
         )
 
 endif()
-

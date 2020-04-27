@@ -6,7 +6,7 @@
 #include <optional>
 #include <regex>
 
-#include <Python.h>
+#include "pyfmu/common.hpp"
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
@@ -58,10 +58,10 @@ public:
       const std::string &format,
       const Args &... args)
   {
-    
-    std::string msg = fmt::format(format,args...);
 
-    loggerCallback(componentEnvironment, instanceName.c_str(), status,category.c_str(), msg.c_str());
+    std::string msg = fmt::format(format, args...);
+
+    loggerCallback(componentEnvironment, instanceName.c_str(), status, category.c_str(), msg.c_str());
   }
 
   template <typename... Args>

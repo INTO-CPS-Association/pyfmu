@@ -5,7 +5,8 @@
 #include <memory>
 #include <filesystem>
 
-#include <Python.h>
+#include "pyfmu/common.hpp"
+
 #include <fmt/ranges.h>
 
 #include "fmi/fmi2TypesPlatform.h"
@@ -38,8 +39,6 @@
 
 namespace pyfmu
 {
-
-
 
 class PyObjectWrapper
 {
@@ -90,7 +89,7 @@ private:
 
     Logger *logger;
     PyMethodDef pCallbackDef;
-    PyObject* pCallbackFunc;
+    PyObject *pCallbackFunc;
 
     template <typename... Args>
     /**
@@ -102,10 +101,10 @@ private:
      */
     fmi2Status InvokeFmiOnSlave(const std::string &name, const std::string &formatStr, Args... args) const
     {
-        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,"Calling: {}",name);
+        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY, "Calling: {}", name);
 
         PyObject *f = PyObject_CallMethod(pInstance_, name.c_str(), formatStr.c_str(), args...);
-        
+
         if (f == nullptr)
         {
             auto err = get_py_exception();
@@ -134,7 +133,6 @@ private:
             return fmi2Fatal;
         }
 
-        
         fmi2Status s = static_cast<fmi2Status>(ls);
         return s;
     }
@@ -193,20 +191,20 @@ private:
      */
     template <typename T>
     fmi2Status InvokeFmiGetXXXFunction(
-        const std::string& getter_name,
+        const std::string &getter_name,
         std::function<PyObject *()> buildFunc,
         std::function<T(PyObject *)> convertFunc,
         const fmi2ValueReference *vr,
         std::size_t nvr,
         T *values) const
     {
-        
+
         std::vector<fmi2ValueReference> vrArray(vr, vr + nvr);
         std::vector<T> valuesArray(values, values + nvr);
         logger->ok(
             PYFMU_WRAPPER_LOG_CATEGORY,
             "Calling {} with value references: {} and values: {}", getter_name, vrArray, valuesArray);
-        
+
         PyGIL g;
 
         PyObject *vrs = PyList_New(nvr);
@@ -227,9 +225,9 @@ private:
 
         if (status > fmi2Discard)
         {
-            
+
             logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,
-            "call executed but returned error: {}, with python exception: {}", status, get_py_exception());
+                       "call executed but returned error: {}, with python exception: {}", status, get_py_exception());
 
             Py_DECREF(vrs);
             Py_DECREF(refs);

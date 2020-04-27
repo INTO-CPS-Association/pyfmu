@@ -2,7 +2,6 @@ from pyfmu.fmi2 import Fmi2Slave, Fmi2Status
 
 
 class FmiTypes(Fmi2Slave):
-
     def __init__(self, *args, **kwargs):
 
         author = "Christian Møldrup Legaard"
@@ -10,22 +9,19 @@ class FmiTypes(Fmi2Slave):
         description = "FMU for testing different FMI types"
 
         super().__init__(
-            modelName=modelName,
-            author=author,
-            description=description,
-            *args,
-            **kwargs
+            modelName=modelName, author=author, description=description, *args, **kwargs
         )
 
+        self.set_debug_logging(True, ["logAll"])
         # Inputs, outputs and parameters may be defined using the 'register_variable' function
-        self.register_variable("real_in", 'real', 'input')
-        self.register_variable("real_out", 'real', 'output')
-        self.register_variable("integer_in", 'integer', 'input', 'discrete')
-        self.register_variable("integer_out", 'integer', 'output', 'discrete')
-        self.register_variable("boolean_in", 'boolean', 'input', 'discrete')
-        self.register_variable("boolean_out", 'boolean', 'output', 'discrete')
-        self.register_variable("string_in", 'string', 'input', 'discrete')
-        self.register_variable("string_out", 'string', 'output', 'discrete')
+        self.register_variable("real_in", "real", "input")
+        self.register_variable("real_out", "real", "output")
+        self.register_variable("integer_in", "integer", "input", "discrete")
+        self.register_variable("integer_out", "integer", "output", "discrete")
+        self.register_variable("boolean_in", "boolean", "input", "discrete")
+        self.register_variable("boolean_out", "boolean", "output", "discrete")
+        self.register_variable("string_in", "string", "input", "discrete")
+        self.register_variable("string_out", "string", "output", "discrete")
 
     def _update(self):
         self.real_out = self.real_in
@@ -45,9 +41,9 @@ if __name__ == "__main__":
     fmu = FmiTypes()
     # extra check used to ensure the fmu is initialized according to the standard (not necessary)
     s = fmu._enter_initialization_mode()
-    assert(s == Fmi2Status.ok.value)
+    assert s == Fmi2Status.ok.value
     s = fmu._exit_initialization_mode()
-    assert(s == Fmi2Status.ok.value)
+    assert s == Fmi2Status.ok.value
 
     for i in range(100):
         fmu.real_in = float(i)
