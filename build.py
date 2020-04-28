@@ -29,7 +29,7 @@ class cd:
         os.chdir(self.savedPath)
 
 
-def FMI2_binary_directory_from_hostname() -> Path:
+def FMI2_binary_directory_from_hostname() -> str:
     """Returns the name of the binaries subfolder. This can either be:
     win32,win64,linux32,linux64,darwin32,darwin64
 
@@ -75,7 +75,7 @@ def _get_input_binary_path_for_host() -> Path:
     elif sys == "Linux":
         return build_path / "pyfmu.so"
     else:
-        NotImplementedError(f"Not supported for platform {sys}")
+        raise NotImplementedError(f"Not supported for platform {sys}")
 
 
 def _get_output_binary_path_for_host() -> Path:
@@ -134,8 +134,7 @@ def copy_binaries():
         ) from e
 
 
-
-def build():
+def build(debug_build: bool):
     """ Builds project using CMake.
 
     The approach is as follows:
@@ -168,9 +167,18 @@ def build():
     # 4. cd back to original folder
     with cd(build_dir):
         # Cmake configure
+
+        # see https://cmake.org/cmake/help/v3.17/variable/CMAKE_BUILD_TYPE.html
+        # https://cmake.org/cmake/help/v3.17/variable/CMAKE_CONFIGURATION_TYPES.html
+        if debug_build:
+            cmake_configure_type_arg = "-DCMAKE_BUILD_TYPE=DEBUG"
+            cmake_build_type_arg = "debug"
+        else:
+            cmake_configure_type_arg = "-DCMAKE_BUILD_TYPE=RELEASE"
+            cmake_build_type_arg = "release"
+
         try:
-            res = subprocess.run(["cmake", "..", "-DCMAKE_BUILD_TYPE=RELEASE"])
-            # res = subprocess.run(['cmake', '..'])
+            res = subprocess.run(["cmake", "..", cmake_configure_type_arg])
 
             if res.returncode != 0:
                 raise RuntimeError(
@@ -185,7 +193,9 @@ def build():
             l.log(logging.DEBUG, "Building project")
 
             if p == "Windows":
-                res = subprocess.run(["cmake", "--build", ".", "--config", "Release"])
+                res = subprocess.run(
+                    ["cmake", "--build", ".", "--config", cmake_build_type_arg]
+                )
             else:
                 res = subprocess.run(["cmake", "--build", "."])
 
@@ -202,7 +212,6 @@ def build():
 
 if __name__ == "__main__":
 
-    build()
     parser = argparse.ArgumentParser(
         description="Script to ease the process of build the wrapper and updating the resources of PyFMU"
     )
@@ -211,7 +220,7 @@ if __name__ == "__main__":
         "--update_wrapper",
         "-u",
         action="store_true",
-        help="overwrite the old wrapper library with the newly built one.",
+        help="Overwrite the existing wrapper library with the newly built one.",
     )
 
     parser.add_argument(
@@ -221,11 +230,19 @@ if __name__ == "__main__":
         help="Exports all example projects as FMUs with the built wrapper.",
     )
 
+    parser.add_argument(
+        "--debug-build",
+        "-d",
+        action="store_true",
+        dest="debug_build",
+        help="Builds PyFMU as a debug build.",
+    )
+
     args = parser.parse_args()
 
     l.log(logging.DEBUG, "Building project.")
     try:
-        build()
+        build(debug_build=args.debug_build)
     except Exception as e:
         l.log(logging.ERROR, f"Failed building PyFMU, an exception was thrown:\n{e}")
         sys.exit(-1)
@@ -263,4 +280,3 @@ if __name__ == "__main__":
         export_all()
 
         l.debug("Sucessfully exported projects")
-
