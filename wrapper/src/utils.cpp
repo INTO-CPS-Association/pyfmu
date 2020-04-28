@@ -6,9 +6,6 @@
 #include <uriparser/Uri.h>
 #include <fmt/format.h>
 
-#include "pyfmu/pyCompatability.hpp"
-#include "pyfmu/fmi2PySlaveLogging.hpp"
-
 using namespace std;
 using namespace filesystem;
 using namespace fmt;
@@ -133,62 +130,3 @@ string getFileUriFromPath(path p)
 
   return s;
 }
-
-/**
- * Convert a string to a wide string
-**/
-wstring s2ws(const string &str)
-{
-  using convert_typeX = std::codecvt_utf8<wchar_t>;
-  wstring_convert<convert_typeX, wchar_t> converterX;
-
-  return converterX.from_bytes(str);
-}
-
-/**
- * Convert a wide string to a string
-**/
-string ws2s(const wstring &wstr)
-{
-  using convert_typeX = codecvt_utf8<wchar_t>;
-  wstring_convert<convert_typeX, wchar_t> converterX;
-  return converterX.to_bytes(wstr);
-}
-
-#ifdef WIN32
-void loadPythonSharedObject()
-{
-}
-#else
-
-#include <dlfcn.h>
-/**
- * @brief Load libpython3.x.so dynamically and expose symbols to libraries loading pyfmu.so
- * 
- * Python extension modules such as Numpy depends on libpython as such the wrapper must provide
- * these symbols. This is done by locating libpython and linking it using dlopen.
- * By specifiying the RTLD_GLOBAL flag the symbols also become available to Python extension modules
- * 
- * https://www.python.org/dev/peps/pep-0384/
- */
-void loadPythonSharedObject()
-{
-
-  auto sysconfig_module = PyImport_ImportModule("sysconfig");
-  auto lib_obj = PyObject_CallMethod(sysconfig_module, "get_config_var", "(s)", "INSTSONAME");
-
-  const char *libpython_name;
-  int s = PyArg_Parse(lib_obj, "s", &libpython_name);
-  auto msg = pyfmu::get_py_exception();
-
-  // auto handle = dlopen("libpython3.7m.so.1.0", RTLD_LAZY | RTLD_GLOBAL);
-  auto handle = dlopen(libpython_name, RTLD_LAZY | RTLD_GLOBAL);
-
-  if (!handle)
-  {
-    fprintf(stderr, " Failed to open library: %s\n", dlerror());
-    exit(EXIT_FAILURE);
-  }
-}
-
-#endif

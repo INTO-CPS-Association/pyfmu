@@ -1,19 +1,16 @@
-#ifndef LOGGER_HPP
-#define LOGGER_HPP
+#pragma once
 
 #include <string>
 #include <ostream>
 #include <optional>
 #include <regex>
 
-#include "pyfmu/common.hpp"
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-#include "fmi/fmi2Functions.h"
-#include "pyfmu/pyCompatability.hpp"
+#include "spec/fmi2/fmi2Functions.h"
 
-namespace pyfmu
+namespace pyfmu::fmi2
 {
 
 /**
@@ -30,9 +27,11 @@ public:
    * @param loggerCallback callback supplied when fmu was instantiated.
    * @param instanceName name of the fmu instance to which the logger is associated
    */
-  explicit Logger(fmi2ComponentEnvironment componentEnvironment, fmi2CallbackLogger loggerCallback, std::string instanceName) : instanceName(instanceName),
-                                                                                                                                loggerCallback(loggerCallback),
-                                                                                                                                componentEnvironment(componentEnvironment)
+  explicit Logger(fmi2ComponentEnvironment componentEnvironment,
+                  fmi2CallbackLogger loggerCallback,
+                  std::string instanceName) : instanceName(instanceName),
+                                              loggerCallback(loggerCallback),
+                                              componentEnvironment(componentEnvironment)
   {
     if (loggerCallback == nullptr)
     {
@@ -106,44 +105,4 @@ private:
   fmi2ComponentEnvironment componentEnvironment;
 };
 
-inline std::string get_py_exception()
-{
-  auto err = PyErr_Occurred();
-
-  if (err != nullptr)
-  {
-
-    PyObject *pExcType, *pExcValue, *pExcTraceback;
-    PyErr_Fetch(&pExcType, &pExcValue, &pExcTraceback);
-
-    std::string py_msg;
-    if (pExcValue != nullptr)
-    {
-      PyObject *pRepr = PyObject_Repr(pExcValue);
-      py_msg = pyfmu::pyCompat::PyUnicode_AsUTF8(pRepr);
-      Py_DECREF(pRepr);
-    }
-    else
-    {
-      py_msg = "unable to fetch error information from interpreter";
-    }
-
-    PyErr_Clear();
-
-    Py_XDECREF(pExcType);
-    Py_XDECREF(pExcValue);
-    Py_XDECREF(pExcTraceback);
-
-    std::string msg = fmt::format("Fatal py exception encountered : {}", py_msg);
-
-    return msg;
-  }
-  else
-  {
-    return "no exception found";
-  }
-}
-
-} // namespace pyfmu
-
-#endif // LOGGER_HPP
+} // namespace pyfmu::fmi2

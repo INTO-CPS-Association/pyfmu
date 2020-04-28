@@ -4,21 +4,9 @@ project(pyfmu-wrapper
         LANGUAGES C CXX
 )
 
-#set(BUILD_SHARED_LIBS ON)
-######################################## WINDOWS COMPATABILITY ########################################
+
+
 if (MSVC)
-#   # https://stackoverflow.com/questions/14172856/compile-with-mt-instead-of-md-using-cmake
-#   set(CompilerFlags
-#           CMAKE_CXX_FLAGS
-#           CMAKE_CXX_FLAGS_DEBUG
-#           CMAKE_CXX_FLAGS_RELEASE
-#           CMAKE_C_FLAGS
-#           CMAKE_C_FLAGS_DEBUG
-#           CMAKE_C_FLAGS_RELEASE
-#           )
-#   foreach (CompilerFlag ${CompilerFlags})
-#     string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-#   endforeach ()
 
   # Python defines its own snprintf function in case the system does not provide one.
   # Unfortunately this clashes with std::snprintf. The flag HAVE_SNPRINTF determines this behavior.
@@ -42,11 +30,8 @@ if (MSVC)
         # * supress the warning 
         _CRT_SECURE_NO_WARNINGS
 )
+endif()
 
-endif ()
-
-# Automatically export all symbols in Windows DLLs.
-set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 ######################################## EXTERNAL DEPENDENCIES ########################################
 # The project relies on several external libraries managed either by:
@@ -69,76 +54,57 @@ endif()
 include(${CMAKE_BINARY_DIR}/conan.cmake)
 conan_cmake_run(REQUIRES 
                 
+                pybind11/2.3.0@conan/stable
                 catch2/2.5.0@bincrafters/stable
                 fmt/6.1.1
                 spdlog/[>=1.4.1]
                 nlohmann_json/3.7.3
+                pybind11/2.3.0@conan/stable
                 
                 BASIC_SETUP 
+                CMAKE_TARGETS
                 BUILD missing
                 # fix to keep conan from overwriting output dirs on UNIX, seems to be a bug
                 # https://github.com/conan-io/conan/issues/1982
                 NO_OUTPUT_DIRS 
                 )
 
+find_package(pybind11 REQUIRED)
+
 # 2. source tree packages
 add_subdirectory(uriparser)
 set(EXTERNAL_LIBS uriparser)
 
-######################################## LOCATE PYTHON ########################################
-
-set(Python3_USE_STATIC_LIBS FALSE)
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-if (WIN32)
-  set(Python3_LIBRARIES ${Python3_LIBRARY_DIRS}/python3.lib)
-endif ()
-
-
 
 ######################################## WRAPPER ########################################
-
-
-add_library(pyfmu SHARED
-        wrapper/src/fmi2Functions.cpp
-        wrapper/src/fmi2PySlave.cpp
-        wrapper/src/fmi2PySlaveConfiguration.cpp
+add_library(pyfmu 
+        SHARED
+        wrapper/src/fmi2/functions.cpp
+        wrapper/src/fmi2/slaveWrapper.cpp
+        wrapper/src/fmi2/slaveWrapperAdapter.cpp
+        wrapper/src/fmi2/configuration.cpp
         wrapper/src/utils.cpp
 )
-
 target_include_directories(pyfmu
         PUBLIC
         wrapper/include
-        ${Python3_INCLUDE_DIRS}
-        )
+)
 
 target_compile_features(pyfmu PUBLIC "cxx_std_20")
 
-
-target_compile_definitions(pyfmu 
-        PRIVATE 
-        # use stable Python ABI to maximize portability between python versions
-        # https://docs.python.org/3/c-api/stable.html
-        Py_LIMITED_API
-
-
-
-
-)
-
-
 target_link_libraries(pyfmu
-        
         PRIVATE
-        ${CONAN_LIBS}
+        pybind11::embed        
+        CONAN_PKG::fmt
+        CONAN_PKG::spdlog
+        CONAN_PKG::nlohmann_json
         ${EXTERNAL_LIBS}
-        ${Python3_LIBRARIES}
-        )
+)
 
 ######################################## WRAPPER-TESTS ########################################
 
 add_executable(wrapper-tests
         wrapper/tests/src/tests.cpp
-        #wrapper/tests/src/sandbox.cpp
         wrapper/tests/src/example_finder.cpp
         wrapper/tests/src/tmpdir.cpp
 )
@@ -146,10 +112,6 @@ add_executable(wrapper-tests
 target_include_directories(wrapper-tests 
         PRIVATE 
         wrapper/tests/include
-)
-target_compile_features(wrapper-tests
-        PUBLIC
-        "cxx_std_20"
 )
 target_link_libraries(wrapper-tests 
         PRIVATE 

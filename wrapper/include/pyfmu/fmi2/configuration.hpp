@@ -1,13 +1,13 @@
-#ifndef PYCONFIGURATION_HPP
-#define PYCONFIGURATION_HPP
-
+#pragma once
 #include <string>
 #include <filesystem>
 
-#include <nlohmann/json.hpp> // pylint: disable=import-error
+#include <nlohmann/json.hpp>
+
+namespace pyfmu::fmi2
+{
 
 // For automatic serializiation of objects see https://github.com/nlohmann/json#arbitrary-types-conversions
-
 namespace pyconfiguration
 {
 struct PyConfiguration
@@ -20,7 +20,7 @@ struct PyConfiguration
 void to_json(nlohmann::json &j, const pyconfiguration::PyConfiguration &p);
 
 void from_json(const nlohmann::json &j, pyconfiguration::PyConfiguration &p);
-}
+} // namespace pyconfiguration
 
 /**
  * @brief read and parse configuration file and return a object containing the results
@@ -28,6 +28,6 @@ void from_json(const nlohmann::json &j, pyconfiguration::PyConfiguration &p);
  * @param config_path path to the configuration file
  * @return PyConfigruation 
  */
-pyconfiguration::PyConfiguration read_configuration(const std::filesystem::path &config_path, pyfmu::Logger *logger);
+pyconfiguration::PyConfiguration read_configuration(const std::filesystem::path &config_path, Logger *logger);
 
-#endif // PYCONFIGURATION_HPP
+} // namespace pyfmu::fmi2

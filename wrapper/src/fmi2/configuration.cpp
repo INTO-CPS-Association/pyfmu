@@ -5,21 +5,22 @@
 
 #include <fmt/format.h>
 
-#include "pyfmu/fmi2PySlaveLogging.hpp"
-#include "pyfmu/fmi2PySlaveConfiguration.hpp"
+#include "pyfmu/fmi2/logging.hpp"
+#include "pyfmu/fmi2/configuration.hpp"
 
 using namespace std;
-using namespace nlohmann;
-using namespace pyconfiguration;
-using namespace filesystem;
 using namespace fmt;
+using nlohmann::json;
+using std::filesystem::path;
 
+namespace pyfmu::fmi2
+{
 namespace pyconfiguration
 {
 
 void to_json(json &j, const PyConfiguration &p)
 {
-    j = nlohmann::json{{"main_class", p.main_class}, {"main_script", p.main_script}};
+    j = json{{"main_class", p.main_class}, {"main_script", p.main_script}};
 }
 
 void from_json(const json &j, PyConfiguration &p)
@@ -27,9 +28,11 @@ void from_json(const json &j, PyConfiguration &p)
     j.at("main_class").get_to(p.main_class);
     j.at("main_script").get_to(p.main_script);
 }
-}
+} // namespace pyconfiguration
 
-PyConfiguration read_configuration(const path &config_path, pyfmu::Logger *log)
+using pyconfiguration::PyConfiguration;
+
+PyConfiguration read_configuration(const path &config_path, Logger *log)
 {
 
     PyConfiguration config;
@@ -64,3 +67,4 @@ PyConfiguration read_configuration(const path &config_path, pyfmu::Logger *log)
 
     return config;
 }
+} // namespace pyfmu::fmi2

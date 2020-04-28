@@ -23,15 +23,3 @@ std::filesystem::path getPathFromFileUri(std::string uri);
  * @return file uri encoded as a string
  */
 std::string getFileUriFromPath(std::filesystem::path path);
-
-
-/**
- * Convert a string to a wide string
-**/
-std::wstring s2ws(const std::string &str);
-/**
- * Convert a wide string to a string
-**/
-std::string ws2s(const std::wstring &wstr);
-
-void loadPythonSharedObject();
