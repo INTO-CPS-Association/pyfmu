@@ -160,10 +160,10 @@ target_link_libraries(wrapper-tests
 # multi-configuration generators such as MSVC puts different builds in seperate folders
 # we dumpy them in the root of the build to be able to copy them more easily.
 if(MSVC)
-#     set_target_properties(pyfmu PROPERTIES
-#         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
-#     set_target_properties(pyfmu PROPERTIES
-#         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
+    set_target_properties(pyfmu PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
+    set_target_properties(pyfmu PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
 
 elseif(UNIX)
     
