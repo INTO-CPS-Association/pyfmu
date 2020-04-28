@@ -207,15 +207,15 @@ private:
 
         PyGIL g;
 
-        PyObject *vrs = PyList_New(nvr);
-        PyObject *refs = PyList_New(nvr);
+        PyObject *py_refs = PyList_New(nvr);
+        PyObject *py_vals = PyList_New(nvr);
         for (int i = 0; i < nvr; i++)
         {
-            PyList_SetItem(vrs, i, Py_BuildValue("i", vr[i]));
-            PyList_SetItem(refs, i, buildFunc());
+            PyList_SetItem(py_refs, i, Py_BuildValue("i", vr[i]));
+            PyList_SetItem(py_vals, i, buildFunc());
         }
 
-        auto status = InvokeFmiOnSlave(getter_name, "(OO)", vrs, refs);
+        auto status = InvokeFmiOnSlave(getter_name, "(OO)", py_refs, py_vals);
 
         vrArray = std::vector<fmi2ValueReference>(vr, vr + nvr);
         valuesArray = std::vector<T>(values, values + nvr);
@@ -229,14 +229,14 @@ private:
             logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,
                        "call executed but returned error: {}, with python exception: {}", status, get_py_exception());
 
-            Py_DECREF(vrs);
-            Py_DECREF(refs);
+            Py_DECREF(py_refs);
+            Py_DECREF(py_vals);
             return status;
         }
 
         for (int i = 0; i < nvr; i++)
         {
-            PyObject *value = PyList_GetItem(refs, i);
+            PyObject *value = PyList_GetItem(py_vals, i);
 
             if (value == nullptr)
             {
@@ -247,8 +247,8 @@ private:
             values[i] = convertFunc(value);
         }
 
-        Py_DECREF(vrs);
-        Py_DECREF(refs);
+        Py_DECREF(py_refs);
+        Py_DECREF(py_vals);
         return status;
     }
 
