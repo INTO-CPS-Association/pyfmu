@@ -217,15 +217,8 @@ private:
 
         auto status = InvokeFmiOnSlave(getter_name, "(OO)", py_refs, py_vals);
 
-        vrArray = std::vector<fmi2ValueReference>(vr, vr + nvr);
-        valuesArray = std::vector<T>(values, values + nvr);
-        logger->ok(
-            PYFMU_WRAPPER_LOG_CATEGORY,
-            "Returned value references: {} and values: {}", vrArray, valuesArray);
-
         if (status > fmi2Discard)
         {
-
             logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,
                        "call executed but returned error: {}, with python exception: {}", status, get_py_exception());
 
@@ -246,6 +239,11 @@ private:
 
             values[i] = convertFunc(value);
         }
+
+        valuesArray = std::vector<T>(values, values + nvr);
+        logger->ok(
+            PYFMU_WRAPPER_LOG_CATEGORY,
+            "Returned value references: {} and values: {}", vrArray, valuesArray);
 
         Py_DECREF(py_refs);
         Py_DECREF(py_vals);
