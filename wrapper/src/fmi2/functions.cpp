@@ -61,7 +61,7 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                resources.string());
     auto config = read_configuration(resources, logger);
     logger->ok("wrapper", "The slave configuration successfully parsed.");
-    return slaveFactory.createSlaveForConfiguration(config);
+    return slaveFactory.createSlaveForConfiguration(config, logger);
 
   } catch (const std::exception &e) {
     logger->fatal("wrapper",

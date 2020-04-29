@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "fmt/format.h"
+#include "pybind11/embed.h"
 
 #include "pyfmu/fmi2/configuration.hpp"
 #include "pyfmu/fmi2/embeddedSlave.hpp"
@@ -185,13 +186,25 @@ namespace pyfmu::fmi2 {
 //   defined in module: {}", main_class, module_name);
 // }
 
-EmbeddedSlave::EmbeddedSlave(path resource_path, Logger *logger)
+EmbeddedSlave::EmbeddedSlave(const std::string slaveModule,
+                             const std::string slaveClass, Logger *logger)
     : logger(logger) {
-  path path_to_config(resource_path / "slave_configuration.json");
 
   if (!Py_IsInitialized())
     runtime_error("Python interpeter must be instantiated prior to creating an "
                   "instance of the wrapper");
+
+  try {
+
+    slaveInstance = pybind11::module::import(slaveModule.c_str())
+                        .attr(slaveClass.c_str())();
+
+  } catch (const std::exception &e) {
+    logger->fatal(
+        "wrapper",
+        "Unable to instantiate slave class, an exception was raised:\n{}",
+        e.what());
+  }
 }
 
 fmi2Status EmbeddedSlave::setupExperiment(fmi2Real startTime,
@@ -200,18 +213,60 @@ fmi2Status EmbeddedSlave::setupExperiment(fmi2Real startTime,
   return fmi2Fatal;
 }
 
-fmi2Status EmbeddedSlave::enterInitializationMode() { return fmi2Fatal; }
+fmi2Status EmbeddedSlave::enterInitializationMode() {
+  return method_enterInitializationMode().cast<fmi2Status>();
+}
 
-fmi2Status EmbeddedSlave::exitInitializationMode() { return fmi2Fatal; }
+fmi2Status EmbeddedSlave::exitInitializationMode() {
+  return method_exitInitializationMode().cast<fmi2Status>();
+}
 
 fmi2Status EmbeddedSlave::doStep(fmi2Real currentTime, fmi2Real stepSize,
                                  fmi2Boolean noSetFMUStatePriorToCurrentPoint) {
-  return fmi2Fatal;
+
+  return method_dostep(currentTime, stepSize, noSetFMUStatePriorToCurrentPoint)
+      .cast<fmi2Status>();
 }
 
 fmi2Status EmbeddedSlave::reset() { return fmi2Fatal; }
 
-fmi2Status EmbeddedSlave::terminate() { return fmi2Fatal; }
+fmi2Status EmbeddedSlave::terminate() {
+  return method_terminate().cast<fmi2Status>();
+}
+
+Fmi2GetterResult<fmi2Real> EmbeddedSlave::getReal(VRefs references) {
+  return method_getxxx(references, Fmi2DataType::real)
+      .cast<Fmi2GetterResult<fmi2Real>>();
+}
+Fmi2GetterResult<fmi2Integer> EmbeddedSlave::getInteger(VRefs references) {
+  return method_getxxx(references, Fmi2DataType::integer)
+      .cast<Fmi2GetterResult<fmi2Integer>>();
+}
+Fmi2GetterResult<fmi2Boolean> EmbeddedSlave::getBoolean(VRefs references) {
+  return method_getxxx(references, Fmi2DataType::boolean)
+      .cast<Fmi2GetterResult<fmi2Boolean>>();
+}
+Fmi2GetterResult<fmi2String> EmbeddedSlave::getString(VRefs references) {
+  return method_getxxx(references, Fmi2DataType::string)
+      .cast<Fmi2GetterResult<fmi2String>>();
+}
+
+fmi2Status EmbeddedSlave::setReal(VRefs references, RealValues values) {
+  return method_setxxx(references, values, Fmi2DataType::real)
+      .cast<fmi2Status>();
+}
+fmi2Status EmbeddedSlave::setInteger(VRefs references, IntegerValues values) {
+  return method_setxxx(references, values, Fmi2DataType::integer)
+      .cast<fmi2Status>();
+}
+fmi2Status EmbeddedSlave::setBoolean(VRefs references, BooleanValues values) {
+  return method_setxxx(references, values, Fmi2DataType::boolean)
+      .cast<fmi2Status>();
+}
+fmi2Status EmbeddedSlave::setString(VRefs references, StringValues values) {
+  return method_setxxx(references, values, Fmi2DataType::string)
+      .cast<fmi2Status>();
+}
 
 EmbeddedSlave::~EmbeddedSlave() {}
 

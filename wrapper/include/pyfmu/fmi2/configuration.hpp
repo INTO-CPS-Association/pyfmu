@@ -15,6 +15,7 @@ struct PyConfiguration {
   std::string main_class;
   std::string main_script;
   std::string module_name;
+  std::filesystem::path resources;
 };
 
 void to_json(nlohmann::json &j, const pyconfiguration::PyConfiguration &p);

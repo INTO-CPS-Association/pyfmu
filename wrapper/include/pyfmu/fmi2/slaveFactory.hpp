@@ -12,8 +12,10 @@
  */
 
 #pragma once
+#include <filesystem>
+
 #include "pyfmu/fmi2/configuration.hpp"
-#include "pyfmu/fmi2/slave.hpp"
+#include "pyfmu/fmi2/slaveAdapter.hpp"
 
 namespace pyfmu::fmi2 {
 
@@ -33,6 +35,8 @@ public:
    * @param config
    * @return Slave*
    */
-  Slave *createSlaveForConfiguration(pyconfiguration::PyConfiguration config);
+  SlaveAdapter *
+  createSlaveForConfiguration(pyconfiguration::PyConfiguration config,
+                              Logger *logger);
 };
 } // namespace pyfmu::fmi2

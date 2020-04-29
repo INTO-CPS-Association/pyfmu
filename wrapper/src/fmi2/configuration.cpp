@@ -54,6 +54,7 @@ PyConfiguration read_configuration(const path &config_path, Logger *log) {
   try {
     is >> j;
     config = j.get<pyconfiguration::PyConfiguration>();
+    config.resources = config_path.parent_path();
   } catch (const std::exception &e) {
     throw runtime_error(format(
         "failed to parse configuration file used to locate correct Python "

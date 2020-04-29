@@ -82,6 +82,7 @@ add_library(pyfmu
         wrapper/src/fmi2/functions.cpp
         wrapper/src/fmi2/embeddedSlave.cpp
         wrapper/src/fmi2/slaveAdapter.cpp
+        wrapper/src/fmi2/slaveFactory.cpp
         wrapper/src/fmi2/configuration.cpp
         wrapper/src/interpreter/cPythonManager.cpp
         wrapper/src/utils.cpp

@@ -25,11 +25,17 @@ enum Fmi2DataType {
 };
 
 template <typename T> using Values = const std::vector<T>;
-using ValueReferences = Values<fmi2ValueReference>;
+
+/**
+ * @brief list of indices used to refer to a FMUs variables.
+ *
+ */
+using VRefs = Values<fmi2ValueReference>;
+
 using RealValues = Values<fmi2Real>;
-using BooleanValues = Values<bool>;
+using BooleanValues = Values<fmi2Boolean>;
 using IntegerValues = Values<fmi2Integer>;
-using StringValues = Values<const std::string>;
+using StringValues = Values<fmi2String>;
 template <typename T>
 using Fmi2GetterResult = std::tuple<Values<T>, fmi2Status>;
 
@@ -51,19 +57,14 @@ public:
 
   virtual fmi2Status terminate() = 0;
 
-  virtual Fmi2GetterResult<fmi2Real> getReal(ValueReferences references) = 0;
-  virtual Fmi2GetterResult<fmi2Integer>
-  getInteger(ValueReferences references) = 0;
-  virtual Fmi2GetterResult<fmi2Boolean>
-  getBoolean(ValueReferences references) = 0;
-  virtual Fmi2GetterResult<fmi2String>
-  getString(ValueReferences references) = 0;
+  virtual Fmi2GetterResult<fmi2Real> getReal(VRefs references) = 0;
+  virtual Fmi2GetterResult<fmi2Integer> getInteger(VRefs references) = 0;
+  virtual Fmi2GetterResult<fmi2Boolean> getBoolean(VRefs references) = 0;
+  virtual Fmi2GetterResult<fmi2String> getString(VRefs references) = 0;
 
-  virtual fmi2Status setReal(ValueReferences references, RealValues values) = 0;
-  virtual fmi2Status setInteger(ValueReferences references,
-                                IntegerValues values) = 0;
-  virtual fmi2Status setBoolean(ValueReferences references,
-                                BooleanValues values) = 0;
-  virtual fmi2Status setString(ValueReferences references, StringValues) = 0;
+  virtual fmi2Status setReal(VRefs references, RealValues values) = 0;
+  virtual fmi2Status setInteger(VRefs references, IntegerValues values) = 0;
+  virtual fmi2Status setBoolean(VRefs references, BooleanValues values) = 0;
+  virtual fmi2Status setString(VRefs references, StringValues) = 0;
 };
 }; // namespace pyfmu::fmi2

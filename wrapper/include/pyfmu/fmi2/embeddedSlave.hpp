@@ -1,6 +1,5 @@
 #pragma once
 
-#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -18,18 +17,29 @@
 
 namespace pyfmu::fmi2 {
 
-namespace py = pybind11;
-
-using std::filesystem::path;
-
 /**
- * @brief
+ * @brief Slave which uses an CPython-embedding to execute Python code inside an
+ * FMU.
  *
+ * @details The C-code is bound to Python using pybind11, which provides an C++
+ * alternative to CPython's C-API.
  */
 class EmbeddedSlave : public Slave {
 
 public:
-  EmbeddedSlave(path resources, Logger *logger);
+  /**
+   * @brief Constructs a Python slave from the specified module and class.
+   *
+   * @note The CPython interpreter MUST be instantiated when the constructor is
+   * called. Also, the folder containing the slave script MUST be in
+   * Python's path at the time the constructor is called.
+   *
+   * @param slaveModule
+   * @param slaveClass
+   * @param logger
+   */
+  EmbeddedSlave(const std::string slaveModule, const std::string slaveClass,
+                Logger *logger);
 
   fmi2Status setupExperiment(fmi2Real startTime,
                              std::optional<fmi2Real> tolerance,
@@ -49,43 +59,28 @@ public:
   fmi2Status setDebugLogging(fmi2Boolean loggingOn,
                              std::vector<std::string> loggingCategories) const;
 
-  template <typename T>
-  fmi2Status setXXXFunction(ValueReferences valueReferences, Values<T> values,
-                            const std::string &type) {
+  virtual Fmi2GetterResult<fmi2Real> getReal(VRefs references);
+  virtual Fmi2GetterResult<fmi2Integer> getInteger(VRefs references);
+  virtual Fmi2GetterResult<fmi2Boolean> getBoolean(VRefs references);
+  virtual Fmi2GetterResult<fmi2String> getString(VRefs references);
 
-    logger->ok(PYFMU_WRAPPER_LOG_CATEGORY, "Setting the variables: {} to: {}",
-               valueReferences, values);
-    return 0;
-  }
-
-  template <typename T>
-  Fmi2GetterResult<T> getXXXFunction(ValueReferences references,
-                                     fmi2Type type) {
-    logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,
-               "Getting values of the variables: {}", valueReferences);
-
-    try {
-      auto res = slaveInstance.attr("_get_xxx")(references, type);
-      return res.cast<Fmi2GetterResults<T>>();
-    } catch (const std::exception &e) {
-      logger->log(fmi2Fatal, PYFMU_WRAPPER_LOG_CATEGORY,
-                  "read failed, an exception was raised: {}", e.what());
-      return Fmi2GetterResult(nullptr, fmi2Fatal);
-    };
-  }
+  virtual fmi2Status setReal(VRefs references, RealValues values);
+  virtual fmi2Status setInteger(VRefs references, IntegerValues values);
+  virtual fmi2Status setBoolean(VRefs references, BooleanValues values);
+  virtual fmi2Status setString(VRefs references, StringValues);
 
   ~EmbeddedSlave();
 
 private:
-  py::object slaveInstance;
-  py::object method_getxxx;
-  py::object method_setxxx;
-  py::object method_enterInitializationMode;
-  py::object method_exitInitializationMode;
-  py::object method_reset;
-  py::object method_terminate;
-  py::object method_setupExperiment;
-  py::object method_dostep;
+  pybind11::object slaveInstance;
+  pybind11::object method_getxxx;
+  pybind11::object method_setxxx;
+  pybind11::object method_enterInitializationMode;
+  pybind11::object method_exitInitializationMode;
+  pybind11::object method_reset;
+  pybind11::object method_terminate;
+  pybind11::object method_setupExperiment;
+  pybind11::object method_dostep;
 
   Logger *logger;
   PyMethodDef pCallbackDef;
