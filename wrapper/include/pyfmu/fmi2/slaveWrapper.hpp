@@ -1,25 +1,23 @@
 #pragma once
 
-#include <string>
-#include <memory>
 #include <filesystem>
+#include <memory>
+#include <string>
 
 #include "pybind11/embed.h"
 #include "pybind11/stl.h"
 
 #include <fmt/ranges.h>
 
-#include "spec/fmi2/fmi2TypesPlatform.h"
 #include "pyfmu/fmi2/logging.hpp"
+#include "spec/fmi2/fmi2TypesPlatform.h"
 
 // Log category
 #define PYFMU_WRAPPER_LOG_CATEGORY "wrapper"
 
-namespace pyfmu::fmi2
-{
+namespace pyfmu::fmi2 {
 
-template <typename T>
-using Values = const std::vector<T>;
+template <typename T> using Values = const std::vector<T>;
 using ValueReferences = Values<fmi2ValueReference>;
 using RealValues = Values<fmi2Real>;
 using BooleanValues = Values<bool>;
@@ -29,89 +27,83 @@ namespace py = pybind11;
 
 template <typename T>
 using Fmi2GetterResult = std::tuple<Values<T>, fmi2Status>;
+using std::filesystem::path;
 
-class SlaveWrapper
-{
+enum Fmi2DataType {
+  real,
+  integer,
+  boolean,
+  string,
+};
+
+/**
+ * @brief
+ *
+ */
+class SlaveWrapper {
 
 public:
-    explicit SlaveWrapper(const std::filesystem::path resources, Logger *logger);
+  SlaveWrapper(path resources, Logger *logger);
 
-    fmi2Status setupExperiment(fmi2Boolean toleranceDefined,
-                               fmi2Real tolerance,
-                               fmi2Real startTime,
-                               fmi2Boolean stopTimeDefined,
-                               fmi2Real stopTime);
+  fmi2Status setupExperiment(fmi2Real startTime,
+                             std::optional<fmi2Real> tolerance,
+                             std::optional<fmi2Real> stopTime);
 
-    fmi2Status enterInitializationMode();
+  fmi2Status enterInitializationMode();
 
-    fmi2Status exitInitializationMode();
+  fmi2Status exitInitializationMode();
 
-    fmi2Status doStep(fmi2Real currentTime,
-                      fmi2Real stepSize,
-                      fmi2Boolean noSetFMUStatePriorToCurrentPoint);
+  fmi2Status doStep(fmi2Real currentTime, fmi2Real stepSize,
+                    fmi2Boolean noSetFMUStatePriorToCurrentPoint);
 
-    fmi2Status reset();
+  fmi2Status reset();
 
-    fmi2Status terminate();
+  fmi2Status terminate();
 
-    Fmi2GetterResult<fmi2Integer> getInteger(ValueReferences valueReferences) const noexcept;
+  fmi2Status setDebugLogging(fmi2Boolean loggingOn,
+                             std::vector<std::string> loggingCategories) const;
 
-    Fmi2GetterResult<fmi2Real> getReal(ValueReferences valueReferences) const noexcept;
+  template <typename T>
+  fmi2Status setXXXFunction(ValueReferences valueReferences, Values<T> values,
+                            const std::string &type) {
 
-    Fmi2GetterResult<fmi2String> getString(ValueReferences valueReferences) const noexcept;
+    logger->ok(PYFMU_WRAPPER_LOG_CATEGORY, "Setting the variables: {} to: {}",
+               valueReferences, values);
+    return 0;
+  }
 
-    Fmi2GetterResult<fmi2Boolean> getBoolean(ValueReferences valueReferences) const noexcept;
+  template <typename T>
+  Fmi2GetterResult<T> getXXXFunction(ValueReferences references,
+                                     fmi2Type type) {
+    logger->ok(PYFMU_WRAPPER_LOG_CATEGORY,
+               "Getting values of the variables: {}", valueReferences);
 
-    fmi2Status setDebugLogging(fmi2Boolean loggingOn, std::vector<std::string> loggingCategories) const noexcept;
+    try {
+      auto res = slaveInstance.attr("_get_xxx")(references, type);
+      return res.cast<Fmi2GetterResults<T>>();
+    } catch (const std::exception &e) {
+      logger->log(fmi2Fatal, PYFMU_WRAPPER_LOG_CATEGORY,
+                  "read failed, an exception was raised: {}", e.what());
+      return Fmi2GetterResult(nullptr, fmi2Fatal);
+    };
+  }
 
-    fmi2Status setReal(ValueReferences valueReferences, RealValues values) noexcept;
-
-    fmi2Status setInteger(ValueReferences valueReferences, IntegerValues values) noexcept;
-
-    fmi2Status setBoolean(ValueReferences valueReferences, BooleanValues values) noexcept;
-
-    fmi2Status setString(ValueReferences valueReferences, StringValues values) noexcept;
-
-    ~SlaveWrapper();
+  ~SlaveWrapper();
 
 private:
-    py::object slaveInstance;
+  py::object slaveInstance;
+  py::object method_getxxx;
+  py::object method_setxxx;
+  py::object method_enterInitializationMode;
+  py::object method_exitInitializationMode;
+  py::object method_reset;
+  py::object method_terminate;
+  py::object method_setupExperiment;
+  py::object method_dostep;
 
-    Logger *logger;
-    PyMethodDef pCallbackDef;
-    PyObject *pCallbackFunc;
-
-    template <typename T>
-    fmi2Status setXXXFunction(
-        const std::string &setter_name,
-        ValueReferences valueReferences,
-        Values<T> values) noexcept
-    {
-
-        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY, "Setting the variables: {} to: {}", valueReferences, values);
-        return 0;
-    }
-
-    template <typename T>
-    Fmi2GetterResult<T> getXXXFunction(
-        ValueReferences references,
-        const std::string &type_hint) noexcept
-    {
-        logger->ok(PYFMU_WRAPPER_LOG_CATEGORY, "Getting values of the variables: {}", valueReferences);
-
-        try
-        {
-            auto res = slaveInstance.attr("_get_xxx")(references, type_hint);
-            return res.cast<Fmi2GetterResults<T>>();
-        }
-        catch (const std::exception &e)
-        {
-            logger->log(fmi2Fatal, PYFMU_WRAPPER_LOG_CATEGORY, "read failed, an exception was raised: {}", e.what());
-            return Fmi2GetterResult(nullptr, fmi2Fatal);
-        };
-
-        return results;
-    }
+  Logger *logger;
+  PyMethodDef pCallbackDef;
+  PyObject *pCallbackFunc;
 };
 
 } // namespace pyfmu::fmi2

@@ -1,33 +1,33 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
-#include <regex>
 
 #include "fmt/format.h"
 
-#include "spec/fmi2/fmi2TypesPlatform.h"
-#include "pyfmu/fmi2/slaveWrapper.hpp"
 #include "pyfmu/fmi2/configuration.hpp"
 #include "pyfmu/fmi2/logging.hpp"
+#include "pyfmu/fmi2/slaveWrapper.hpp"
+#include "spec/fmi2/fmi2TypesPlatform.h"
 
 using namespace fmt;
 using namespace std;
 
 using path = filesystem::path;
 
-namespace pyfmu::fmi2
-{
+namespace pyfmu::fmi2 {
 
 /**
  * @brief Callaback function used by the Python slave to do logging.
- * This function must be a free function. As such the logger is injected using a PyCapsule.
- * 
+ * This function must be a free function. As such the logger is injected using a
+ * PyCapsule.
+ *
  * @param self a PyCapsule object used to pass a point
  * @param args a python tuple of status,category and string (int,string,string)
- * @return PyObject* 
+ * @return PyObject*
  */
 // static PyObject *logCallback(PyObject *self, PyObject *args)
 // {
@@ -43,7 +43,8 @@ namespace pyfmu::fmi2
 
 //   if (s == 0)
 //   {
-//     logger->warning("Logger callback called, but wrapper was unable to parse arguments : {}.", get_py_exception());
+//     logger->warning("Logger callback called, but wrapper was unable to parse
+//     arguments : {}.", get_py_exception());
 //   }
 //   else
 //   {
@@ -66,7 +67,8 @@ namespace pyfmu::fmi2
 // }
 
 // /**
-//  * @brief Appends path of resources folder to the Python interpreter path. This
+//  * @brief Appends path of resources folder to the Python interpreter path.
+//  This
 //  * allows the interpreter to locate and load the slave script.
 //  *
 //  * @param resource_path path to the resources dir supplied when FMU is
@@ -94,7 +96,8 @@ namespace pyfmu::fmi2
 // {
 //   PyGIL g;
 
-//   logger->ok("wrapper", "importing Python module: {}, into the interpreter", module_name);
+//   logger->ok("wrapper", "importing Python module: {}, into the interpreter",
+//   module_name);
 
 //   pModule_ = PyImport_ImportModule(module_name.c_str());
 
@@ -102,7 +105,8 @@ namespace pyfmu::fmi2
 //   {
 
 //     auto pyErr = get_py_exception();
-//     auto msg = format("module could not be imported. Ensure that slave script "
+//     auto msg = format("module could not be imported. Ensure that slave script
+//     "
 //                       "defined inside the wrapper configuration matches a "
 //                       "Python script. Error from python was:\n{}",
 //                       pyErr);
@@ -110,26 +114,33 @@ namespace pyfmu::fmi2
 //     throw runtime_error(msg);
 //   }
 
-//   logger->ok("wrapper", "module: {} was successfully imported, attempting to read definition of slave class : {} from the module.", module_name, main_class);
+//   logger->ok("wrapper", "module: {} was successfully imported, attempting to
+//   read definition of slave class : {} from the module.", module_name,
+//   main_class);
 
 //   pClass_ = PyObject_GetAttrString(pModule_, main_class.c_str());
 
 //   if (pClass_ == nullptr)
 //   {
 //     auto pyErr = get_py_exception();
-//     auto msg = format("Python module: {} was successfully loaded, but the defintion "
-//                       "of the slave class {} could not be loaded. Ensure that the "
-//                       "specified module contains a definition of the class. Python error was:\n{}\n",
-//                       module_name, main_class, pyErr);
+//     auto msg = format("Python module: {} was successfully loaded, but the
+//     defintion "
+//                       "of the slave class {} could not be loaded. Ensure that
+//                       the " "specified module contains a definition of the
+//                       class. Python error was:\n{}\n", module_name,
+//                       main_class, pyErr);
 //     logger->fatal("wrapper", msg);
 //     throw runtime_error(msg);
 //   }
 
-//   logger->ok("wrapper", "Definition of class {} was successfully read, attempting create an instance.", main_class);
+//   logger->ok("wrapper", "Definition of class {} was successfully read,
+//   attempting create an instance.", main_class);
 
 //   // pass logging function to python slave
-//   // since the callback must be a free function, we need to somehow pass a pointer to the concrete logger instance
-//   // for this we use "capsules" which allow opaque pointers to be passed between modules.
+//   // since the callback must be a free function, we need to somehow pass a
+//   pointer to the concrete logger instance
+//   // for this we use "capsules" which allow opaque pointers to be passed
+//   between modules.
 
 //   pCallbackDef = {
 //       "logCallback",
@@ -139,9 +150,11 @@ namespace pyfmu::fmi2
 
 //   auto loggerCapsule = PyCapsule_New(logger, nullptr, nullptr);
 //   pCallbackFunc = PyCFunction_New(&pCallbackDef, loggerCapsule);
-//   //auto f = PyObject_CallMethod(pInstance_, "_register_log_callback", "(O)", pCallbackFunc);
+//   //auto f = PyObject_CallMethod(pInstance_, "_register_log_callback", "(O)",
+//   pCallbackFunc);
 
-//   //PyObject* PyObject_Call(PyObject *callable, PyObject *args, PyObject *kwargs) https://docs.python.org/3/c-api/object.html
+//   //PyObject* PyObject_Call(PyObject *callable, PyObject *args, PyObject
+//   *kwargs) https://docs.python.org/3/c-api/object.html
 
 //   auto args = Py_BuildValue("()");
 //   auto kwargs = Py_BuildValue("{s:O}", "logging_callback", pCallbackFunc);
@@ -154,24 +167,52 @@ namespace pyfmu::fmi2
 //   if (pInstance_ == nullptr)
 //   {
 //     auto pyErr = get_py_exception();
-//     auto msg = format("Failed to instantiate class: {}, ensure that the Python script is valid and that defines a parameterless constructor. Python error was:\n{}\n", main_class, pyErr);
-//     logger->fatal("wrapper", msg);
-//     throw runtime_error(msg);
+//     auto msg = format("Failed to instantiate class: {}, ensure that the
+//     Python script is valid and that defines a parameterless constructor.
+//     Python error was:\n{}\n", main_class, pyErr); logger->fatal("wrapper",
+//     msg); throw runtime_error(msg);
 //   }
 
 //   // if(f == nullptr)
 //   // {
-//   //   string msg = fmt::format("wrapper", "Failed to register callback for logging. An exception was thrown in Python: {}", get_py_exception());
+//   //   string msg = fmt::format("wrapper", "Failed to register callback for
+//   logging. An exception was thrown in Python: {}", get_py_exception());
 //   //   logger->error(PYFMU_WRAPPER_LOG_CATEGORY,msg);
 //   //   throw runtime_error(msg);
 //   // }
 
-//   logger->ok("wrapper", "Successfully created an instance of class: {} defined in module: {}", main_class, module_name);
+//   logger->ok("wrapper", "Successfully created an instance of class: {}
+//   defined in module: {}", main_class, module_name);
 // }
 
-SlaveWrapper::SlaveWrapper(path resource_path, Logger *logger) : logger(logger)
-{
+SlaveWrapper::SlaveWrapper(path resource_path, Logger *logger)
+    : logger(logger) {
   path path_to_config(resource_path / "slave_configuration.json");
+
+  if (!Py_IsInitialized())
+    runtime_error("Python interpeter must be instantiated prior to creating an "
+                  "instance of the wrapper");
 }
+
+fmi2Status SlaveWrapper::setupExperiment(fmi2Real startTime,
+                                         std::optional<fmi2Real> tolerance,
+                                         std::optional<fmi2Real> stopTime) {
+  return fmi2Fatal;
+}
+
+fmi2Status SlaveWrapper::enterInitializationMode() { return fmi2Fatal; }
+
+fmi2Status SlaveWrapper::exitInitializationMode() { return fmi2Fatal; }
+
+fmi2Status SlaveWrapper::doStep(fmi2Real currentTime, fmi2Real stepSize,
+                                fmi2Boolean noSetFMUStatePriorToCurrentPoint) {
+  return fmi2Fatal;
+}
+
+fmi2Status SlaveWrapper::reset() { return fmi2Fatal; }
+
+fmi2Status SlaveWrapper::terminate() { return fmi2Fatal; }
+
+SlaveWrapper::~SlaveWrapper() {}
 
 } // namespace pyfmu::fmi2
