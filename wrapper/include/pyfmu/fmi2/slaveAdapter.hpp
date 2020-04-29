@@ -2,24 +2,27 @@
 /**
  * @file fmi2WrapperAdapter.hpp
  * @author Christian Møldrup Legaard (cml@eng.au.dk)
- * @brief Adapts C-style to C++ style interface.
+ * @brief Adapts FMI2 C-style to C++ style interface.
  * @date 2020-04-28
  *
  * @copyright Copyright (c) 2020
  *
  */
 
-#include "pyfmu/fmi2/slaveWrapper.hpp"
-
-#include "spec/fmi2/fmi2FunctionTypes.h"
+#include "pyfmu/fmi2/slave.hpp"
 
 namespace pyfmu::fmi2 {
 
-class SlaveWrapperAdapter {
+/**
+ * @brief Adaptor from the C-style FMI interface to a C++-style interface that
+ * makes use of STL containers. This eases the conversion of types by pybind11
+ * and logging of values by fmt.
+ */
+class SlaveAdapter {
 public:
-  SlaveWrapperAdapter(SlaveWrapper *wrapper);
+  SlaveAdapter(Slave *slave);
 
-  ~SlaveWrapperAdapter();
+  ~SlaveAdapter();
 
   fmi2Status setupExperiment(fmi2Boolean toleranceDefined, fmi2Real tolerance,
                              fmi2Real startTime, fmi2Boolean stopTimeDefined,
@@ -64,7 +67,7 @@ public:
                        const fmi2String *value);
 
 private:
-  const SlaveWrapper *wrapper;
+  const Slave *slave;
 };
 
 } // namespace pyfmu::fmi2

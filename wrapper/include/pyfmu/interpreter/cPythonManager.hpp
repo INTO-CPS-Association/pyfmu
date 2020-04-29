@@ -26,27 +26,15 @@ namespace pyfmu::interpreter {
  */
 class CPythonManager {
 
-  enum Mode { shared, standalone };
-
-  enum Finalize {
-    never,
-    always,
-    ifExclusive,
-  };
-
+public:
   /**
    * @brief Initialize the CPython interpreter using the specified mode.
-   *
-   * @param mode defines if the interpreter is shared with the calling module.
-   * @param finalizeStrategy defines whether or not the interpreter should be
-   * finalized.
    */
-  CPythonManager(Mode mode, Finalize finalizeStrategy);
+  CPythonManager(bool shouldFinalize);
 
   ~CPythonManager();
 
 private:
-  Mode mode;
-  Finalize finalize;
+  bool shouldFinalize;
 };
 } // namespace pyfmu::interpreter

@@ -10,6 +10,7 @@
 #include <fmt/ranges.h>
 
 #include "pyfmu/fmi2/logging.hpp"
+#include "pyfmu/fmi2/slave.hpp"
 #include "spec/fmi2/fmi2TypesPlatform.h"
 
 // Log category
@@ -17,33 +18,18 @@
 
 namespace pyfmu::fmi2 {
 
-template <typename T> using Values = const std::vector<T>;
-using ValueReferences = Values<fmi2ValueReference>;
-using RealValues = Values<fmi2Real>;
-using BooleanValues = Values<bool>;
-using IntegerValues = Values<fmi2Integer>;
-using StringValues = Values<const std::string>;
 namespace py = pybind11;
 
-template <typename T>
-using Fmi2GetterResult = std::tuple<Values<T>, fmi2Status>;
 using std::filesystem::path;
-
-enum Fmi2DataType {
-  real,
-  integer,
-  boolean,
-  string,
-};
 
 /**
  * @brief
  *
  */
-class SlaveWrapper {
+class EmbeddedSlave : public Slave {
 
 public:
-  SlaveWrapper(path resources, Logger *logger);
+  EmbeddedSlave(path resources, Logger *logger);
 
   fmi2Status setupExperiment(fmi2Real startTime,
                              std::optional<fmi2Real> tolerance,
@@ -88,7 +74,7 @@ public:
     };
   }
 
-  ~SlaveWrapper();
+  ~EmbeddedSlave();
 
 private:
   py::object slaveInstance;

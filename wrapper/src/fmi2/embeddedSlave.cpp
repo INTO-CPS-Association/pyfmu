@@ -9,8 +9,8 @@
 #include "fmt/format.h"
 
 #include "pyfmu/fmi2/configuration.hpp"
+#include "pyfmu/fmi2/embeddedSlave.hpp"
 #include "pyfmu/fmi2/logging.hpp"
-#include "pyfmu/fmi2/slaveWrapper.hpp"
 #include "spec/fmi2/fmi2TypesPlatform.h"
 
 using namespace fmt;
@@ -185,7 +185,7 @@ namespace pyfmu::fmi2 {
 //   defined in module: {}", main_class, module_name);
 // }
 
-SlaveWrapper::SlaveWrapper(path resource_path, Logger *logger)
+EmbeddedSlave::EmbeddedSlave(path resource_path, Logger *logger)
     : logger(logger) {
   path path_to_config(resource_path / "slave_configuration.json");
 
@@ -194,25 +194,25 @@ SlaveWrapper::SlaveWrapper(path resource_path, Logger *logger)
                   "instance of the wrapper");
 }
 
-fmi2Status SlaveWrapper::setupExperiment(fmi2Real startTime,
-                                         std::optional<fmi2Real> tolerance,
-                                         std::optional<fmi2Real> stopTime) {
+fmi2Status EmbeddedSlave::setupExperiment(fmi2Real startTime,
+                                          std::optional<fmi2Real> tolerance,
+                                          std::optional<fmi2Real> stopTime) {
   return fmi2Fatal;
 }
 
-fmi2Status SlaveWrapper::enterInitializationMode() { return fmi2Fatal; }
+fmi2Status EmbeddedSlave::enterInitializationMode() { return fmi2Fatal; }
 
-fmi2Status SlaveWrapper::exitInitializationMode() { return fmi2Fatal; }
+fmi2Status EmbeddedSlave::exitInitializationMode() { return fmi2Fatal; }
 
-fmi2Status SlaveWrapper::doStep(fmi2Real currentTime, fmi2Real stepSize,
-                                fmi2Boolean noSetFMUStatePriorToCurrentPoint) {
+fmi2Status EmbeddedSlave::doStep(fmi2Real currentTime, fmi2Real stepSize,
+                                 fmi2Boolean noSetFMUStatePriorToCurrentPoint) {
   return fmi2Fatal;
 }
 
-fmi2Status SlaveWrapper::reset() { return fmi2Fatal; }
+fmi2Status EmbeddedSlave::reset() { return fmi2Fatal; }
 
-fmi2Status SlaveWrapper::terminate() { return fmi2Fatal; }
+fmi2Status EmbeddedSlave::terminate() { return fmi2Fatal; }
 
-SlaveWrapper::~SlaveWrapper() {}
+EmbeddedSlave::~EmbeddedSlave() {}
 
 } // namespace pyfmu::fmi2
