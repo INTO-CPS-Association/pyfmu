@@ -7,9 +7,10 @@
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
 
-#include "fmi/fmi2Functions.h"
 #include "example_finder.hpp"
 #include "pyfmu/utils.hpp"
+#include "spec/fmi2/fmi2Functions.h"
+
 
 using namespace std;
 using namespace filesystem;
@@ -17,27 +18,21 @@ using namespace fmt;
 namespace fs = std::filesystem;
 
 const std::map<fmi2Status, spdlog::level::level_enum> fmi_to_spdlog = {
-    {fmi2OK, spdlog::level::info},
-    {fmi2Warning, spdlog::level::warn},
-    {fmi2Discard, spdlog::level::warn},
-    {fmi2Error, spdlog::level::err},
-    {fmi2Error, spdlog::level::critical},
-    {fmi2Pending, spdlog::level::info}};
+    {fmi2OK, spdlog::level::info},        {fmi2Warning, spdlog::level::warn},
+    {fmi2Discard, spdlog::level::warn},   {fmi2Error, spdlog::level::err},
+    {fmi2Error, spdlog::level::critical}, {fmi2Pending, spdlog::level::info}};
 
-void logger(void *env, const char *instance, fmi2Status status, const char *category,
-            const char *message, ...)
-{
+void logger(void *env, const char *instance, fmi2Status status,
+            const char *category, const char *message, ...) {
 
   auto cat = fmi_to_spdlog.at(status);
   spdlog::log(cat, "{}:{}:{}:{}", instance, status, category, message);
 }
 
-void stepFinished(fmi2ComponentEnvironment componentEnvironment, fmi2Status status)
-{
-}
+void stepFinished(fmi2ComponentEnvironment componentEnvironment,
+                  fmi2Status status) {}
 
-TEST_CASE("SlaveWrapper")
-{
+TEST_CASE("SlaveWrapper") {
   spdlog::set_level(spdlog::level::debug); // Set global log level to debug
 
   // SECTION("adder")
@@ -53,7 +48,8 @@ TEST_CASE("SlaveWrapper")
   //                                      .stepFinished = stepFinished,
   //                                      .componentEnvironment = nullptr};
 
-  //   fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
+  //   fmi2Component c = fmi2Instantiate("adder", fmi2Type::fmi2CoSimulation,
+  //   "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
 
   //   REQUIRE(c != nullptr);
 
@@ -66,9 +62,8 @@ TEST_CASE("SlaveWrapper")
 
   //   s = fmi2SetDebugLogging(c, true, 1, categories);
   //   REQUIRE(s == fmi2OK);
-  //   s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True, end_time);
-  //   REQUIRE(s == fmi2OK);
-  //   s = fmi2EnterInitializationMode(c);
+  //   s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True,
+  //   end_time); REQUIRE(s == fmi2OK); s = fmi2EnterInitializationMode(c);
   //   REQUIRE(s == fmi2OK);
   //   s = fmi2ExitInitializationMode(c);
   //   REQUIRE(s == fmi2OK);
@@ -94,8 +89,7 @@ TEST_CASE("SlaveWrapper")
   //   REQUIRE(get_vals[0] == 15);
   // }
 
-  SECTION("FmiTypes")
-  {
+  SECTION("FmiTypes") {
 
     auto a = ExampleArchive("FmiTypes");
     string resources_uri = a.getResourcesURI();
@@ -107,7 +101,9 @@ TEST_CASE("SlaveWrapper")
                                        .stepFinished = stepFinished,
                                        .componentEnvironment = nullptr};
 
-    fmi2Component c = fmi2Instantiate("fmu", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
+    fmi2Component c =
+        fmi2Instantiate("fmu", fmi2Type::fmi2CoSimulation, "check?",
+                        resources_cstr, &callbacks, fmi2False, fmi2True);
 
     REQUIRE(c != nullptr);
 
@@ -139,9 +135,9 @@ TEST_CASE("SlaveWrapper")
       fmi2Real get_vals[] = {0};
 
       s = fmi2GetReal(c, get_refs, 2, get_vals);
-      //REQUIRE(s == fmi2OK);
-      //REQUIRE(get_vals[0] == 0);
-      //REQUIRE(get_vals[1] == 0);
+      // REQUIRE(s == fmi2OK);
+      // REQUIRE(get_vals[0] == 0);
+      // REQUIRE(get_vals[1] == 0);
 
       s = fmi2SetReal(c, set_refs, 1, set_vals);
       REQUIRE(s == fmi2OK);
@@ -218,7 +214,8 @@ TEST_CASE("SlaveWrapper")
   //                                      .stepFinished = stepFinished,
   //                                      .componentEnvironment = nullptr};
 
-  //   fmi2Component c = fmi2Instantiate("model", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
+  //   fmi2Component c = fmi2Instantiate("model", fmi2Type::fmi2CoSimulation,
+  //   "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
 
   //   REQUIRE(c != nullptr);
 
@@ -231,9 +228,8 @@ TEST_CASE("SlaveWrapper")
 
   //   s = fmi2SetDebugLogging(c, true, 1, categories);
   //   REQUIRE(s == fmi2OK);
-  //   s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True, end_time);
-  //   REQUIRE(s == fmi2OK);
-  //   s = fmi2EnterInitializationMode(c);
+  //   s = fmi2SetupExperiment(c, fmi2False, 0.0, start_time, fmi2True,
+  //   end_time); REQUIRE(s == fmi2OK); s = fmi2EnterInitializationMode(c);
   //   REQUIRE(s == fmi2OK);
   //   s = fmi2ExitInitializationMode(c);
   // }
@@ -241,11 +237,12 @@ TEST_CASE("SlaveWrapper")
 
 /**
  * @brief Tests the logging mechanism implemented in the wrapper.
- * 
+ *
  * The two main areas are:
- * 
+ *
  * 1. Only messages the active log categories are logged
- * 2. Errors from originating from failure in the c-to-python call interface are logged.
+ * 2. Errors from originating from failure in the c-to-python call interface are
+ * logged.
  * 3. Errors originating from inside the FMU are also logged.
  */
 // TEST_CASE("Logging")
@@ -265,7 +262,8 @@ TEST_CASE("SlaveWrapper")
 //                                        .stepFinished = stepFinished,
 //                                        .componentEnvironment = nullptr};
 
-//     fmi2Component c = fmi2Instantiate("logger", fmi2Type::fmi2CoSimulation, "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
+//     fmi2Component c = fmi2Instantiate("logger", fmi2Type::fmi2CoSimulation,
+//     "check?", resources_cstr, &callbacks, fmi2False, fmi2True);
 
 //     REQUIRE(c != nullptr);
 
@@ -288,7 +286,8 @@ TEST_CASE("SlaveWrapper")
 //  * @brief
 //  * Tests related to the initialisation and deallocation of FMUs.
 //  *
-//  * @details The targets are the fmi functions used to allocate and deallocate FMUs:
+//  * @details The targets are the fmi functions used to allocate and deallocate
+//  FMUs:
 //  * * fmi2Instantiate
 //  * * fmi2FreeInstance
 //  * * fmi2FreeState
@@ -307,11 +306,15 @@ TEST_CASE("SlaveWrapper")
 //                                        .stepFinished = stepFinished,
 //                                        .componentEnvironment = nullptr};
 
-//     fmi2Component a = fmi2Instantiate("a", fmi2Type::fmi2CoSimulation, "check?",
-//                                       resources_cstr, &callbacks, fmi2False, fmi2True);
+//     fmi2Component a = fmi2Instantiate("a", fmi2Type::fmi2CoSimulation,
+//     "check?",
+//                                       resources_cstr, &callbacks, fmi2False,
+//                                       fmi2True);
 
-//     fmi2Component b = fmi2Instantiate("b", fmi2Type::fmi2CoSimulation, "check?",
-//                                       resources_cstr, &callbacks, fmi2False, fmi2True);
+//     fmi2Component b = fmi2Instantiate("b", fmi2Type::fmi2CoSimulation,
+//     "check?",
+//                                       resources_cstr, &callbacks, fmi2False,
+//                                       fmi2True);
 
 //     REQUIRE(true);
 //   }

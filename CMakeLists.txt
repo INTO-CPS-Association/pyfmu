@@ -7,7 +7,7 @@ project(pyfmu-wrapper
 
 
 if (MSVC)
-
+   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
   # Python defines its own snprintf function in case the system does not provide one.
   # Unfortunately this clashes with std::snprintf. The flag HAVE_SNPRINTF determines this behavior.
   # In GCC this seems to be correctly set, however it does not seem to be the case for MSVC.
@@ -84,7 +84,6 @@ add_library(pyfmu
         wrapper/src/fmi2/slaveAdapter.cpp
         wrapper/src/fmi2/slaveFactory.cpp
         wrapper/src/fmi2/configuration.cpp
-        wrapper/src/interpreter/cPythonManager.cpp
         wrapper/src/utils.cpp
 )
 target_include_directories(pyfmu
@@ -94,9 +93,11 @@ target_include_directories(pyfmu
 
 target_compile_features(pyfmu PUBLIC "cxx_std_20")
 
+
 target_link_libraries(pyfmu
         PRIVATE
         pybind11::embed        
+        PUBLIC
         CONAN_PKG::fmt
         CONAN_PKG::spdlog
         CONAN_PKG::nlohmann_json
@@ -115,10 +116,14 @@ target_include_directories(wrapper-tests
         PRIVATE 
         wrapper/tests/include
 )
+
+target_compile_features(wrapper-tests PUBLIC "cxx_std_20")
+
 target_link_libraries(wrapper-tests 
         PRIVATE 
         pyfmu
-        ${CONAN_LIBS}
+        CONAN_PKG::catch2
+        CONAN_PKG::spdlog
 )
 
 # multi-configuration generators such as MSVC puts different builds in seperate folders

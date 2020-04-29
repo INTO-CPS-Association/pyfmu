@@ -12,7 +12,6 @@
 #include "pyfmu/fmi2/logging.hpp"
 #include "pyfmu/fmi2/slaveAdapter.hpp"
 #include "pyfmu/fmi2/slaveFactory.hpp"
-#include "pyfmu/interpreter/cPythonManager.hpp"
 #include "pyfmu/utils.hpp"
 
 using namespace fmt;
@@ -55,11 +54,13 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
   }
 
   try {
-    path resources = getPathFromFileUri(fmuResourceLocation);
+    path resources = pyfmu::getPathFromFileUri(fmuResourceLocation);
+    auto test = pyfmu::getFileUriFromPath(resources);
     logger->ok("wrapper",
                "Successfully parsed the resource folder URI pointing to : {}",
                resources.string());
-    auto config = read_configuration(resources, logger);
+    auto config =
+        read_configuration(resources / "slave_configuration.json", logger);
     logger->ok("wrapper", "The slave configuration successfully parsed.");
     return slaveFactory.createSlaveForConfiguration(config, logger);
 

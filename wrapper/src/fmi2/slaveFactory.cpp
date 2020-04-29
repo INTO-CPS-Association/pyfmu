@@ -15,10 +15,10 @@ SlaveAdapter *SlaveFactory::createSlaveForConfiguration(
   if (!Py_IsInitialized()) {
     py::initialize_interpreter();
   }
+  py::module::import("sys").attr("path").cast<py::list>().append(
+      config.resources.string());
 
-  py::module("sys").attr("path").cast<py::list>().append(config.resources);
-
-  auto slave = new EmbeddedSlave(config.main_script, config.main_class, logger);
+  auto slave = new EmbeddedSlave(config.module_name, config.main_class, logger);
   auto adapter = new SlaveAdapter(slave);
 
   return adapter;

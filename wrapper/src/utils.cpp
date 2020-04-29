@@ -1,18 +1,14 @@
-#include <string>
+#include <codecvt>
 #include <filesystem>
 #include <locale>
-#include <codecvt>
+#include <string>
 
-#include <uriparser/Uri.h>
 #include <fmt/format.h>
+#include <uriparser/Uri.h>
 
-using namespace std;
-using namespace filesystem;
-using namespace fmt;
-
+namespace pyfmu {
 // Works on windows
-int win_parse_uriparserV1(const char *uri, char *filenname)
-{
+int win_parse_uriparserV1(const char *uri, char *filenname) {
   UriUriA uri1;
   int err = uriParseSingleUriA(&uri1, uri, nullptr);
   if (err != 0)
@@ -29,29 +25,27 @@ int win_parse_uriparserV1(const char *uri, char *filenname)
 /**
  * @brief Seems to fail on windows if only a single drive letter
  * is used
- * 
- * @param uri 
- * @param filenname 
+ *
+ * @param uri
+ * @param filenname
  */
-int win_parse_uriparserV2(const char *uri, char *filenname)
-{
+int win_parse_uriparserV2(const char *uri, char *filenname) {
   return uriUriStringToWindowsFilenameA(uri, filenname);
 }
 
 /**
  * @brief Convert file uri to a path
- * 
+ *
  * @param uri a unique resource identifier pointing to a file
  * @return path extracted from the uri
  * @throw invalid_argument
- * 
+ *
  * @example:
  * auto uri = std::path("file:///fmu_directory/fmu/resources")
  * auto path = getPathFromFileUri(uri)
  */
 
-path getPathFromFileUri(string uri)
-{
+std::filesystem::path getPathFromFileUri(std::string uri) {
   // see parser docs https://uriparser.github.io/doc/api/latest/
   const char *uri_cstr = uri.c_str();
 
@@ -59,18 +53,18 @@ path getPathFromFileUri(string uri)
 
   int err = uriParseSingleUriA(&uri_s, uri_cstr, NULL);
 
-  if (err)
-  {
-    throw runtime_error(format("Unable to parse URI string : {}. Ensure that the uri is valid.", uri));
+  if (err) {
+    throw std::runtime_error(fmt::format(
+        "Unable to parse URI string : {}. Ensure that the uri is valid.", uri));
   }
 
   size_t scheme_len = uri_s.scheme.afterLast - uri_s.scheme.first;
   std::string scheme(uri_s.scheme.first, scheme_len);
 
-  if (scheme != "file")
-  {
+  if (scheme != "file") {
     uriFreeUriMembersA(&uri_s);
-    throw runtime_error(format("Unable to parse URI string: {}, only file-URI's are supported", uri));
+    throw std::runtime_error(fmt::format(
+        "Unable to parse URI string: {}, only file-URI's are supported", uri));
   }
 
   uriFreeUriMembersA(&uri_s);
@@ -91,19 +85,18 @@ path getPathFromFileUri(string uri)
   err = uriUriStringToUnixFilenameA(uri_cstr, absUri);
 #endif
 
-  if (err != URI_SUCCESS)
-  {
+  if (err != URI_SUCCESS) {
     delete[] absUri;
-    throw runtime_error("Failed to parse extract host specific path from URI.");
+    throw std::runtime_error(
+        "Failed to parse extract host specific path from URI.");
   }
-  path p = weakly_canonical(path(absUri));
+  auto p = weakly_canonical(std::filesystem::path(absUri));
   delete[] absUri;
 
   return p;
 }
 
-string getFileUriFromPath(path p)
-{
+std::string getFileUriFromPath(std::filesystem::path p) {
 
 #ifdef WIN32
   const size_t bytesNeeded = 8 + (3 * p.string().length() + 1);
@@ -119,14 +112,15 @@ string getFileUriFromPath(path p)
   int err = uriUnixFilenameToUriStringA(p.string().c_str(), absUri);
 #endif
 
-  if (err != URI_SUCCESS)
-  {
+  if (err != URI_SUCCESS) {
     delete[] absUri;
-    throw runtime_error("Failed to parse extract host specific path from URI.");
+    throw std::runtime_error(
+        "Failed to parse extract host specific path from URI.");
   }
 
-  string s(absUri);
+  std::string s(absUri);
   delete[] absUri;
 
   return s;
 }
+} // namespace pyfmu
