@@ -9,6 +9,7 @@
  *
  */
 
+#include "pyfmu/fmi2/logging.hpp"
 #include "pyfmu/fmi2/slave.hpp"
 
 namespace pyfmu::fmi2 {
@@ -20,7 +21,7 @@ namespace pyfmu::fmi2 {
  */
 class SlaveAdapter {
 public:
-  SlaveAdapter(Slave *slave);
+  SlaveAdapter(Slave *slave, Logger *logger);
 
   ~SlaveAdapter();
 
@@ -40,19 +41,18 @@ public:
   fmi2Status terminate();
 
   fmi2Status getInteger(const fmi2ValueReference *vr, size_t nvr,
-                        fmi2Integer *value) const;
+                        fmi2Integer *value);
 
-  fmi2Status getReal(const fmi2ValueReference *vr, size_t nvr,
-                     fmi2Real *value) const;
+  fmi2Status getReal(const fmi2ValueReference *vr, size_t nvr, fmi2Real *value);
 
   fmi2Status getString(const fmi2ValueReference *vr, size_t nvr,
-                       fmi2String *value) const;
+                       fmi2String *value);
 
   fmi2Status getBoolean(const fmi2ValueReference *vr, size_t nvr,
-                        fmi2Boolean *value) const;
+                        fmi2Boolean *value);
 
   fmi2Status setDebugLogging(fmi2Boolean loggingOn, size_t nCategories,
-                             const char *const categories[]) const;
+                             const char *const categories[]);
 
   fmi2Status setReal(const fmi2ValueReference *vr, size_t nvr,
                      const fmi2Real *value);
@@ -67,7 +67,8 @@ public:
                        const fmi2String *value);
 
 private:
-  const Slave *slave;
+  Slave *slave;
+  Logger *logger;
 };
 
 } // namespace pyfmu::fmi2

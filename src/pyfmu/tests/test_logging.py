@@ -1,4 +1,5 @@
-from pyfmu.fmi2 import Fmi2CallbackLogger, Fmi2Status
+from pyfmu.fmi2.logging import Fmi2CallbackLogger
+from pyfmu.fmi2 import Fmi2Status
 
 
 def test_categoryNotRegistered_notLogged():
@@ -12,7 +13,7 @@ def test_categoryNotRegistered_notLogged():
     logger = Fmi2CallbackLogger(callback=logging_callback)
     logger.log("test")
 
-    assert(not logged)
+    assert not logged
 
 
 def test_customCategoryRegistered_logged():
@@ -32,7 +33,7 @@ def test_customCategoryRegistered_logged():
 
     logger.log("hello world!", category=c)
 
-    assert(n == before + 1)
+    assert n == before + 1
 
 
 def test_registerAlias_logged():
@@ -44,13 +45,13 @@ def test_registerAlias_logged():
         n += 1
 
     logger = Fmi2CallbackLogger(callback)
-    logger.register_log_category('ab', aliases={'a', 'b'})
-    logger.set_debug_logging(True, ['ab'])
+    logger.register_log_category("ab", aliases={"a", "b"})
+    logger.set_debug_logging(True, ["ab"])
 
     before = n
 
-    logger.log('test', 'a')
-    logger.log('test', 'b')
+    logger.log("test", "a")
+    logger.log("test", "b")
 
     assert n == before + 2
 
@@ -67,17 +68,18 @@ def test_predicates():
         return True
 
     logger = Fmi2CallbackLogger(callback)
-    logger.register_log_category('all', predicate=log_all_predicate)
-    logger.set_debug_logging(True, ['all'])
+    logger.register_log_category("all", predicate=log_all_predicate)
+    logger.set_debug_logging(True, ["all"])
 
     before = n
 
-    logger.log('test', 'a')
-    logger.log('test', 'b')
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
+    logger.log("test", "a")
+    logger.log("test", "b")
+    logger.log("test", status=Fmi2Status.ok)
+    logger.log("test", status=Fmi2Status.warning)
 
     assert n == before + 4
+
 
 # standard categories
 
@@ -99,12 +101,12 @@ def test_logEvent():
     before = n
 
     # every log message is treated as an event?
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
+    logger.log("test", status=Fmi2Status.ok)
+    logger.log("test", status=Fmi2Status.warning)
+    logger.log("test", status=Fmi2Status.error)
+    logger.log("test", status=Fmi2Status.discard)
+    logger.log("test", status=Fmi2Status.fatal)
+    logger.log("test", status=Fmi2Status.pending)
 
     assert n == before + 6
 
@@ -126,17 +128,17 @@ def test_logSingularLinearSystems():
     before = n
 
     # category aliases
-    logger.log('test', category="SingularLinearSystem")
-    logger.log('test', category="singularlinearsystem")
-    logger.log('test', category="sls")
+    logger.log("test", category="SingularLinearSystem")
+    logger.log("test", category="singularlinearsystem")
+    logger.log("test", category="sls")
 
     # ignore everything else
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
+    logger.log("test", status=Fmi2Status.ok)
+    logger.log("test", status=Fmi2Status.warning)
+    logger.log("test", status=Fmi2Status.error)
+    logger.log("test", status=Fmi2Status.discard)
+    logger.log("test", status=Fmi2Status.fatal)
+    logger.log("test", status=Fmi2Status.pending)
 
     assert n == before + 3
 
@@ -158,17 +160,17 @@ def test_logNonLinearSystems():
     before = n
 
     # category aliases
-    logger.log('test', category="NonLinearSystems")
-    logger.log('test', category="nonlinearsystems")
-    logger.log('test', category="nls")
+    logger.log("test", category="NonLinearSystems")
+    logger.log("test", category="nonlinearsystems")
+    logger.log("test", category="nls")
 
     # ignore everything else
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
+    logger.log("test", status=Fmi2Status.ok)
+    logger.log("test", status=Fmi2Status.warning)
+    logger.log("test", status=Fmi2Status.error)
+    logger.log("test", status=Fmi2Status.discard)
+    logger.log("test", status=Fmi2Status.fatal)
+    logger.log("test", status=Fmi2Status.pending)
 
     assert n == before + 3
 
@@ -189,16 +191,16 @@ def test_logDynamicStateSelection():
 
     before = n
 
-    logger.log('test', category="DynamicStateSelection")
-    logger.log('test', category="dynamicstateselection")
-    logger.log('test', category="dss")
+    logger.log("test", category="DynamicStateSelection")
+    logger.log("test", category="dynamicstateselection")
+    logger.log("test", category="dss")
 
-    logger.log('test', status=Fmi2Status.ok)
-    logger.log('test', status=Fmi2Status.warning)
-    logger.log('test', status=Fmi2Status.error)
-    logger.log('test', status=Fmi2Status.discard)
-    logger.log('test', status=Fmi2Status.fatal)
-    logger.log('test', status=Fmi2Status.pending)
+    logger.log("test", status=Fmi2Status.ok)
+    logger.log("test", status=Fmi2Status.warning)
+    logger.log("test", status=Fmi2Status.error)
+    logger.log("test", status=Fmi2Status.discard)
+    logger.log("test", status=Fmi2Status.fatal)
+    logger.log("test", status=Fmi2Status.pending)
 
     assert n == before + 3
 
@@ -220,7 +222,7 @@ def test_statusLogLevels():
         ("logStatusDiscard", Fmi2Status.discard),
         ("logStatusError", Fmi2Status.error),
         ("logStatusFatal", Fmi2Status.fatal),
-        ("logStatusPending", Fmi2Status.pending)
+        ("logStatusPending", Fmi2Status.pending),
     }
 
     for ce in ces:
@@ -255,5 +257,5 @@ def test_logDefaultCategory_loggedWithEvent():
     logger.set_debug_logging(True, cs)
 
     before = n
-    logger.log('test')
+    logger.log("test")
     assert n == before + 1

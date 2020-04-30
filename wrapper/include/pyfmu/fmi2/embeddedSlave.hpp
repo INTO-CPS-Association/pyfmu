@@ -38,36 +38,37 @@ public:
    * @param slaveClass
    * @param logger
    */
-  EmbeddedSlave(const std::string slaveModule, const std::string slaveClass,
+  EmbeddedSlave(const std::string &slaveModule, const std::string &slaveClass,
                 Logger *logger);
 
   fmi2Status setupExperiment(fmi2Real startTime,
                              std::optional<fmi2Real> tolerance,
-                             std::optional<fmi2Real> stopTime);
+                             std::optional<fmi2Real> stopTime) override;
 
-  fmi2Status enterInitializationMode();
+  fmi2Status enterInitializationMode() override;
 
-  fmi2Status exitInitializationMode();
+  fmi2Status exitInitializationMode() override;
 
   fmi2Status doStep(fmi2Real currentTime, fmi2Real stepSize,
-                    fmi2Boolean noSetFMUStatePriorToCurrentPoint);
+                    fmi2Boolean noSetFMUStatePriorToCurrentPoint) override;
 
-  fmi2Status reset();
+  fmi2Status reset() override;
 
-  fmi2Status terminate();
+  fmi2Status terminate() override;
 
-  fmi2Status setDebugLogging(fmi2Boolean loggingOn,
-                             std::vector<std::string> loggingCategories) const;
+  fmi2Status setDebugLogging(bool loggingOn, StringValues categories) override;
 
-  virtual Fmi2GetterResult<fmi2Real> getReal(VRefs references);
-  virtual Fmi2GetterResult<fmi2Integer> getInteger(VRefs references);
-  virtual Fmi2GetterResult<fmi2Boolean> getBoolean(VRefs references);
-  virtual Fmi2GetterResult<fmi2String> getString(VRefs references);
+  virtual Fmi2GetterResult<fmi2Real> getReal(VRefs references) override;
+  virtual Fmi2GetterResult<fmi2Integer> getInteger(VRefs references) override;
+  virtual Fmi2GetterResult<fmi2Boolean> getBoolean(VRefs references) override;
+  virtual Fmi2GetterResult<fmi2String> getString(VRefs references) override;
 
-  virtual fmi2Status setReal(VRefs references, RealValues values);
-  virtual fmi2Status setInteger(VRefs references, IntegerValues values);
-  virtual fmi2Status setBoolean(VRefs references, BooleanValues values);
-  virtual fmi2Status setString(VRefs references, StringValues);
+  virtual fmi2Status setReal(VRefs references, RealValues values) override;
+  virtual fmi2Status setInteger(VRefs references,
+                                IntegerValues values) override;
+  virtual fmi2Status setBoolean(VRefs references,
+                                BooleanValues values) override;
+  virtual fmi2Status setString(VRefs references, StringValues) override;
 
   ~EmbeddedSlave();
 
@@ -75,6 +76,7 @@ private:
   pybind11::object slaveInstance;
   pybind11::object method_getxxx;
   pybind11::object method_setxxx;
+  pybind11::object method_setDebugLogging;
   pybind11::object method_enterInitializationMode;
   pybind11::object method_exitInitializationMode;
   pybind11::object method_reset;

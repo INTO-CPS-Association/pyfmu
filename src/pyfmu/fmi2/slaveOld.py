@@ -10,20 +10,29 @@ import sys
 from enum import Enum
 from traceback import format_exc
 
-from pyfmu.fmi2 import Fmi2ScalarVariable, Fmi2CallbackLogger, Fmi2NullLogger, Fmi2Causality, Fmi2DataTypes, Fmi2Initial, Fmi2Variability, Fmi2Status
+from pyfmu.fmi2 import (
+    Fmi2ScalarVariable,
+    Fmi2CallbackLogger,
+    Fmi2NullLogger,
+    Fmi2Causality,
+    Fmi2DataTypes,
+    Fmi2Initial,
+    Fmi2Variability,
+    Fmi2Status,
+)
 
 ############### CONFIGURATION ###############
 _slave_configuration_name = "slave_configuration.json"
 
 ############### LOGGING OF FMI INTERFACE ###############
-_internal_log_catergory = 'fmi2slave'
+_internal_log_catergory = "fmi2slave"
 # category if an FMI method implementation fails
 _internal_throw_category = Fmi2Status.fatal
 # category if an FMI method returns and invalid status
 _internal_invalid_status_category = Fmi2Status.fatal
 _logging_override_name = "pyfmu_log_all_override"
 
-log = logging.getLogger('fmu')
+log = logging.getLogger("fmu")
 
 ############### ERRONEOUS ###############
 _uninitialized_variables_status = Fmi2Status.fatal
@@ -32,28 +41,30 @@ _invalid_fmi_invalid_arguments = Fmi2Status.error
 _invalid_return_type_status = Fmi2Status.error
 _invalid_external_call_status = Fmi2Status.fatal
 
+
 class _Fmi2SlaveErrorDefinitions(Enum):
     """ Defines which FMI2 error codes should be raised in response to various inconsistencies
     """
+
     uninitialized_variables = Fmi2Status.fatal
     internal_log_catergory = "fmi2slave"
 
 
-class Fmi2Slave:
-
-    def __init__(self,
-                 modelName: str,
-                 author="",
-                 copyright="",
-                 version="",
-                 description="",
-                 logging_callback=None,
-                 logging_logAll=False,
-                 logging_stdout=False,
-                 logging_add_standard_categories=True,
-                 logging_slave_fmi_calls=True,
-                 check_uninitialized_variables = True,
-                 ):
+class Fmi2SlaveOld:
+    def __init__(
+        self,
+        modelName: str,
+        author="",
+        copyright="",
+        version="",
+        description="",
+        logging_callback=None,
+        logging_logAll=False,
+        logging_stdout=False,
+        logging_add_standard_categories=True,
+        logging_slave_fmi_calls=True,
+        check_uninitialized_variables=True,
+    ):
         """Constructs a FMI2
 
         Arguments:
@@ -80,18 +91,20 @@ class Fmi2Slave:
         self.used_value_references = {}
         self.check_uninitialized_variables = check_uninitialized_variables
 
-        if(logging_callback):
+        if logging_callback:
             self.logger = Fmi2CallbackLogger(logging_callback, logging_stdout)
         else:
             self.logger = Fmi2NullLogger()
 
-        if(logging_add_standard_categories):
+        if logging_add_standard_categories:
             self.logger.register_all_standard_categories()
 
-        if(logging_slave_fmi_calls):
+        if logging_slave_fmi_calls:
             self.logger.register_log_category(_internal_log_catergory)
             self.logger.log(
-                'FMI call logging enabled, all fmi calls will be logged', _internal_log_catergory)
+                "FMI call logging enabled, all fmi calls will be logged",
+                _internal_log_catergory,
+            )
 
         self._configure()
 
@@ -99,7 +112,7 @@ class Fmi2Slave:
             Fmi2DataTypes.integer: (int, "integer"),
             Fmi2DataTypes.real: (float, "real"),
             Fmi2DataTypes.boolean: (bool, "boolean"),
-            Fmi2DataTypes.string: (str, "string")
+            Fmi2DataTypes.string: (str, "string"),
         }
 
     def _configure(self):
@@ -111,14 +124,18 @@ class Fmi2Slave:
                 1. Logging, allows the user to override log settings.
         """
 
-        if(not self._is_running_as_fmu):
-            self.log("Skipping configuration due to the FMU running in project-mode",
-                     _internal_log_catergory)
+        if not self._is_running_as_fmu:
+            self.log(
+                "Skipping configuration due to the FMU running in project-mode",
+                _internal_log_catergory,
+            )
 
         try:
 
             self.log(
-                f"Trying to locate configuration file : {_slave_configuration_name} in Python Path : {sys.path}", _internal_log_catergory)
+                f"Trying to locate configuration file : {_slave_configuration_name} in Python Path : {sys.path}",
+                _internal_log_catergory,
+            )
 
             config_path = None
 
@@ -126,29 +143,36 @@ class Fmi2Slave:
 
                 p = Path(potential) / _slave_configuration_name
 
-                if(p.is_file()):
+                if p.is_file():
                     config_path = p
                     break
             else:
                 self.log(
-                    'Configuration process failed the file could not be found in Pythons path, continuing using defaults', _internal_log_catergory)
+                    "Configuration process failed the file could not be found in Pythons path, continuing using defaults",
+                    _internal_log_catergory,
+                )
                 return
 
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 config = json.load(f)
 
                 # 1. Logging
-                cats = config['logging']['override_log_categories']
+                cats = config["logging"]["override_log_categories"]
 
-                if(len(cats) != 0):
+                if len(cats) != 0:
                     self.log(
-                        f'Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active', _internal_log_catergory)
+                        f"Log categories overriden in : {_slave_configuration_name}, marking categories : {cats} as active",
+                        _internal_log_catergory,
+                    )
                     self._set_debug_logging(True, cats)
 
         except Exception as e:
             print(e)
             self.log(
-                f'Configuration process failed due to error : {e}, continuing using default options', _internal_log_catergory, Fmi2Status.warning)
+                f"Configuration process failed due to error : {e}, continuing using default options",
+                _internal_log_catergory,
+                Fmi2Status.warning,
+            )
 
     def _set_resources_path(self, path):
         """Called by the wrapper to set the path to resource folder.
@@ -173,24 +197,25 @@ class Fmi2Slave:
 
             p = Path(potential) / _slave_configuration_name
 
-            if(p.is_file()):
+            if p.is_file():
                 return True
 
         return False
 
     # REGISTER VARIABLES AND LOG CATEGORIES
 
-    def register_variable(self,
-                          name: str,
-                          data_type: Fmi2DataTypes = None,
-                          causality=Fmi2Causality.local,
-                          variability=Fmi2Variability.continuous,
-                          initial: Fmi2Initial = None,
-                          start=None,
-                          description: str = "",
-                          define_attribute: bool = True,
-                          value_reference: int = None,
-                          ):
+    def register_variable(
+        self,
+        name: str,
+        data_type: Fmi2DataTypes = None,
+        causality=Fmi2Causality.local,
+        variability=Fmi2Variability.continuous,
+        initial: Fmi2Initial = None,
+        start=None,
+        description: str = "",
+        define_attribute: bool = True,
+        value_reference: int = None,
+    ):
         """Add a variable to the model such as an input, output or parameter.
 
         Arguments:
@@ -251,93 +276,80 @@ class Fmi2Slave:
 
         # i1. shorthands and aliases
         type_aliases = {
-
             None: None,
-
             Fmi2DataTypes.real: Fmi2DataTypes.real,
-            'real': Fmi2DataTypes.real,
+            "real": Fmi2DataTypes.real,
             float: Fmi2DataTypes.real,
-
             Fmi2DataTypes.boolean: Fmi2DataTypes.boolean,
-            'bool': Fmi2DataTypes.boolean,
-            'boolean': Fmi2DataTypes.boolean,
+            "bool": Fmi2DataTypes.boolean,
+            "boolean": Fmi2DataTypes.boolean,
             bool: Fmi2DataTypes.boolean,
-
             Fmi2DataTypes.integer: Fmi2DataTypes.integer,
-            'int': Fmi2DataTypes.integer,
-            'integer': Fmi2DataTypes.integer,
+            "int": Fmi2DataTypes.integer,
+            "integer": Fmi2DataTypes.integer,
             int: Fmi2DataTypes.integer,
-
             Fmi2DataTypes.string: Fmi2DataTypes.string,
-            'string': Fmi2DataTypes.string,
-            'str': Fmi2DataTypes.string,
-            str: Fmi2DataTypes.string
+            "string": Fmi2DataTypes.string,
+            "str": Fmi2DataTypes.string,
+            str: Fmi2DataTypes.string,
         }
         causality_aliases = {
             None: None,
-
             Fmi2Causality.parameter: Fmi2Causality.parameter,
-            'parameter': Fmi2Causality.parameter,
-
+            "parameter": Fmi2Causality.parameter,
             Fmi2Causality.calculatedParameter: Fmi2Causality.calculatedParameter,
-            'calculatedparameter': Fmi2Causality.calculatedParameter,
-
+            "calculatedparameter": Fmi2Causality.calculatedParameter,
             Fmi2Causality.input: Fmi2Causality.input,
-            'input': Fmi2Causality.input,
-
+            "input": Fmi2Causality.input,
             Fmi2Causality.output: Fmi2Causality.output,
-            'output': Fmi2Causality.output,
-
+            "output": Fmi2Causality.output,
             Fmi2Causality.local: Fmi2Causality.local,
-            'local': Fmi2Causality.local,
-
+            "local": Fmi2Causality.local,
             Fmi2Causality.independent: Fmi2Causality.independent,
-            'independent': Fmi2Causality.independent,
+            "independent": Fmi2Causality.independent,
         }
         initial_aliases = {
             None: None,
             Fmi2Initial.exact: Fmi2Initial.exact,
-            'exact': Fmi2Initial.exact,
-
+            "exact": Fmi2Initial.exact,
             Fmi2Initial.approx: Fmi2Initial.approx,
-            'approx': Fmi2Initial.approx,
-
+            "approx": Fmi2Initial.approx,
             Fmi2Initial.calculated: Fmi2Initial.calculated,
-            'calculated': Fmi2Initial.calculated
+            "calculated": Fmi2Initial.calculated,
         }
         variability_aliases = {
             None: None,
             Fmi2Variability.constant: Fmi2Variability.constant,
-            'constant': Fmi2Variability.constant,
-
+            "constant": Fmi2Variability.constant,
             Fmi2Variability.fixed: Fmi2Variability.fixed,
-            'fixed': Fmi2Variability.fixed,
-
+            "fixed": Fmi2Variability.fixed,
             Fmi2Variability.tunable: Fmi2Variability.tunable,
-            'tunable': Fmi2Variability.tunable,
-
+            "tunable": Fmi2Variability.tunable,
             Fmi2Variability.discrete: Fmi2Variability.discrete,
-            'discrete': Fmi2Variability.discrete,
-
+            "discrete": Fmi2Variability.discrete,
             Fmi2Variability.continuous: Fmi2Variability.continuous,
-            'continuous': Fmi2Variability.continuous
+            "continuous": Fmi2Variability.continuous,
         }
 
-        if(data_type not in type_aliases):
+        if data_type not in type_aliases:
             raise ValueError(
-                f'Unrecognized data type: {data_type}. Possible values are {type_aliases.keys()}')
+                f"Unrecognized data type: {data_type}. Possible values are {type_aliases.keys()}"
+            )
 
-        if(causality not in causality_aliases):
+        if causality not in causality_aliases:
             raise ValueError(
-                f'Unrecognized causality: {causality}. Possible values are {causality_aliases.keys()}')
+                f"Unrecognized causality: {causality}. Possible values are {causality_aliases.keys()}"
+            )
 
-        if(initial not in initial_aliases):
+        if initial not in initial_aliases:
             raise ValueError(
-                f'Unrecognized initial: {initial}. Possible values are {initial_aliases.keys()}')
+                f"Unrecognized initial: {initial}. Possible values are {initial_aliases.keys()}"
+            )
 
-        if(variability not in variability_aliases):
+        if variability not in variability_aliases:
             raise ValueError(
-                f'Unrecognized initial: {variability}. Possible values are {variability_aliases.keys()}')
+                f"Unrecognized initial: {variability}. Possible values are {variability_aliases.keys()}"
+            )
 
         data_type = type_aliases[data_type]
         causality = causality_aliases[causality]
@@ -347,10 +359,11 @@ class Fmi2Slave:
         # i4. intial default
 
         case_a = (Fmi2Initial.exact, {Fmi2Initial.exact})
-        case_b = (Fmi2Initial.calculated, {
-                  Fmi2Initial.approx, Fmi2Initial.calculated})
-        case_c = (Fmi2Initial.calculated, {
-                  Fmi2Initial.approx, Fmi2Initial.calculated, Fmi2Initial.exact})
+        case_b = (Fmi2Initial.calculated, {Fmi2Initial.approx, Fmi2Initial.calculated})
+        case_c = (
+            Fmi2Initial.calculated,
+            {Fmi2Initial.approx, Fmi2Initial.calculated, Fmi2Initial.exact},
+        )
         case_de = (None, {None})
 
         variabilityAndCausality_to_intial = {
@@ -358,94 +371,108 @@ class Fmi2Slave:
             (Fmi2Variability.constant, Fmi2Causality.output): case_a,
             (Fmi2Variability.fixed, Fmi2Causality.parameter): case_a,
             (Fmi2Variability.tunable, Fmi2Causality.parameter): case_a,
-
             (Fmi2Variability.fixed, Fmi2Causality.calculatedParameter): case_b,
             (Fmi2Variability.fixed, Fmi2Causality.local): case_b,
             (Fmi2Variability.tunable, Fmi2Causality.calculatedParameter): case_b,
             (Fmi2Variability.tunable, Fmi2Causality.local): case_b,
-
-
             (Fmi2Variability.discrete, Fmi2Causality.output): case_c,
             (Fmi2Variability.discrete, Fmi2Causality.local): case_c,
             (Fmi2Variability.continuous, Fmi2Causality.output): case_c,
             (Fmi2Variability.continuous, Fmi2Causality.local): case_c,
-
             (Fmi2Variability.discrete, Fmi2Causality.input): case_de,
             (Fmi2Variability.continuous, Fmi2Causality.input): case_de,
             (Fmi2Variability.continuous, Fmi2Causality.independent): case_de,
         }
 
-        if(initial is None):
-            initial = variabilityAndCausality_to_intial[(
-                variability, causality)][0]
+        if initial is None:
+            initial = variabilityAndCausality_to_intial[(variability, causality)][0]
 
         # i2. default start values + v4. should define start
-        must_define_start = (initial in {Fmi2Initial.exact, Fmi2Initial.approx}
-                             or causality in {Fmi2Causality.parameter, Fmi2Causality.input}
-                             or variability in {Fmi2Variability.constant})
+        must_define_start = (
+            initial in {Fmi2Initial.exact, Fmi2Initial.approx}
+            or causality in {Fmi2Causality.parameter, Fmi2Causality.input}
+            or variability in {Fmi2Variability.constant}
+        )
 
         can_not_define_start = (
-            initial == Fmi2Initial.calculated or causality == Fmi2Causality.independent)
+            initial == Fmi2Initial.calculated or causality == Fmi2Causality.independent
+        )
 
-        assert(must_define_start != can_not_define_start)
+        assert must_define_start != can_not_define_start
 
-        if(must_define_start and start is None and data_type is not None):
+        if must_define_start and start is None and data_type is not None:
 
             type_to_start = {
                 Fmi2DataTypes.boolean: False,
                 Fmi2DataTypes.integer: 0,
                 Fmi2DataTypes.real: 0.0,
-                Fmi2DataTypes.string: ''
+                Fmi2DataTypes.string: "",
             }
             start = type_to_start[data_type]
 
-        elif (must_define_start and start is None and data_type is None):
+        elif must_define_start and start is None and data_type is None:
             raise ValueError(
                 f"""A start value must be specified for the combination of causality : {causality}, intial : {initial} and variability {variability}.
-                 Specify either a start value or the datatype such that a default will be provided.""")
+                 Specify either a start value or the datatype such that a default will be provided."""
+            )
 
-        elif (not must_define_start and start is not None):
+        elif not must_define_start and start is not None:
             raise ValueError(
-                f"""Start value must NOT be specified for the combination of causality : {causality}, intial : {initial} and variability {variability}.""")
+                f"""Start value must NOT be specified for the combination of causality : {causality}, intial : {initial} and variability {variability}."""
+            )
 
         # i3. data type inference
         start_to_type = {
             bool: Fmi2DataTypes.boolean,
             int: Fmi2DataTypes.integer,
             float: Fmi2DataTypes.real,
-            str: Fmi2DataTypes.string
+            str: Fmi2DataTypes.string,
         }
-        if(data_type is None and start is not None):
+        if data_type is None and start is not None:
             for t in start_to_type:
-                if(isinstance(start, t)):
+                if isinstance(start, t):
                     data_type = start_to_type[t]
                     break
 
         # v2. causality and variablity
-        if((variability, causality) not in variabilityAndCausality_to_intial):
+        if (variability, causality) not in variabilityAndCausality_to_intial:
             raise ValueError(
-                f'Illegal combination of causality : {causality} and variablity : {variability}. The combination is not permitted.')
+                f"Illegal combination of causality : {causality} and variablity : {variability}. The combination is not permitted."
+            )
 
         # v1. type and causality
-        if(data_type is not Fmi2DataTypes.real and variability is Fmi2Variability.continuous):
+        if (
+            data_type is not Fmi2DataTypes.real
+            and variability is Fmi2Variability.continuous
+        ):
             raise ValueError(
-                f'Illegal combination of type : {data_type} and variability : {variability}. Only real valued variables are allowed to be continuous')
+                f"Illegal combination of type : {data_type} and variability : {variability}. Only real valued variables are allowed to be continuous"
+            )
 
         # v3 initial allowed
-        if(initial not in variabilityAndCausality_to_intial[variability, causality][1]):
+        if initial not in variabilityAndCausality_to_intial[variability, causality][1]:
             raise ValueError(
-                f'Illegal initial value : {initial} for combination of causality : {causality} and variability : {variability}')
+                f"Illegal initial value : {initial} for combination of causality : {causality} and variability : {variability}"
+            )
 
         # if not specified find an unused value reference
-        if(value_reference is None):
+        if value_reference is None:
             value_reference = self._acquire_unused_value_reference()
 
-        var = Fmi2ScalarVariable(name=name, data_type=data_type, initial=initial, causality=causality,
-                                 variability=variability, description=description, start=start, value_reference=value_reference)
+        var = Fmi2ScalarVariable(
+            name=name,
+            data_type=data_type,
+            initial=initial,
+            causality=causality,
+            variability=variability,
+            description=description,
+            start=start,
+            value_reference=value_reference,
+        )
 
         self.vars.append(var)
 
-        if(define_attribute):
+        if define_attribute:
             self._define_variable(var)
 
     def register_log_category(self, name: str):
@@ -469,41 +496,38 @@ class Fmi2Slave:
     def _acquire_unused_value_reference(self) -> int:
         """ Returns the an unused value reference
         """
-        while(True):
+        while True:
             vr = self.value_reference_counter
             self.value_reference_counter += 1
 
-            if(vr not in self.used_value_references):
+            if vr not in self.used_value_references:
                 return vr
 
     # FMI FUNCTIONS
 
-    def _setup_experiment(self,
-                          start_time: float,
-                          tolerance: float = None,
-                          stop_time: float = None):
+    def _setup_experiment(
+        self, start_time: float, tolerance: float = None, stop_time: float = None
+    ):
 
-        #self.log("THIS WILL NEVER BE PRINTED",_internal_log_catergory,Fmi2Status.fatal)
-        #print(f"{start_time},{tolerance},{stop_time}")
-        
+        # self.log("THIS WILL NEVER BE PRINTED",_internal_log_catergory,Fmi2Status.fatal)
+        # print(f"{start_time},{tolerance},{stop_time}")
+
         return self._do_fmi_call(
-            self.setup_experiment,
-            start_time,
-            stop_time, tolerance)
+            self.setup_experiment, start_time, stop_time, tolerance
+        )
 
-    def setup_experiment(self,
-                         start_time: float,
-                         tolerance: float = None,
-                         stop_time: float = None):
+    def setup_experiment(
+        self, start_time: float, tolerance: float = None, stop_time: float = None
+    ):
         pass
 
     def _enter_initialization_mode(self):
         status = self._do_fmi_call(self.enter_initialization_mode)
 
-        if(self.check_uninitialized_variables):
+        if self.check_uninitialized_variables:
             status_check = self._do_check_variable_initialization()
 
-            if(status_check is not Fmi2Status.ok):
+            if status_check is not Fmi2Status.ok:
                 return status_check.value
 
         return status
@@ -518,18 +542,17 @@ class Fmi2Slave:
     def exit_initialization_mode(self):
         pass
 
-    def _do_step(self,
-                 current_time: float,
-                 step_size: float,
-                 no_set_fmu_state_prior: bool):
+    def _do_step(
+        self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
+    ):
 
-        return self._do_fmi_call(self.do_step, current_time,
-                                 step_size, no_set_fmu_state_prior)
+        return self._do_fmi_call(
+            self.do_step, current_time, step_size, no_set_fmu_state_prior
+        )
 
-    def do_step(self,
-                current_time: float,
-                step_size: float,
-                no_set_fmu_state_prior: bool):
+    def do_step(
+        self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
+    ):
         pass
 
     def _reset(self):
@@ -545,11 +568,8 @@ class Fmi2Slave:
         pass
 
     def _set_debug_logging(self, logging_on: bool, categories: Iterable[str]) -> None:
-
-        return self._do_fmi_call(
-            self.set_debug_logging,
-            logging_on,
-            categories)
+        return Fmi2Status.fatal
+        return self._do_fmi_call(self.set_debug_logging, logging_on, categories)
 
     def set_debug_logging(self, logging_on: bool, categories: Iterable[str]):
         """Defines the set of active log categories for which log messages will logged.
@@ -603,17 +623,20 @@ class Fmi2Slave:
 
         t, t_name = self.type_to_tuple[data_type]
 
-        if(not all(isinstance(v, t) for v in values)):
-            self.log(f"Unable to get {t_name}, some of the provided values : {values} are not {t_name}.",
-                     _internal_log_catergory,
-                     _invalid_external_call_status)
+        if not all(isinstance(v, t) for v in values):
+            self.log(
+                f"Unable to get {t_name}, some of the provided values : {values} are not {t_name}.",
+                _internal_log_catergory,
+                _invalid_external_call_status,
+            )
             return _invalid_external_call_status
 
-        if(not all(isinstance(vr, int) for vr in vrs)):
-            self.log(f"Unable to get {t_name}, some of the provided values references : {vrs} are not integers.",
-                     _internal_log_catergory,
-                     _invalid_external_call_status
-                     )
+        if not all(isinstance(vr, int) for vr in vrs):
+            self.log(
+                f"Unable to get {t_name}, some of the provided values references : {vrs} are not integers.",
+                _internal_log_catergory,
+                _invalid_external_call_status,
+            )
             return _invalid_external_call_status
 
         for i, vr in enumerate(vrs):
@@ -621,13 +644,14 @@ class Fmi2Slave:
             if var.is_type(data_type):
 
                 v = getattr(self, var.name)
-                
+
                 values[i] = getattr(self, var.name)
             else:
-                self.log(f"Unable to get {t_name}, some references point to variables : {[self.vars[vr] for vr in vrs]} which are not {t_name}s.",
-                         _internal_log_catergory,
-                         _invalid_external_call_status
-                         )
+                self.log(
+                    f"Unable to get {t_name}, some references point to variables : {[self.vars[vr] for vr in vrs]} which are not {t_name}s.",
+                    _internal_log_catergory,
+                    _invalid_external_call_status,
+                )
                 return _invalid_external_call_status
 
         return Fmi2Status.ok
@@ -670,17 +694,20 @@ class Fmi2Slave:
 
         t, t_name = self.type_to_tuple[data_type]
 
-        if(not all(isinstance(v, t) for v in values)):
-            self.log(f"Unable to set {t_name}, some of the provided values : {values} are not {t_name}.",
-                     _internal_log_catergory,
-                     _invalid_external_call_status)
+        if not all(isinstance(v, t) for v in values):
+            self.log(
+                f"Unable to set {t_name}, some of the provided values : {values} are not {t_name}.",
+                _internal_log_catergory,
+                _invalid_external_call_status,
+            )
             return _invalid_external_call_status
 
-        if(not all(isinstance(vr, int) for vr in vrs)):
-            self.log(f"Unable to set {t_name}, some of the provided values references : {vrs} are not integers.",
-                     _internal_log_catergory,
-                     _invalid_external_call_status
-                     )
+        if not all(isinstance(vr, int) for vr in vrs):
+            self.log(
+                f"Unable to set {t_name}, some of the provided values references : {vrs} are not integers.",
+                _internal_log_catergory,
+                _invalid_external_call_status,
+            )
             return _invalid_external_call_status
 
         for i, vr in enumerate(vrs):
@@ -691,7 +718,8 @@ class Fmi2Slave:
                 self.log(
                     f"Unable to set variables. Variable with value reference {vr} is not an {t_name}",
                     _internal_log_catergory,
-                    _invalid_external_call_status)
+                    _invalid_external_call_status,
+                )
                 return _invalid_external_call_status
 
         return Fmi2Status.ok
@@ -720,7 +748,7 @@ class Fmi2Slave:
     def set_string(self, vrs, values):
         return self._set_xxx(vrs, values, Fmi2DataTypes.string)
 
-    def _do_fmi_call(self, f, *args, **kwargs) -> Fmi2Status:
+    def _do_fmi_call(self, f, *args, **kwargs) -> int:
         """ Performs the call to the fmi function implemented by the subclass and returns the status.
 
         Purpose of the function is:
@@ -732,19 +760,25 @@ class Fmi2Slave:
             f {[type]} -- the function to be invoked.
         """
 
-        if(not callable(f)):
+        if not callable(f):
             self.log("Whoops", Fmi2Status.error)
             raise TypeError(
-                f'The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step.')
+                f"The argument : {f} does not appear to be a function, ensure that the argument is pointing to the FMI function implemented by the subclass, such as do_step."
+            )
 
         try:
             self.log(
-                f'Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}', _internal_log_catergory)
+                f"Calling {f.__name__} with arguments : {args} and key-word arguments : {kwargs}",
+                _internal_log_catergory,
+            )
             s = f(*args, **kwargs)
         except Exception as e:
             e_str = self._format_exc()
             self.log(
-                f'Call resulted in an exception being raised in Python: {e_str}. Treating this as a {_internal_throw_category}.', _internal_log_catergory, _internal_throw_category)
+                f"Call resulted in an exception being raised in Python: {e_str}. Treating this as a {_internal_throw_category}.",
+                _internal_log_catergory,
+                _internal_throw_category,
+            )
             return _internal_invalid_status_category.value
         # convert return status to appropritate fmi status
         return_to_status = {
@@ -761,61 +795,65 @@ class Fmi2Slave:
 
         s_fmi = None
 
-        if(s in return_to_status):
+        if s in return_to_status:
             s_fmi = return_to_status[s]
             self.log(
-                f'Call was succesful, status returned : {s} treated as : {s_fmi}', _internal_log_catergory, s_fmi)
+                f"Call was succesful, status returned : {s} treated as : {s_fmi}",
+                _internal_log_catergory,
+                s_fmi,
+            )
         else:
             s_fmi = Fmi2Status.warning
             self.log(
-                f'Call was executed, but returned status : {s} was unrecognized, treating this as : {s_fmi}', _internal_log_catergory, s_fmi)
+                f"Call was executed, but returned status : {s} was unrecognized, treating this as : {s_fmi}",
+                _internal_log_catergory,
+                s_fmi,
+            )
 
         return s_fmi.value
 
     def _define_variable(self, sv: Fmi2ScalarVariable):
 
-        if(not hasattr(self, sv.name)):
+        if not hasattr(self, sv.name):
 
             setattr(self, sv.name, sv.start)
             return
 
-        if(sv.initial in {Fmi2Initial.exact, Fmi2Initial.approx}):
+        if sv.initial in {Fmi2Initial.exact, Fmi2Initial.approx}:
             old = getattr(self, sv.name)
             new = sv.start
 
-            if(old != new):
+            if old != new:
                 self.log(
                     f"start value variable defined using the 'register_variable' function does not match initial value, using the new value: {new}",
                     _internal_log_catergory,
-                    Fmi2Status.warning)
+                    Fmi2Status.warning,
+                )
                 setattr(self, sv.name, new)
-
 
     def _do_check_variable_initialization(self) -> Fmi2Status:
         """ Check if variables with initial "calculated" and "approx" are initialized correctly.
         """
-    
+
         missing = []
         incorrect_type = []
         for var in self.vars:
 
-            a = getattr(self,var.name)
-            if(a is None):
+            a = getattr(self, var.name)
+            if a is None:
                 missing.append(var)
-            
+
             else:
-                t,n = self.type_to_tuple[var.data_type]
+                t, n = self.type_to_tuple[var.data_type]
 
-                if(not isinstance(a,t)):
+                if not isinstance(a, t):
                     incorrect_type.append(var)
-
-
-        if(len(missing) != 0 or len(incorrect_type) != 0):
+        if len(missing) != 0 or len(incorrect_type) != 0:
             self.log(
                 f"Some variables were either undefined or of incorrect type after enter_initialization was called, undefined: {missing} incorrect type: {incorrect_type} ",
                 _Fmi2SlaveErrorDefinitions.internal_log_catergory.value,
-                _Fmi2SlaveErrorDefinitions.uninitialized_variables.value
-                )
+                _Fmi2SlaveErrorDefinitions.uninitialized_variables.value,
+            )
             return _Fmi2SlaveErrorDefinitions.uninitialized_variables.value
 
         else:
@@ -842,14 +880,18 @@ class Fmi2Slave:
             self.logger.log(message, category, status)
         except Exception as e:
             try:
-                self.logger.log(f"Failed to log message: {message} with category: {category} and status: {status} due to exception: {e}",_internal_log_catergory,Fmi2Status.warning)
+                self.logger.log(
+                    f"Failed to log message: {message} with category: {category} and status: {status} due to exception: {e}",
+                    _internal_log_catergory,
+                    Fmi2Status.warning,
+                )
             except Exception:
-                print(f"Failed to log orignal message and backup log message: {message} with category: {category} and status: {status}, resorted to stdout")
-            
+                print(
+                    f"Failed to log orignal message and backup log message: {message} with category: {category} and status: {status}, resorted to stdout"
+                )
 
     def _format_exc(self) -> str:
         return format_exc()
-
 
     @property
     def available_categories(self):

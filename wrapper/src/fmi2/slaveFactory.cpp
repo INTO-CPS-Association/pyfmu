@@ -19,7 +19,7 @@ SlaveAdapter *SlaveFactory::createSlaveForConfiguration(
       config.resources.string());
 
   auto slave = new EmbeddedSlave(config.module_name, config.main_class, logger);
-  auto adapter = new SlaveAdapter(slave);
+  auto adapter = new SlaveAdapter(slave, logger);
 
   return adapter;
 }

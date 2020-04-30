@@ -186,8 +186,17 @@ namespace pyfmu::fmi2 {
 //   defined in module: {}", main_class, module_name);
 // }
 
-EmbeddedSlave::EmbeddedSlave(const std::string slaveModule,
-                             const std::string slaveClass, Logger *logger)
+enum Fmi2Status {
+  ok,
+  warning,
+  discard,
+  error,
+  fatal,
+  pending,
+};
+
+EmbeddedSlave::EmbeddedSlave(const std::string &slaveModule,
+                             const std::string &slaveClass, Logger *logger)
     : logger(logger) {
 
   if (!Py_IsInitialized())
@@ -198,6 +207,18 @@ EmbeddedSlave::EmbeddedSlave(const std::string slaveModule,
 
     slaveInstance = pybind11::module::import(slaveModule.c_str())
                         .attr(slaveClass.c_str())();
+
+    method_getxxx = slaveInstance.attr("_get_xxx");
+    method_setxxx = slaveInstance.attr("_set_xxx");
+    method_setDebugLogging = slaveInstance.attr("_set_debug_logging");
+    method_enterInitializationMode =
+        slaveInstance.attr("_enter_initialization_mode");
+    method_exitInitializationMode =
+        slaveInstance.attr("_exit_initialization_mode");
+    method_reset = slaveInstance.attr("_reset");
+    method_terminate = slaveInstance.attr("_terminate");
+    method_setupExperiment = slaveInstance.attr("_setup_experiment");
+    method_dostep = slaveInstance.attr("_do_step");
 
   } catch (const std::exception &e) {
     logger->fatal(
@@ -232,6 +253,12 @@ fmi2Status EmbeddedSlave::reset() { return fmi2Fatal; }
 
 fmi2Status EmbeddedSlave::terminate() {
   return method_terminate().cast<fmi2Status>();
+}
+
+fmi2Status EmbeddedSlave::setDebugLogging(bool loggingOn,
+                                          StringValues categories) {
+  auto test = method_setDebugLogging(loggingOn, categories);
+  return test.cast<fmi2Status>();
 }
 
 Fmi2GetterResult<fmi2Real> EmbeddedSlave::getReal(VRefs references) {

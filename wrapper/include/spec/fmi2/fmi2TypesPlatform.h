@@ -7,29 +7,32 @@
    by the simulation engine.
 
    Revisions:
-   - Sep. 29, 2019:  License changed to 2-clause BSD License (without extensions)
-   - Apr.  9, 2014:  All prefixes "fmi" renamed to "fmi2" (decision from April 8)
+   - Sep. 29, 2019:  License changed to 2-clause BSD License (without
+   extensions)
+   - Apr.  9, 2014:  All prefixes "fmi" renamed to "fmi2" (decision from April
+   8)
    - Mar   31, 2014: New datatype fmiChar introduced.
    - Feb.  17, 2013: Changed fmiTypesPlatform from "standard32" to "default".
                      Removed fmiUndefinedValueReference since no longer needed
                      (because every state is defined in ScalarVariables).
    - March 20, 2012: Renamed from fmiPlatformTypes.h to fmiTypesPlatform.h
    - Nov.  14, 2011: Use the header file "fmiPlatformTypes.h" for FMI 2.0
-                     both for "FMI for model exchange" and for "FMI for co-simulation"
-                     New types "fmiComponentEnvironment", "fmiState", and "fmiByte".
-                     The implementation of "fmiBoolean" is change from "char" to "int".
+                     both for "FMI for model exchange" and for "FMI for
+   co-simulation" New types "fmiComponentEnvironment", "fmiState", and
+   "fmiByte". The implementation of "fmiBoolean" is change from "char" to "int".
                      The #define "fmiPlatform" changed to "fmiTypesPlatform"
                      (in order that #define and function call are consistent)
-   - Oct.   4, 2010: Renamed header file from "fmiModelTypes.h" to fmiPlatformTypes.h"
-                     for the co-simulation interface
-   - Jan.   4, 2010: Renamed meModelTypes_h to fmiModelTypes_h (by Mauss, QTronic)
+   - Oct.   4, 2010: Renamed header file from "fmiModelTypes.h" to
+   fmiPlatformTypes.h" for the co-simulation interface
+   - Jan.   4, 2010: Renamed meModelTypes_h to fmiModelTypes_h (by Mauss,
+   QTronic)
    - Dec.  21, 2009: Changed "me" to "fmi" and "meModel" to "fmiComponent"
                      according to meeting on Dec. 18 (by Martin Otter, DLR)
    - Dec.   6, 2009: Added meUndefinedValueReference (by Martin Otter, DLR)
    - Sept.  9, 2009: Changes according to FMI-meeting on July 21:
-                     Changed "version" to "platform", "standard" to "standard32",
-                     Added a precise definition of "standard32" as comment
-                     (by Martin Otter, DLR)
+                     Changed "version" to "platform", "standard" to
+   "standard32", Added a precise definition of "standard32" as comment (by
+   Martin Otter, DLR)
    - July  19, 2009: Added "me" as prefix to file names, added meTrue/meFalse,
                      and changed meValueReferenced from int to unsigned int
                      (by Martin Otter, DLR).
@@ -87,22 +90,22 @@
    fmi2Char                : character data type
    fmi2String              : a pointer to a vector of fmi2Char characters
                              ('\0' terminated, UTF8 encoded)
-   fmi2Byte                : smallest addressable unit of the machine, typically one byte.
+   fmi2Byte                : smallest addressable unit of the machine, typically
+   one byte.
 */
-   typedef void*           fmi2Component;               /* Pointer to FMU instance       */
-   typedef void*           fmi2ComponentEnvironment;    /* Pointer to FMU environment    */
-   typedef void*           fmi2FMUstate;                /* Pointer to internal FMU state */
-   typedef unsigned int    fmi2ValueReference;
-   typedef double          fmi2Real   ;
-   typedef int             fmi2Integer;
-   typedef int             fmi2Boolean;
-   typedef char            fmi2Char;
-   typedef const fmi2Char* fmi2String;
-   typedef char            fmi2Byte;
+typedef void *fmi2Component;            /* Pointer to FMU instance       */
+typedef void *fmi2ComponentEnvironment; /* Pointer to FMU environment    */
+typedef void *fmi2FMUstate;             /* Pointer to internal FMU state */
+typedef unsigned int fmi2ValueReference;
+typedef double fmi2Real;
+typedef int fmi2Integer;
+typedef int fmi2Boolean;
+typedef char fmi2Char;
+typedef const fmi2Char *fmi2String;
+typedef char fmi2Byte;
 
 /* Values for fmi2Boolean  */
-#define fmi2True  1
+#define fmi2True 1
 #define fmi2False 0
-
 
 #endif /* fmi2TypesPlatform_h */
