@@ -38,7 +38,7 @@ def extract_model_description_v2(fmu_instance) -> str:
 
     # 2.2.4 p.42) Log categories:
     cs = ET.SubElement(fmd, "LogCategories")
-    for ac in fmu_instance._get_log_categories():
+    for ac in fmu_instance.log_categories():
         c = ET.SubElement(cs, "Category")
         c.set("name", ac)
 

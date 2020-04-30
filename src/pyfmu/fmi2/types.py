@@ -1,3 +1,5 @@
+"""Define commonly enumerations and classes for FMI2 types"""
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List, Tuple, Union
@@ -42,10 +44,10 @@ class Fmi2DataTypes(Enum):
 
 class Fmi2Initial(Enum):
     """Defines how the initial value of a variable is initialized.
-    
+
     Values:
         exact: The variable is initialised with the provided start value.
-        calculated: The variable is defined based on other variables during initialisation. 
+        calculated: The variable is defined based on other variables during initialisation.
         "approx": The variable is defined based on the an iteration of an algebraic loop with the provided start value.
     """
 
@@ -62,7 +64,7 @@ class Fmi2Variability(Enum):
         * fixed: The variable never changes after initialization, specifically after exit_initialization_mode has been called.
         * tunable: ?
         * discrete : ?
-        * continuous : No restriction on when the variable can change. 
+        * continuous : No restriction on when the variable can change.
     """
 
     constant = "constant"
@@ -84,8 +86,8 @@ class Fmi2Status(Enum):
         * pending: indicates that the FMu is doing work asynchronously, which can be retrived later.
 
     Notes:
-        FMI section 2.1.3    
-    
+        FMI section 2.1.3
+
     """
 
     ok = 0
@@ -105,9 +107,9 @@ class Fmi2ScalarVariable:
         name: str,
         data_type: Fmi2DataTypes,
         initial: Fmi2Initial = None,
-        causality=Fmi2Causality.local,
-        variability=Fmi2Variability.continuous,
-        start=Fmi2Variable,
+        causality: Fmi2Causality = None,
+        variability: Fmi2Variability = None,
+        start: Fmi2Variable = None,
         description: str = "",
         value_reference: int = None,
     ):
@@ -136,11 +138,20 @@ class Fmi2ScalarVariable:
     def is_string(self) -> bool:
         return self.data_type == Fmi2DataTypes.string
 
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def __repr__(self) -> str:
+        initial_str = self.initial.value if self.initial else "omitted"
+        return (
+            f"{self.name}:{self.data_type.value}:{self.causality.value}:{initial_str}"
+        )
+
 
 class Fmi2SlaveBase(ABC):
     """Interface implemented by classes adhering to the FMI2 interface.
-    It declares a set of functions which are invoked whenever the corresponding 
-    function is called in the fmi interface.
+    It declares a set of functions which are invoked whenever the
+    corresponding function is called in the fmi interface.
     """
 
     @abstractmethod
@@ -175,10 +186,12 @@ class Fmi2SlaveBase(ABC):
     def reset(self) -> Fmi2Status:
         ...
 
+    @property
     @abstractmethod
-    def _get_log_categories(self) -> List[str]:
+    def log_categories(self) -> List[str]:
         ...
 
+    @property
     @abstractmethod
-    def _get_variables(self) -> List[Fmi2ScalarVariable]:
+    def variables(self) -> List[Fmi2ScalarVariable]:
         ...

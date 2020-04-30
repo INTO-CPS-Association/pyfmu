@@ -1,5 +1,7 @@
-from typing import List, Tuple, overload, Union
+from typing import List, Tuple, Union
 from uuid import uuid4
+
+from pyfmu.fmi2.validation import infer_undefined_attributes
 
 from pyfmu.fmi2.types import (
     Fmi2SlaveBase,
@@ -212,104 +214,9 @@ class Fmi2Slave(Fmi2SlaveBase):
         initial = initial_aliases[initial]
         variability = variability_aliases[variability]
 
-        # i4. intial default
-
-        case_a = (Fmi2Initial.exact, {Fmi2Initial.exact})
-        case_b = (Fmi2Initial.calculated, {Fmi2Initial.approx, Fmi2Initial.calculated})
-        case_c = (
-            Fmi2Initial.calculated,
-            {Fmi2Initial.approx, Fmi2Initial.calculated, Fmi2Initial.exact},
+        data_type, causality, variability, initial, start = infer_undefined_attributes(
+            data_type, causality, variability, initial, start
         )
-        case_de = (None, {None})
-
-        variabilityAndCausality_to_intial = {
-            (Fmi2Variability.constant, Fmi2Causality.local): case_a,
-            (Fmi2Variability.constant, Fmi2Causality.output): case_a,
-            (Fmi2Variability.fixed, Fmi2Causality.parameter): case_a,
-            (Fmi2Variability.tunable, Fmi2Causality.parameter): case_a,
-            (Fmi2Variability.fixed, Fmi2Causality.calculatedParameter): case_b,
-            (Fmi2Variability.fixed, Fmi2Causality.local): case_b,
-            (Fmi2Variability.tunable, Fmi2Causality.calculatedParameter): case_b,
-            (Fmi2Variability.tunable, Fmi2Causality.local): case_b,
-            (Fmi2Variability.discrete, Fmi2Causality.output): case_c,
-            (Fmi2Variability.discrete, Fmi2Causality.local): case_c,
-            (Fmi2Variability.continuous, Fmi2Causality.output): case_c,
-            (Fmi2Variability.continuous, Fmi2Causality.local): case_c,
-            (Fmi2Variability.discrete, Fmi2Causality.input): case_de,
-            (Fmi2Variability.continuous, Fmi2Causality.input): case_de,
-            (Fmi2Variability.continuous, Fmi2Causality.independent): case_de,
-        }
-
-        if initial is None:
-            initial = variabilityAndCausality_to_intial[(variability, causality)][0]
-
-        # i2. default start values + v4. should define start
-        must_define_start = (
-            initial in {Fmi2Initial.exact, Fmi2Initial.approx}
-            or causality in {Fmi2Causality.parameter, Fmi2Causality.input}
-            or variability in {Fmi2Variability.constant}
-        )
-
-        can_not_define_start = (
-            initial == Fmi2Initial.calculated or causality == Fmi2Causality.independent
-        )
-
-        assert must_define_start != can_not_define_start
-
-        if must_define_start and start is None and data_type is not None:
-
-            type_to_start = {
-                Fmi2DataTypes.boolean: False,
-                Fmi2DataTypes.integer: 0,
-                Fmi2DataTypes.real: 0.0,
-                Fmi2DataTypes.string: "",
-            }
-            start = type_to_start[data_type]
-
-        elif must_define_start and start is None and data_type is None:
-            raise ValueError(
-                f"""A start value must be specified for the combination of causality : {causality}, intial : {initial} and variability {variability}.
-                 Specify either a start value or the datatype such that a default will be provided."""
-            )
-
-        elif not must_define_start and start is not None:
-            raise ValueError(
-                f"""Start value must NOT be specified for the combination of causality : {causality}, intial : {initial} and variability {variability}."""
-            )
-
-        # i3. data type inference
-        start_to_type = {
-            bool: Fmi2DataTypes.boolean,
-            int: Fmi2DataTypes.integer,
-            float: Fmi2DataTypes.real,
-            str: Fmi2DataTypes.string,
-        }
-        if data_type is None and start is not None:
-            for t in start_to_type:
-                if isinstance(start, t):
-                    data_type = start_to_type[t]
-                    break
-
-        # v2. causality and variablity
-        if (variability, causality) not in variabilityAndCausality_to_intial:
-            raise ValueError(
-                f"Illegal combination of causality : {causality} and variablity : {variability}. The combination is not permitted."
-            )
-
-        # v1. type and causality
-        if (
-            data_type is not Fmi2DataTypes.real
-            and variability is Fmi2Variability.continuous
-        ):
-            raise ValueError(
-                f"Illegal combination of type : {data_type} and variability : {variability}. Only real valued variables are allowed to be continuous"
-            )
-
-        # v3 initial allowed
-        if initial not in variabilityAndCausality_to_intial[variability, causality][1]:
-            raise ValueError(
-                f"Illegal initial value : {initial} for combination of causality : {causality} and variability : {variability}"
-            )
 
         # if not specified find an unused value reference
         if value_reference is None:
@@ -405,8 +312,10 @@ class Fmi2Slave(Fmi2SlaveBase):
                 )
                 setattr(self, sv.name, new)
 
-    def _get_log_categories(self) -> List[str]:
+    @property
+    def log_categories(self) -> List[str]:
         return []  # TODO
 
-    def _get_variables(self) -> List[Fmi2ScalarVariable]:
+    @property
+    def variables(self) -> List[Fmi2ScalarVariable]:
         return self._vars

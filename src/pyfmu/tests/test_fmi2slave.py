@@ -1,9 +1,12 @@
+import pytest
 from pyfmu.fmi2 import (
     Fmi2Slave,
     Fmi2DataTypes,
     Fmi2Causality,
     Fmi2Variability,
     Fmi2Status,
+    Fmi2Initial,
+    Fmi2ScalarVariable,
 )
 
 
@@ -25,6 +28,176 @@ class Adder(Fmi2Slave):
 class Dummy(Fmi2Slave):
     def __init__(self):
         super().__init__("Dummy")
+
+
+class TestRegisterVariable:
+    # The default of causality is “local”. p.47
+
+    def get_slave(self) -> Fmi2Slave:
+        return Fmi2Slave("")
+
+    def test_defaultCausality_isLocal(self):
+
+        s = self.get_slave()
+
+        s.register_variable("a", data_type=Fmi2DataTypes.real)
+        assert len(s.variables) == 1
+        assert s.variables[0].causality == Fmi2Causality.local
+
+    # The default is “continuous”. p.48
+    def test_defaultVariability_isContinous(self):
+        s = self.get_slave()
+        s.register_variable("a", data_type="real")
+        assert len(s.variables) == 1
+        assert s.variables[0].variability == Fmi2Variability.continuous
+
+    # It is not allowed to provide a value for initial if causality = "input" or "independent"
+    def test_input_initialNotAllowed(self):
+
+        s = self.get_slave()
+
+        with pytest.raises(Exception):
+            s.register_variable(
+                "a",
+                data_type=Fmi2DataTypes.real,
+                causality=Fmi2Causality.input,
+                initial=Fmi2Initial.exact,
+            )
+
+        with pytest.raises(Exception):
+            s.register_variable(
+                "b",
+                data_type=Fmi2DataTypes.real,
+                causality=Fmi2Causality.input,
+                initial=Fmi2Initial.approx,
+            )
+
+        with pytest.raises(Exception):
+            s.register_variable(
+                "c",
+                data_type=Fmi2DataTypes.real,
+                causality=Fmi2Causality.input,
+                initial=Fmi2Initial.calculated,
+            )
+
+    def test_approx_startDefined_NOK(self):
+        with pytest.raises(Exception):
+            Fmi2ScalarVariable(
+                "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.approx
+            )
+
+    def test_approx_startNotDefined_OK(self):
+        Fmi2ScalarVariable(
+            "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.approx, start=0
+        )
+
+    def test_initialIsCalculated_startDefined_NOK(self):
+        with pytest.raises(Exception):
+            Fmi2ScalarVariable(
+                "a",
+                data_type=Fmi2DataTypes.real,
+                initial=Fmi2Initial.calculated,
+                start=0,
+            )
+
+    def test_initialIsCalculated_startNotDefined_OK(self):
+        Fmi2ScalarVariable(
+            "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.calculated
+        )
+
+    def test_initialIsExact_startNotDefined_NOK(self):
+        with pytest.raises(Exception):
+            Fmi2ScalarVariable(
+                "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.exact
+            )
+
+    def test_initialIsExact_startDefined_NOK(self):
+
+        Fmi2ScalarVariable(
+            "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.exact, start=0
+        )
+
+    def test_input_startNotDefined_NOK(self):
+        with pytest.raises(Exception):
+            Fmi2ScalarVariable(
+                "a", causality=Fmi2Causality.input, data_type=Fmi2DataTypes.real
+            )
+
+    def test_input_startDefined_OK(self):
+        Fmi2ScalarVariable(
+            "a", causality=Fmi2Causality.input, data_type=Fmi2DataTypes.real, start=0
+        )
+
+    def test_dataTypeAndStartTypeMismatch_NOK(self):
+
+        type_to_invalidStartValues = {
+            Fmi2DataTypes.real: {"", True, False},
+            Fmi2DataTypes.boolean: {"", 1, 0, 0.5},
+            Fmi2DataTypes.integer: {"", True, False, 0.5, 1.5},
+        }
+
+        with pytest.raises(TypeError):
+            for t, ss in type_to_invalidStartValues.items():
+                for s in ss:
+                    Fmi2ScalarVariable(
+                        "", data_type=t, causality=Fmi2Causality.input, start=s
+                    )
+
+    # Output valid start values
+
+    def test_output_exact_startDefined_OK():
+        Fmi2ScalarVariable(
+            "a",
+            causality=Fmi2Causality.output,
+            initial=Fmi2Initial.exact,
+            data_type=Fmi2DataTypes.real,
+            start=0,
+        )
+
+    def test_output_exact_startUndefined_NOK():
+        with pytest.raises(Exception):
+            Fmi2ScalarVariable(
+                "a",
+                causality=Fmi2Causality.output,
+                initial=Fmi2Initial.exact,
+                data_type=Fmi2DataTypes.real,
+            )
+
+    def test_output_calculated_startDefined_NOK():
+        with pytest.raises(Exception):
+            Fmi2ScalarVariable(
+                "a",
+                causality=Fmi2Causality.output,
+                initial=Fmi2Initial.calculated,
+                data_type=Fmi2DataTypes.real,
+                start=0,
+            )
+
+    def test_output_calculated_startUndefined_OK():
+        Fmi2ScalarVariable(
+            "a",
+            causality=Fmi2Causality.output,
+            initial=Fmi2Initial.calculated,
+            data_type=Fmi2DataTypes.real,
+        )
+
+    def test_output_approx_startDefined_OK():
+        Fmi2ScalarVariable(
+            "a",
+            causality=Fmi2Causality.output,
+            initial=Fmi2Initial.approx,
+            data_type=Fmi2DataTypes.real,
+            start=0,
+        )
+
+    def test_output_approx_startUndefined_NOK():
+        with pytest.raises(Exception):
+            Fmi2ScalarVariable(
+                "a",
+                causality=Fmi2Causality.output,
+                initial=Fmi2Initial.approx,
+                data_type=Fmi2DataTypes.real,
+            )
 
 
 class Tests_fmi2Slave:
