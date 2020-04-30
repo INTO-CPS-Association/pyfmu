@@ -11,7 +11,6 @@
 #include "pyfmu/utils.hpp"
 #include "spec/fmi2/fmi2Functions.h"
 
-
 using namespace std;
 using namespace filesystem;
 using namespace fmt;
@@ -20,7 +19,7 @@ namespace fs = std::filesystem;
 const std::map<fmi2Status, spdlog::level::level_enum> fmi_to_spdlog = {
     {fmi2OK, spdlog::level::info},        {fmi2Warning, spdlog::level::warn},
     {fmi2Discard, spdlog::level::warn},   {fmi2Error, spdlog::level::err},
-    {fmi2Error, spdlog::level::critical}, {fmi2Pending, spdlog::level::info}};
+    {fmi2Fatal, spdlog::level::critical}, {fmi2Pending, spdlog::level::info}};
 
 void logger(void *env, const char *instance, fmi2Status status,
             const char *category, const char *message, ...) {
