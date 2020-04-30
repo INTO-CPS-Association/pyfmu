@@ -177,6 +177,7 @@ def _copy_resources_to_archive(
     archive.main_script_path = archive_main_script_path
 
 
+# file:///C:/Users/clega/AppData/Local/Temp/tmpjwso5nx1/Adder/resources
 def _write_modelDescription_to_archive(
     project: PyfmuProject, archive: PyfmuArchive
 ) -> PyfmuArchive:

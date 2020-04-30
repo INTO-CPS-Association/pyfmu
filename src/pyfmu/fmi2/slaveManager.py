@@ -1,12 +1,15 @@
 from typing import Dict, Tuple, Union, List, Callable
 import importlib
-from urllib.parse import urlparse
+import urllib
+
 from pathlib import Path
+import pathlib
 import json
 import sys
 
 from pyfmu.fmi2 import Fmi2Status, Fmi2Slave
 from pyfmu.fmi2.logging import Fmi2CallbackLogger
+from pyfmu.utils import file_uri_to_path
 
 
 SlaveHandle = int
@@ -53,17 +56,19 @@ class Fmi2SlaveManager:
         if fmu_type != "fmi2CoSimulation":
             raise RuntimeError("Only co-simulation is supported.")
 
-        url_path = Path(urlparse(resources_uri).path)
-        if not url_path in sys.path:
-            sys.path.append[url_path]
+        url_path = file_uri_to_path(resources_uri)
+
+        if not str(url_path) in sys.path:
+            sys.path.append(str(url_path))
 
         config = None
 
         with open(url_path / "slave_configuration.json", "r") as f:
             config = json.load(f)
 
-        module_name = Path(config.main_script).stem
-        instance = importlib.import_module(f"{module_name}.{config.main_class}")
+        slave_module = Path(config["main_script"]).stem
+        slave_class = config["main_class"]
+        instance = getattr(importlib.import_module(slave_module), slave_class)
 
         handle = self._get_free_handle()
 

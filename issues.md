@@ -49,3 +49,8 @@ https://github.com/pybind/pybind11/issues/1295
 # Python extensions
 https://github.com/paulross/PythonExtensionPatterns
 
+
+
+# URIs
+## Python Windows
+https://stackoverflow.com/questions/5977576/is-there-a-convenient-way-to-map-a-file-uri-to-os-path

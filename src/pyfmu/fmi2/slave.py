@@ -52,8 +52,6 @@ class Fmi2Slave(Fmi2SlaveBase):
         self._version = version
         self._value_reference_counter = 0
         self._used_value_references = {}
-        self._check_uninitialized_variables = check_uninitialized_variables
-        self._configure()
 
         self.type_to_tuple = {
             Fmi2DataTypes.integer: (int, "integer"),
@@ -73,7 +71,7 @@ class Fmi2Slave(Fmi2SlaveBase):
         description: str = "",
         define_attribute: bool = True,
         value_reference: int = None,
-    ):
+    ) -> Union[float, int, bool, str]:
         """Add a variable to the model such as an input, output or parameter.
 
         Arguments:
@@ -333,6 +331,26 @@ class Fmi2Slave(Fmi2SlaveBase):
         if define_attribute:
             self._define_variable(var)
 
+        return start
+
+    def register_log_category(self, name: str):
+        """Registers a new log category which will be visible to the simulation tool..
+        This information is used by co-simulation engines to filter messages.
+
+
+        Arguments:
+            name {str} -- name of the category.
+
+        Examples:
+
+        ```
+        self.register_log_category('runtime validation')
+
+        ```
+        """
+
+        self._logger.register_log_category(name)
+
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
     ) -> Fmi2Status:
@@ -357,3 +375,38 @@ class Fmi2Slave(Fmi2SlaveBase):
 
     def reset(self) -> Fmi2Status:
         return Fmi2Status.ok
+
+    def _acquire_unused_value_reference(self) -> int:
+        """ Returns the an unused value reference
+        """
+        while True:
+            vr = self._value_reference_counter
+            self._value_reference_counter += 1
+
+            if vr not in self._used_value_references:
+                return vr
+
+    def _define_variable(self, sv: Fmi2ScalarVariable):
+
+        if not hasattr(self, sv.name):
+
+            setattr(self, sv.name, sv.start)
+            return
+
+        if sv.initial in {Fmi2Initial.exact, Fmi2Initial.approx}:
+            old = getattr(self, sv.name)
+            new = sv.start
+
+            if old != new:
+                self.log(
+                    f"start value variable defined using the 'register_variable' function does not match initial value, using the new value: {new}",
+                    "wrapper",
+                    Fmi2Status.warning,
+                )
+                setattr(self, sv.name, new)
+
+    def _get_log_categories(self) -> List[str]:
+        return []  # TODO
+
+    def _get_variables(self) -> List[Fmi2ScalarVariable]:
+        return self._vars
