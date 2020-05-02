@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Optional, Union, TypeVar, Literal, Callable
 from functools import partial
 import inspect
+import abc
 
 
 class Fmi2Variability:
@@ -31,6 +32,83 @@ _Fmi2OutputVariability = Literal["constant", "continuous", "discrete"]
 class Fmi2Initial:
     exact = "exact"
     approx = "approx"
+
+
+class _Fmi2Variable:
+    def __set_name__(self, owner: SlaveBase, name):
+        """hook used for accessing instance described in PEP 487"""
+        owner._register_variable(
+            owner, name, self.type, self.causality, self.variability, self.initial, self.alias  # type: ignore
+        )
+
+    def __init__(
+        self,
+        type: Literal["real", "integer", "boolean", "string"],
+        causality: Literal[
+            "calculatedParameter",
+            "independent",
+            "input",
+            "local",
+            "output",
+            "parameter",
+        ],
+        variability: Literal["constant", "continuous", "discrete", "fixed", "tunable"],
+        initial: Optional[Literal["approx", "calculated", "exact"]],
+        alias: str = None,
+        fget: Callable = None,
+        fset: Callable = None,
+    ):
+        self.type = type
+        self.causality = causality
+        self.variability = variability
+        self.initial = initial
+        self.fget = fget
+        self.fset = fset
+        self.alias = alias
+
+    def __call__(self, func):
+        self.fget = func
+        return self
+
+    def __get__(self, instance: SlaveBase, owner):
+        if instance is None:
+            return self
+        elif self.fget is None:
+            raise AttributeError("no getter is defined.")
+        else:
+            return self.fget(instance)
+
+    def __set__(self, instance: SlaveBase, value) -> None:
+        if self.fset is None:
+            raise AttributeError("no setter is defined.")
+        else:
+            self.fset(instance, value)
+
+    def getter(self, fget):
+        self.fget = fget
+        return self
+        return type(self)(
+            self.type,  # type: ignore
+            self.causality,  # type: ignore
+            self.variability,  # type: ignore
+            self.initial,  # type: ignore
+            self.alias,
+            fget,
+            self.fset,
+        )
+
+    def setter(self, fset):
+        self.fset = fset
+        return self
+        return type(self)(
+            self.type,  # type: ignore
+            self.causality,  # type: ignore
+            self.variability,  # type: ignore
+            self.initial,  # type: ignore
+            self.alias,
+            self.fget,
+            fset,
+        )
 
 
 class fmi2Input:
@@ -87,25 +165,22 @@ class fmi2Input:
     def getter(self, fget):
         return type(self)(self.type, self.variability, self.alias, fget, self.fset)
 
-    def input_setter(self, fset):
+    def setter(self, fset):
         return type(self)(self.type, self.variability, self.alias, self.fget, self.fget)
 
 
-class fmi2Output:
+class fmi2Output(_Fmi2Variable):
     def __init__(
         self,
         type: Literal["real", "integer", "boolean", "string"],
+        variability: Literal["constant", "discrete", "continuous"],
         initial: Literal["approx", "calculated", "exact"],
-        variability: Literal["constant", "continuous", "discrete"],
         alias: str = None,
     ):
-        pass
-
-    def __call__(self, func):
-        pass
+        super().__init__(type, "output", variability, initial, alias)
 
 
-def fmi2Parameter(
+class fmi2Parameter(
     type: Literal["real", "integer", "boolean", "string"],
     variability: Literal["fixed", "tuneable"],
 ):
@@ -151,13 +226,17 @@ class Test(SlaveBase):
     def x(self) -> float:
         return self._x
 
-    @x.input_setter
+    @x.setter
     def x(self, value) -> None:
         self._x = 0
 
-    # @fmi2Output("real", "exact", "constant")
-    # def y(self):
-    #     return 10
+    @fmi2Output("real", "constant", "exact")
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        self._y = value
 
     # @fmi2Parameter("real", "fixed")
     # def my_param(self, value: int):
