@@ -1,28 +1,31 @@
 from __future__ import annotations
 
-from typing import Optional, Union, Callable, TypeVar
-import typing
-
-
-class _NoAlias:
-    pass
-
-
-_UnboundType = Optional[Union[str, _NoAlias]]
-
-Fmi2Value = TypeVar("T", float, int, bool, str)
-
-
-Fmi2InputVariability = str
-Fmi2OutputVariability = str
-
-Fmi2DataType = TypeVar("T", float, int, bool, str)
+from typing import Optional, Union, TypeVar, Literal, Callable
+from functools import partial
+import inspect
 
 
 class Fmi2Variability:
+    constant = "constant"
     continuous = "continuous"
     discrete = "discrete"
-    constant = "constant"
+    fixed = "fixed"
+    tunable = "tunable"
+
+
+class Fmi2DataTypes:
+    real = "real"
+    integer = "integer"
+    boolean = "boolean"
+    string = "string"
+
+
+_Fmi2Variability = Literal["constant", "continuous", "discrete", "fixed", "tunable"]
+_Fmi2Initial = Literal["approx", "calculated", "exact"]
+_Fmi2Value = TypeVar("_Fmi2Value", float, int, bool, str)
+_Fmi2ValueType = Literal["real", "integer", "boolean", "string"]
+_Fmi2ParameterInitial = Literal["fixed", "tunable"]
+_Fmi2OutputVariability = Literal["constant", "continuous", "discrete"]
 
 
 class Fmi2Initial:
@@ -30,119 +33,139 @@ class Fmi2Initial:
     approx = "approx"
 
 
-def register_variable_as_property(alias: str = None):
-    def decorator_register_variable(getter: Callable[["SlaveBase"], Fmi2Value]):
-        nonlocal alias
-        if alias is None:
-            alias = getter.__name__
+class fmi2Input:
+    """Register a property as an FMI input, using a getter and setter function.
+    
+     >>> @fmi2Input("real","continuous")
+     >>> def x(self):
+     ...    return self._x
+     >>> @x.setter
+     >>> def x(self,value):
+     >>>    set self._x
+    """
 
-        print(f"Register: {alias} as a property.")
-        return getter
+    def __set_name__(self, owner: SlaveBase, name):
+        """hook used for accessing instance described in PEP 487"""
+        owner._register_variable(
+            owner, name, self.type, "input", self.variability, None, self.alias  # type: ignore
+        )
 
-    return decorator_register_variable
+    def __init__(
+        self,
+        type: Literal["real", "integer", "boolean", "string"],
+        variability: Literal["continuous", "discrete"],
+        alias: str = None,
+        fget: Callable = None,
+        fset: Callable = None,
+    ):
+        self.fget = fget
+        self.fset = fset
+        self.type: Literal["real", "integer", "boolean", "string"] = type
+        self.variability: Literal["continuous", "discrete"] = variability
+        self.alias = alias
+
+    def __call__(self, func):
+
+        self.fget = func
+
+        return self
+
+    def __get__(self, instance: SlaveBase, owner):
+        if instance is None:
+            return self
+        elif self.fget is None:
+            raise AttributeError("no getter is defined.")
+        else:
+            return self.fget(instance)
+
+    def __set__(self, instance: SlaveBase, value) -> None:
+        if self.fset is None:
+            raise AttributeError("no setter is defined.")
+        else:
+            self.fset(instance, value)
+
+    def getter(self, fget):
+        return type(self)(self.type, self.variability, self.alias, fget, self.fset)
+
+    def input_setter(self, fset):
+        return type(self)(self.type, self.variability, self.alias, self.fget, self.fget)
 
 
-class _AssignEnsure:
-    def __init__(self, value: Fmi2Value):
-        self.assigned = False
-        self.value = value
+class fmi2Output:
+    def __init__(
+        self,
+        type: Literal["real", "integer", "boolean", "string"],
+        initial: Literal["approx", "calculated", "exact"],
+        variability: Literal["constant", "continuous", "discrete"],
+        alias: str = None,
+    ):
+        pass
 
-    def __del__(self):
-        if (self.assigned) is False:
-            raise RuntimeError("Whoops you forgot to assign!")
+    def __call__(self, func):
+        pass
+
+
+def fmi2Parameter(
+    type: Literal["real", "integer", "boolean", "string"],
+    variability: Literal["fixed", "tuneable"],
+):
+    pass
+
+    def decorator_register_parameter(setter):
+        pass
+
+    return decorator_register_parameter
 
 
 class SlaveBase:
     def __init__(self):
-        self._unbound_variable: _UnboundType = None
         self._alias_to_attribute: dict[str, str] = {}
         self._alias_to_value_reference: dict[str, int]
 
-    def register_variable(
-        self, start: Fmi2InputVariability, alias: str = None
-    ) -> Fmi2Value:
-        self._check_unbound_variable()
-
-        if alias is not None:
-            self._unbound_variable = alias
-        else:
-            self._unbound_variable = _NoAlias()
-
-        """ To ensure that the user does the variable assignment on the same
-        line as the register variable an special object is returned.
-        The overloaded setattr will recognize the object and associate the name
-        of the attribute and the fmi variable.
-
-         >>> self.x = register_variable("input","exact", 0.0)
-         >>> self.x
-         ... 0.0
-         >>> self.y = register_variable("input","continuous","exact", 0.0, alias="y_value")
-         >>> register_variable("input","calculated") # forgot to assign raises exception
-        """
-        return _AssignEnsure(start)  # type: ignore
-
-    def register_input(self, variability: str, start: Fmi2Value) -> Fmi2Value:
-        pass
-
-    def register_output(
+    def _register_variable(
         self,
-        variability: Fmi2OutputVariability,
-        initial: Fmi2Initial,
-        start: Optional[Fmi2Value],
-    ) -> Fmi2Value:
-        pass
-
-    def __setattr__(self, item: str, value) -> None:
-
-        if type(value) is _AssignEnsure:
-
-            alias = (
-                self._unbound_variable if type(self._unbound_variable) is str else item
-            )
-            self.__dict__["_alias_to_attribute"][alias] = item
-            self.__dict__["_unbound_variable"] = None
-            self.__dict__[item] = value.value
-            value.assigned = True
-
-        else:
-            self.__dict__[item] = value
-
-    def _check_unbound_variable(self):
-        if self._unbound_variable is not None:
-            raise RuntimeError(
-                "The value registered last was not bound to a variable. Ensure that the return of register variable is assigned to an attribute of the slave."
-            )
-
-    def _get_register_ready(self) -> bool:
-        return hasattr(self, "_unbound_variable")
-
-    def _get_value_reference_for(self, alias: str):
-        pass
-
-    @register_variable_as_property()
-    def a(self) -> int:
-        return 10
+        name: str,
+        type: Literal["real", "integer", "boolean", "string"],
+        causality: Literal[
+            "calculatedParameter",
+            "independent",
+            "input",
+            "local",
+            "output",
+            "parameter",
+        ],
+        variability: Literal["constant", "continuous", "discrete", "fixed", "tunable"],
+        initial: Optional[Literal["approx", "calculated", "exact"]],
+        alias: str = None,
+    ) -> None:
+        print(f"registering variable: {type}:{causality}:{initial}:{variability}")
 
 
 class Test(SlaveBase):
     def __init__(self):
         super().__init__()
 
-        # All Good
-        self.x = self.register_variable(10)
-        self.y = self.register_variable(15, "yy")
-        self.z = self.register_variable(20)
-        self.my_str = self.register_variable("my_string")
+        self._x = 10.0
 
-        # Whoops
-        self.register_variable(10, "a")
-        self.b = 10
+    @fmi2Input("real", "continuous")
+    def x(self) -> float:
+        return self._x
+
+    @x.input_setter
+    def x(self, value) -> None:
+        self._x = 0
+
+    # @fmi2Output("real", "exact", "constant")
+    # def y(self):
+    #     return 10
+
+    # @fmi2Parameter("real", "fixed")
+    # def my_param(self, value: int):
+    #     pass
 
 
 if __name__ == "__main__":
 
     t = Test()
     print(t.x)
-    print(t.y)
-
-    a = t.y
+    test = 10
