@@ -175,7 +175,7 @@ def infer_undefined_attributes(
     Args:
         preliminary_variable: scalar variable containing the preliminary information.
 
-        use_non_standard_defaults: use sensible start values, that are not covered by the FMI2 specificiation,
+        use_non_standard_defaults: use sensible start values, that are not covered by the FMI2 specification,
         the following rules are applied:
             real: 0.0
             integer: 0
@@ -202,7 +202,7 @@ def infer_undefined_attributes(
     if initial is None:
         initial = _get_default_initial(variability, causality)
 
-    err = _validate_intial(variability, causality, initial)
+    err = _validate_initial(variability, causality, initial)
 
     if err:
         raise ValueError(f"Definition of scalar variable is inconsistent: {err}")
@@ -241,7 +241,7 @@ def _should_define_initial(causality: Fmi2Causality) -> bool:
     return causality not in {Fmi2Causality.input, Fmi2Causality.independent}
 
 
-def _validate_intial(
+def _validate_initial(
     variability: Fmi2Variability, causality: Fmi2Causality, initial: Fmi2Initial
 ) -> Optional[str]:
 
@@ -252,7 +252,7 @@ def _validate_intial(
     elif _should_define_initial(causality) and initial not in _get_possible_initial(
         variability, causality
     ):
-        return f"invalid intial specified for causality: {causality} and variability: {variability}"
+        return f"invalid initial specified for causality: {causality} and variability: {variability}"
     else:
         return None
 
@@ -273,7 +273,7 @@ def _get_possible_initial(
 def _validate_variability_causality(
     variability: Fmi2Variability, causality: Fmi2Causality
 ) -> Optional[str]:
-    """Validate combinations of variablity and causality.
+    """Validate combinations of variability and causality.
 
     Arguments:
         variability -- [description]
@@ -298,7 +298,7 @@ def _validate_start_value(
 
     if must_be_defined ^ is_defined:
         s = "must be defined" if not is_defined else "may not be defined"
-        return f"Start values {s} for this combination of variability: {variability}, causality: {causality} and intial: {initial}"
+        return f"Start values {s} for this combination of variability: {variability}, causality: {causality} and initial: {initial}"
 
     if must_be_defined:
 

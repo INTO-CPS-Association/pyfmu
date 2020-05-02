@@ -31,29 +31,20 @@ class Dummy(Fmi2Slave):
 
 
 class TestRegisterVariable:
-    # The default of causality is “local”. p.47
-
     def get_slave(self) -> Fmi2Slave:
         return Fmi2Slave("")
 
-    def test_defaultCausality_isLocal(self):
-
+    def test_defaultCausalityAndVariability_isLocalAndContinuous(self):
+        # The default is “continuous”. p.48, The default of causality is “local”. p.47
         s = self.get_slave()
 
         s.register_variable("a", data_type=Fmi2DataTypes.real)
         assert len(s.variables) == 1
         assert s.variables[0].causality == Fmi2Causality.local
-
-    # The default is “continuous”. p.48
-    def test_defaultVariability_isContinous(self):
-        s = self.get_slave()
-        s.register_variable("a", data_type="real")
-        assert len(s.variables) == 1
         assert s.variables[0].variability == Fmi2Variability.continuous
 
-    # It is not allowed to provide a value for initial if causality = "input" or "independent"
     def test_input_initialNotAllowed(self):
-
+        # It is not allowed to provide a value for initial if causality = "input" or "independent" p.48
         s = self.get_slave()
 
         with pytest.raises(Exception):
@@ -80,54 +71,6 @@ class TestRegisterVariable:
                 initial=Fmi2Initial.calculated,
             )
 
-    def test_approx_startDefined_NOK(self):
-        with pytest.raises(Exception):
-            Fmi2ScalarVariable(
-                "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.approx
-            )
-
-    def test_approx_startNotDefined_OK(self):
-        Fmi2ScalarVariable(
-            "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.approx, start=0
-        )
-
-    def test_initialIsCalculated_startDefined_NOK(self):
-        with pytest.raises(Exception):
-            Fmi2ScalarVariable(
-                "a",
-                data_type=Fmi2DataTypes.real,
-                initial=Fmi2Initial.calculated,
-                start=0,
-            )
-
-    def test_initialIsCalculated_startNotDefined_OK(self):
-        Fmi2ScalarVariable(
-            "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.calculated
-        )
-
-    def test_initialIsExact_startNotDefined_NOK(self):
-        with pytest.raises(Exception):
-            Fmi2ScalarVariable(
-                "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.exact
-            )
-
-    def test_initialIsExact_startDefined_NOK(self):
-
-        Fmi2ScalarVariable(
-            "a", data_type=Fmi2DataTypes.real, initial=Fmi2Initial.exact, start=0
-        )
-
-    def test_input_startNotDefined_NOK(self):
-        with pytest.raises(Exception):
-            Fmi2ScalarVariable(
-                "a", causality=Fmi2Causality.input, data_type=Fmi2DataTypes.real
-            )
-
-    def test_input_startDefined_OK(self):
-        Fmi2ScalarVariable(
-            "a", causality=Fmi2Causality.input, data_type=Fmi2DataTypes.real, start=0
-        )
-
     def test_dataTypeAndStartTypeMismatch_NOK(self):
 
         type_to_invalidStartValues = {
@@ -136,68 +79,60 @@ class TestRegisterVariable:
             Fmi2DataTypes.integer: {"", True, False, 0.5, 1.5},
         }
 
-        with pytest.raises(TypeError):
-            for t, ss in type_to_invalidStartValues.items():
-                for s in ss:
-                    Fmi2ScalarVariable(
-                        "", data_type=t, causality=Fmi2Causality.input, start=s
+        with pytest.raises(Exception):
+            for t, start_values in type_to_invalidStartValues.items():
+                for start in start_values:
+                    s = self.get_slave()
+                    s.register_variable(
+                        "", data_type=t, causality=Fmi2Causality.input, start=start
                     )
 
-    # Output valid start values
+    def test_registerVariable_defaultStartValues(self):
 
-    def test_output_exact_startDefined_OK():
-        Fmi2ScalarVariable(
-            "a",
-            causality=Fmi2Causality.output,
-            initial=Fmi2Initial.exact,
-            data_type=Fmi2DataTypes.real,
-            start=0,
-        )
+        s = self.get_slave()
 
-    def test_output_exact_startUndefined_NOK():
-        with pytest.raises(Exception):
-            Fmi2ScalarVariable(
-                "a",
-                causality=Fmi2Causality.output,
-                initial=Fmi2Initial.exact,
-                data_type=Fmi2DataTypes.real,
-            )
+        # exact should apply default values
+        s.register_variable("re", "real", initial="exact")
+        s.register_variable("ie", "integer", variability="discrete", initial="exact")
+        s.register_variable("be", "boolean", variability="discrete", initial="exact")
+        s.register_variable("se", "string", variability="discrete", initial="exact")
 
-    def test_output_calculated_startDefined_NOK():
-        with pytest.raises(Exception):
-            Fmi2ScalarVariable(
-                "a",
-                causality=Fmi2Causality.output,
-                initial=Fmi2Initial.calculated,
-                data_type=Fmi2DataTypes.real,
-                start=0,
-            )
+        assert s.re == 0.0
+        assert s.ie == 0
+        assert s.be is False
+        assert s.se == ""
 
-    def test_output_calculated_startUndefined_OK():
-        Fmi2ScalarVariable(
-            "a",
-            causality=Fmi2Causality.output,
-            initial=Fmi2Initial.calculated,
-            data_type=Fmi2DataTypes.real,
-        )
+        v_re = [v for v in s.variables if v.name == "re"]
+        v_ie = [v for v in s.variables if v.name == "ie"]
+        v_be = [v for v in s.variables if v.name == "be"]
+        v_se = [v for v in s.variables if v.name == "se"]
 
-    def test_output_approx_startDefined_OK():
-        Fmi2ScalarVariable(
-            "a",
-            causality=Fmi2Causality.output,
-            initial=Fmi2Initial.approx,
-            data_type=Fmi2DataTypes.real,
-            start=0,
-        )
+        assert len(v_re) == 1
+        assert len(v_ie) == 1
+        assert len(v_be) == 1
+        assert len(v_se) == 1
 
-    def test_output_approx_startUndefined_NOK():
-        with pytest.raises(Exception):
-            Fmi2ScalarVariable(
-                "a",
-                causality=Fmi2Causality.output,
-                initial=Fmi2Initial.approx,
-                data_type=Fmi2DataTypes.real,
-            )
+        # approx should also apply default values
+
+        s.register_variable("ra", "real", initial="approx")
+        s.register_variable("ia", "integer", variability="discrete", initial="approx")
+        s.register_variable("ba", "boolean", variability="discrete", initial="approx")
+        s.register_variable("sa", "string", variability="discrete", initial="approx")
+
+        assert s.ra == 0.0
+        assert s.ia == 0
+        assert s.ba is False
+        assert s.sa == ""
+
+        v_ra = [v for v in s.variables if v.name == "ra"]
+        v_ia = [v for v in s.variables if v.name == "ia"]
+        v_ba = [v for v in s.variables if v.name == "ba"]
+        v_sa = [v for v in s.variables if v.name == "sa"]
+
+        assert len(v_ra) == 1
+        assert len(v_ia) == 1
+        assert len(v_ba) == 1
+        assert len(v_sa) == 1
 
 
 class Tests_fmi2Slave:
@@ -281,57 +216,9 @@ def test_registerVariable_infersDataTypeFromStart():
 
     s = Fmi2Slave("")
     s.register_variable("a", causality="input", start=1.0)
-    matches = [v for v in s.vars if v.data_type is Fmi2DataTypes.real]
+    matches = [v for v in s.variables if v.data_type is Fmi2DataTypes.real]
 
-    assert len(matches) is 1
-
-
-def test_registerVariable_defaultStartValues():
-
-    s = Fmi2Slave("")
-
-    # exact should apply default values
-    s.register_variable("re", "real", initial="exact")
-    s.register_variable("ie", "integer", variability="discrete", initial="exact")
-    s.register_variable("be", "boolean", variability="discrete", initial="exact")
-    s.register_variable("se", "string", variability="discrete", initial="exact")
-
-    assert s.re == 0.0
-    assert s.ie == 0
-    assert s.be == False
-    assert s.se == ""
-
-    v_re = [v for v in s.vars if v.name == "re"]
-    v_ie = [v for v in s.vars if v.name == "ie"]
-    v_be = [v for v in s.vars if v.name == "be"]
-    v_se = [v for v in s.vars if v.name == "se"]
-
-    assert len(v_re) == 1
-    assert len(v_ie) == 1
-    assert len(v_be) == 1
-    assert len(v_se) == 1
-
-    # approx should also apply default values
-
-    s.register_variable("ra", "real", initial="approx")
-    s.register_variable("ia", "integer", variability="discrete", initial="approx")
-    s.register_variable("ba", "boolean", variability="discrete", initial="approx")
-    s.register_variable("sa", "string", variability="discrete", initial="approx")
-
-    assert s.ra == 0.0
-    assert s.ia == 0
-    assert s.ba == False
-    assert s.sa == ""
-
-    v_ra = [v for v in s.vars if v.name == "ra"]
-    v_ia = [v for v in s.vars if v.name == "ia"]
-    v_ba = [v for v in s.vars if v.name == "ba"]
-    v_sa = [v for v in s.vars if v.name == "sa"]
-
-    assert len(v_ra) == 1
-    assert len(v_ia) == 1
-    assert len(v_ba) == 1
-    assert len(v_sa) == 1
+    assert len(matches) == 1
 
 
 def test_setXXX_onlyAcceptsCorrectType():

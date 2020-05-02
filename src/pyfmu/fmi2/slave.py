@@ -101,15 +101,15 @@ class Fmi2Slave(Fmi2SlaveBase):
             i4. initial based on causality and variability (2.2.7 p.49)
                 Default initial are defined based on the combination of causality and variability:
                     * exact : constant[local|output], [fixed|tunable]parameter
-                    * calculated : [fixed|tunable][calculatedParameter|local], [continous|discrete][local|output]
-                    * (do not define) : [discrete|continuous]input, continous independent.
+                    * calculated : [fixed|tunable][calculatedParameter|local], [continuos|discrete][local|output]
+                    * (do not define) : [discrete|continuous]input, continuos independent.
 
 
         Validation Rules:
             v1: data type and causality (2.2.7 p.48)
                 only real valued variables may have causality continuous
 
-            v2: causality and variablity (2.2.7 p.48-49)
+            v2: causality and variability (2.2.7 p.48-49)
                 Only the following combinations of variability and causality are allowed:
                 * calculatedParameter: {fixed,tunable}
                 * independent: {continuous}
@@ -119,10 +119,10 @@ class Fmi2Slave(Fmi2SlaveBase):
                 * parameter : {fixed,tuneable}
 
             v3: initial allowed (2.2.7 p.49)
-                Only certain certain intials are allowed for a given combination of varability and causality.
+                Only certain certain initials are allowed for a given combination of varability and causality.
 
             v4: should define start (2.2.7 p.47)
-                Only certain combinations of causality, intial are allowed to provide start values.
+                Only certain combinations of causality, initial are allowed to provide start values.
                 * [exact|approx] -> must define start
                 * calculated -> must not define start
                 *

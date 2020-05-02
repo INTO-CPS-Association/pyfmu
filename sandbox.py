@@ -13,6 +13,23 @@ _UnboundType = Optional[Union[str, _NoAlias]]
 Fmi2Value = TypeVar("T", float, int, bool, str)
 
 
+Fmi2InputVariability = str
+Fmi2OutputVariability = str
+
+Fmi2DataType = TypeVar("T", float, int, bool, str)
+
+
+class Fmi2Variability:
+    continuous = "continuous"
+    discrete = "discrete"
+    constant = "constant"
+
+
+class Fmi2Initial:
+    exact = "exact"
+    approx = "approx"
+
+
 def register_variable_as_property(alias: str = None):
     def decorator_register_variable(getter: Callable[["SlaveBase"], Fmi2Value]):
         nonlocal alias
@@ -41,7 +58,9 @@ class SlaveBase:
         self._alias_to_attribute: dict[str, str] = {}
         self._alias_to_value_reference: dict[str, int]
 
-    def register_variable(self, start: Fmi2Value, alias: str = None) -> Fmi2Value:
+    def register_variable(
+        self, start: Fmi2InputVariability, alias: str = None
+    ) -> Fmi2Value:
         self._check_unbound_variable()
 
         if alias is not None:
@@ -62,7 +81,15 @@ class SlaveBase:
         """
         return _AssignEnsure(start)  # type: ignore
 
-    def register_input(self, start: Fmi2Value) -> Fmi2Value:
+    def register_input(self, variability: str, start: Fmi2Value) -> Fmi2Value:
+        pass
+
+    def register_output(
+        self,
+        variability: Fmi2OutputVariability,
+        initial: Fmi2Initial,
+        start: Optional[Fmi2Value],
+    ) -> Fmi2Value:
         pass
 
     def __setattr__(self, item: str, value) -> None:
