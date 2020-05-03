@@ -21,17 +21,10 @@ class Fmi2DataTypes:
     string = "string"
 
 
-_Fmi2Variability = Literal["constant", "continuous", "discrete", "fixed", "tunable"]
-_Fmi2Initial = Literal["approx", "calculated", "exact"]
-_Fmi2Value = TypeVar("_Fmi2Value", float, int, bool, str)
-_Fmi2ValueType = Literal["real", "integer", "boolean", "string"]
-_Fmi2ParameterInitial = Literal["fixed", "tunable"]
-_Fmi2OutputVariability = Literal["constant", "continuous", "discrete"]
-
-
 class Fmi2Initial:
     exact = "exact"
     approx = "approx"
+    calculated = "calculated"
 
 
 class _Fmi2Variable:
@@ -111,65 +104,81 @@ class _Fmi2Variable:
         )
 
 
-class fmi2Input:
-    """Register a property as an FMI input, using a getter and setter function.
-    
-     >>> @fmi2Input("real","continuous")
-     >>> def x(self):
-     ...    return self._x
-     >>> @x.setter
-     >>> def x(self,value):
-     >>>    set self._x
-    """
+class fmi2Input(_Fmi2Variable):
+    """Register an input to the model which uses the specified "setter" to
+    handle new inputs to the model.
 
-    def __set_name__(self, owner: SlaveBase, name):
-        """hook used for accessing instance described in PEP 487"""
-        owner._register_variable(
-            owner, name, self.type, "input", self.variability, None, self.alias  # type: ignore
-        )
+    For example it may store it to an attribute "_x" for later use:
+        >>> class slave(Fmi2Slave):
+        ...
+        ...     def __init__(self):
+        ...         self._x = 10
+        ...
+        ...     @fmi2Input("real","continuous")
+        ...     def x(self,value):
+        ...         self._x = value
+        ...
+        >>> s = slave()
+        >>> v.variables[0].name
+        "x"
+        >>> v.variables[0].causality
+        "input"
+        >>> v.variables[0] = 10
+        >>> v.variables[0]
+        10
+
+    ..note:
+        This may only be used to decorate methods of classes which implement the Fmi2Slave protocol.
+    """
 
     def __init__(
         self,
         type: Literal["real", "integer", "boolean", "string"],
         variability: Literal["continuous", "discrete"],
         alias: str = None,
-        fget: Callable = None,
-        fset: Callable = None,
     ):
-        self.fget = fget
-        self.fset = fset
-        self.type: Literal["real", "integer", "boolean", "string"] = type
-        self.variability: Literal["continuous", "discrete"] = variability
-        self.alias = alias
+        super().__init__(
+            type=type,
+            causality="input",
+            variability=variability,
+            initial=None,
+            alias=alias,
+        )
 
     def __call__(self, func):
-
-        self.fget = func
-
+        self.fset = func
         return self
-
-    def __get__(self, instance: SlaveBase, owner):
-        if instance is None:
-            return self
-        elif self.fget is None:
-            raise AttributeError("no getter is defined.")
-        else:
-            return self.fget(instance)
-
-    def __set__(self, instance: SlaveBase, value) -> None:
-        if self.fset is None:
-            raise AttributeError("no setter is defined.")
-        else:
-            self.fset(instance, value)
-
-    def getter(self, fget):
-        return type(self)(self.type, self.variability, self.alias, fget, self.fset)
-
-    def setter(self, fset):
-        return type(self)(self.type, self.variability, self.alias, self.fget, self.fget)
 
 
 class fmi2Output(_Fmi2Variable):
+    """Register a new output to the model using specified "getter" read the values.
+
+    In the simplest case this may simply return an attribute of the slave which has
+    been computed and stored in a prior step:
+        >>> class slave(Fmi2Slave):
+        ...
+        ...     def __init__(self):
+        ...         self._x = 10
+        ...
+        ...     @fmi2Output("real","continuous","exact")
+        ...     def x(self):
+        ...         return self._x
+        ...
+        >>> v = slave().variables[0]
+        >>> v.name
+        "x"
+        >>> v.causality
+        "output"
+        >>> v.start
+        10
+
+    If initial is set to either exact or approx, the outputs start value will
+    be determined by sampling the value after initialization of the slave object.
+
+    ..note:
+        This may only be used to decorate methods of classes which implement the Fmi2Slave protocol.
+    """
+
     def __init__(
         self,
         type: Literal["real", "integer", "boolean", "string"],
@@ -177,19 +186,34 @@ class fmi2Output(_Fmi2Variable):
         initial: Literal["approx", "calculated", "exact"],
         alias: str = None,
     ):
-        super().__init__(type, "output", variability, initial, alias)
+        super().__init__(
+            type=type,
+            causality="output",
+            variability=variability,
+            initial=initial,
+            alias=alias,
+        )
 
 
-class fmi2Parameter(
-    type: Literal["real", "integer", "boolean", "string"],
-    variability: Literal["fixed", "tuneable"],
-):
-    pass
+class fmi2Parameter(_Fmi2Variable):
+    """Register the specified property as an parameter of the model.
 
-    def decorator_register_parameter(setter):
-        pass
+    This may only be used to decorate methods of classes which implement the Fmi2Slave protocol.
+    """
 
-    return decorator_register_parameter
+    def __init__(
+        self,
+        type: Literal["real", "integer", "boolean", "string"],
+        variability: Literal["fixed", "tunable"],
+        alias: str = None,
+    ):
+        super().__init__(
+            type=type,
+            causality="parameter",
+            variability=variability,
+            initial=None,
+            alias=alias,
+        )
 
 
 class SlaveBase:
@@ -221,26 +245,20 @@ class Test(SlaveBase):
         super().__init__()
 
         self._x = 10.0
+        self._y = 10
+        self.z = 10
 
     @fmi2Input("real", "continuous")
-    def x(self) -> float:
-        return self._x
-
-    @x.setter
     def x(self, value) -> None:
-        self._x = 0
+        self._x = value
 
     @fmi2Output("real", "constant", "exact")
     def y(self):
         return self._y
 
-    @y.setter
-    def y(self, value):
-        self._y = value
-
-    # @fmi2Parameter("real", "fixed")
-    # def my_param(self, value: int):
-    #     pass
+    @fmi2Parameter("real", "fixed")
+    def z(self, value: int):
+        return self._z
 
 
 if __name__ == "__main__":
