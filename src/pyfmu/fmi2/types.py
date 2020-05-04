@@ -1,7 +1,9 @@
 """Define commonly enumerations and classes for FMI2 types"""
 
 from abc import abstractmethod
-from typing import List, Tuple, Protocol, TypeVar, Literal
+from typing import List, Tuple, Protocol, TypeVar, Literal, Dict, Set, Optional
+
+from pyfmu.fmi2.exception import InvalidVariableError
 
 
 class Fmi2Causality:
@@ -103,14 +105,53 @@ Fmi2Value_T = TypeVar("Fmi2Value_T", float, int, bool, str)
 
 Fmi2DataType_T = Literal["real", "integer", "boolean", "string"]
 Fmi2Causality_T = Literal[
-    "calculatedParameter", "independent", "input", "output", "parameter"
+    "calculatedParameter", "independent", "input", "local", "output", "parameter"
 ]
 Fmi2Variability_T = Literal["constant", "continuous", "discrete", "fixed", "tunable"]
 Fmi2Initial_T = Literal["approx", "calculated", "exact"]
 
+# ----- FMI2 Scalar variable -----
+
+_causality_and_variability_to_initial: Dict[
+    Tuple[Fmi2Causality_T, Fmi2Variability_T], Optional[Set[Fmi2Initial_T]]
+] = {
+    ("parameter", "fixed"): {"exact"},
+    ("parameter", "tunable"): {"exact"},
+    ("calculatedParameter", "fixed"): {"approx", "calculated"},
+    ("calculatedParameter", "tunable"): {"approx", "calculated"},
+    ("input", "discrete"): None,
+    ("input", "continuous"): None,
+    ("output", "constant"): {"exact"},
+    ("output", "discrete"): {"approx", "calculated", "exact"},
+    ("output", "continuous"): {"approx", "calculated", "exact"},
+    ("local", "constant"): {"exact"},
+    ("local", "fixed"): {"approx", "calculated"},
+    ("local", "tunable"): {"approx", "calculated"},
+    ("local", "discrete"): {"approx", "calculated", "exact"},
+    ("local", "continuous"): {"approx", "calculated", "exact"},
+    ("independent", "continuous"): None,
+}
+
+_type_to_pyType: Dict[Fmi2DataType_T, Fmi2Value_T] = {
+    "real": float,  # type: ignore
+    "integer": int,  # type: ignore
+    "boolean": bool,  # type: ignore
+    "string": str,  # type: ignore
+}
+
 
 class Fmi2ScalarVariable:
     """Represents an variable as defined by the FMI2 specification.
+
+    .. warning::
+        The FMI2 specification defines implicit initial values for specific
+        causalities:
+        * input: "initial must be exact or not present (meaning exact)" p.47
+        * calculatedParameter: "initial must be "approx", "calculated" or not present (meaning calculated)" p.47.
+
+        Implicit initial values are NOT allowed within the python part of the PyFMU, i.e. initial must be specified explicitly.
+        No restrictions apply to how these are being represented in the model description.
+    
     """
 
     def __init__(
@@ -137,12 +178,53 @@ class Fmi2ScalarVariable:
             description: an optional description of the variable, typically displayed by simulation tools.
 
         """
+
+        # validate combinations of causality and variability
+        if (causality, variability) not in _causality_and_variability_to_initial:
+            raise InvalidVariableError(
+                "Illegal combination of causality: {causality} and variability: {variability}"
+            )
+
+        # validate initial value for combination of causality and variability
+        if (
+            initial
+            not in _causality_and_variability_to_initial[(causality, variability)]
+        ):
+            raise InvalidVariableError(
+                f"Illegal initial for combination of causality: {causality} and variability: {variability}"
+            )
+
+        # validate start value for combination of causality, variability and initial
+        # see fmi2 spec p.56
+        must_define_start = (
+            initial in {"exact", "approx"}
+            or causality in {"input", "parameter"}
+            or variability in {"constant"}
+        )
+        assert must_define_start != (
+            initial == "calculated" or causality == "independent"
+        )
+
+        if (start_defined := start is not None) ^ must_define_start:
+            s = "must be defined" if not start_defined else "may not be defined"
+            raise InvalidVariableError(
+                f"Start values {s} for this combination of variability: {variability}, causality: {causality} and initial: {initial}"
+            )
+
+        if must_define_start and type(start) is not (
+            expected := _type_to_pyType[data_type]
+        ):
+            raise InvalidVariableError(
+                f"Start value: {start} and declared data type: {data_type} are not compatible."
+            )
+
         self.name = name
         self.data_type = data_type
         self.causality = causality
         self.initial = initial
         self.variability = variability
         self.description = description
+        self.start = start
         self.value_reference = value_reference
 
     def __str__(self) -> str:

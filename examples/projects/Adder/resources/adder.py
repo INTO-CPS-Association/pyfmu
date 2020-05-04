@@ -1,7 +1,10 @@
-from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
+from pyfmu.fmi2 import (
+    Fmi2Slave,
+    Fmi2Status,
+)
+
 
 class Adder(Fmi2Slave):
-
     def __init__(self, *args, **kwargs):
 
         author = ""
@@ -9,40 +12,35 @@ class Adder(Fmi2Slave):
         description = ""
 
         super().__init__(
-            modelName=modelName,
-            author=author,
-            description=description,
-            *args,
-            **kwargs
-            )
+            modelName=modelName, author=author, description=description, *args, **kwargs
+        )
 
-        self.register_variable("s", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.output)
-        self.register_variable("a", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0.0)
-        self.register_variable("b", data_type=Fmi2DataTypes.real, causality=Fmi2Causality.input, start=0.0)
+        self.a = 0
+        self.b = 0
+        self.register_input("a", "real", "continuous")
+        self.register_input("b", "real", "continuous")
+        self.register_output("s", "real", "continuous", "calculated")
+        self.register_input("boo","real","continuous")
 
+    def __getattr__(self, item):
+        return item
 
-    def enter_initialization_mode(self):
-        self.s = self.a + self.b
-        return True
-
-    def do_step(self, current_time: float, step_size: float,no_set_fmu_state_prior : bool):
-        self.s = self.a + self.b
-        return True
+    @property
+    def s(self):
+        return self.a + self.b
 
 
 if __name__ == "__main__":
 
-    def callback(status,category,message):
+    def callback(status, category, message):
         print(f"{status}:{category}:{message}")
 
     fmu = Adder(logging_callback=callback)
-    fmu._set_debug_logging(True,["logAll"])
 
-    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
-    s = fmu._enter_initialization_mode()
-    assert(s == Fmi2Status.ok.value)
-    s = fmu._exit_initialization_mode()
-    assert(s == Fmi2Status.ok.value)
+    s = fmu.enter_initialization_mode()
+    assert s == Fmi2Status.ok
+    s = fmu.exit_initialization_mode()
+    assert s == Fmi2Status.ok
 
-    fmu._do_step(0,1,False)
-    fmu._do_step(1,2,False)
+    fmu.do_step(0, 1, False)
+    fmu.do_step(1, 2, False)

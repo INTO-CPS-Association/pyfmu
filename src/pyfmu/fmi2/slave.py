@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Tuple, Optional, Callable, TypeVar, Any, Literal
 from uuid import uuid4
-from pyfmu.fmi2.exception import Fmi2ModelExtractionError
+from pyfmu.fmi2.exception import SlaveAttributeError
 
 from pyfmu.fmi2.types import (
     Fmi2Status,
@@ -27,18 +27,13 @@ class _Fmi2VariableDecorator:
     def __set_name__(self, owner: Fmi2Slave, name):
         """hook used for accessing instance described in PEP 487"""
 
-        if self.causality in {"approx", "exact"}:
-            try:
-                start = getattr(owner, name)
-            except Exception as e:
-                raise Fmi2ModelExtractionError(
-                    f"Unable to get start value by reading attribute: {name}"
-                ) from e
-        else:
-            start = None
-
-        owner._register_variable(
-            owner, name, self.type, self.causality, self.variability, self.initial, self.alias, start  # type: ignore
+        owner.register_variable(
+            owner,  # type: ignore
+            name,
+            self.type,  # type: ignore
+            self.causality,  # type: ignore
+            self.variability,  # type: ignore
+            self.initial,  # type: ignore
         )
 
     def __init__(
@@ -47,7 +42,6 @@ class _Fmi2VariableDecorator:
         causality: Fmi2Causality_T,
         variability: Fmi2Variability_T,
         initial: Optional[Fmi2Initial_T],
-        alias: str = None,
         fget: Callable = None,
         fset: Callable = None,
     ):
@@ -57,7 +51,6 @@ class _Fmi2VariableDecorator:
         self.initial: Optional[Fmi2Initial_T] = initial
         self.fget = fget
         self.fset = fset
-        self.alias = alias
 
     def __call__(self, func: Fmi2Getter_T):
         self.fget = func
@@ -89,7 +82,6 @@ class _Fmi2VariableDecorator:
             self.causality,  # type: ignore
             self.variability,  # type: ignore
             self.initial,  # type: ignore
-            self.alias,
             fget,
             self.fset,
         )
@@ -102,7 +94,6 @@ class _Fmi2VariableDecorator:
             self.causality,  # type: ignore
             self.variability,  # type: ignore
             self.initial,  # type: ignore
-            self.alias,
             self.fget,
             fset,
         )
@@ -139,14 +130,9 @@ class _Fmi2InputDecorator(_Fmi2VariableDecorator):
         self,
         type: Literal["real", "integer", "boolean", "string"],
         variability: Literal["continuous", "discrete"],
-        alias: str = None,
     ):
         super().__init__(
-            type=type,
-            causality="input",
-            variability=variability,
-            initial=None,
-            alias=alias,
+            type=type, causality="input", variability=variability, initial=None,
         )
 
     def __call__(self, func: Fmi2Setter_T):
@@ -188,14 +174,9 @@ class _Fmi2OutputDecorator(_Fmi2VariableDecorator):
         type: Literal["real", "integer", "boolean", "string"],
         variability: Literal["constant", "discrete", "continuous"],
         initial: Literal["approx", "calculated", "exact"],
-        alias: str = None,
     ):
         super().__init__(
-            type=type,
-            causality="output",
-            variability=variability,
-            initial=initial,
-            alias=alias,
+            type=type, causality="output", variability=variability, initial=initial,
         )
 
 
@@ -206,17 +187,10 @@ class _Fmi2ParameterDecorator(_Fmi2VariableDecorator):
     """
 
     def __init__(
-        self,
-        type: Fmi2DataType_T,
-        variability: Literal["fixed", "tunable"],
-        alias: str = None,
+        self, type: Fmi2DataType_T, variability: Literal["fixed", "tunable"],
     ):
         super().__init__(
-            type=type,
-            causality="parameter",
-            variability=variability,
-            initial=None,
-            alias=alias,
+            type=type, causality="parameter", variability=variability, initial=None,
         )
 
     def __call__(self, func: Fmi2Setter_T):
@@ -259,10 +233,33 @@ class Fmi2Slave:
         self._model_name = modelName
         self._license = license
         self._guid = uuid4()
-        self._vars: List[Fmi2ScalarVariable] = []
+        self._variables: List[Fmi2ScalarVariable] = []
         self._version = version
         self._value_reference_counter = 0
         self._used_value_references = {}
+
+    def register_input(
+        self,
+        attr_name: str,
+        type: Literal["real", "integer", "boolean", "string"],
+        variability: Literal["continuous", "discrete"],
+    ) -> None:
+        if not hasattr(self, attr_name):
+            raise SlaveAttributeError(
+                f"The slave instance has no attribute: {attr_name}"
+            )
+
+    def register_output(
+        self,
+        attr_name: str,
+        type: Literal["real", "integer", "boolean", "string"],
+        variability: Literal["constant", "discrete", "continuous"],
+        initial: Literal["approx", "calculated", "exact"],
+    ) -> None:
+        if not hasattr(self, attr_name):
+            raise SlaveAttributeError(
+                f"The slave instance has no attribute: {attr_name}"
+            )
 
     def register_variable(
         self,
@@ -271,10 +268,44 @@ class Fmi2Slave:
         causality: Fmi2Causality_T,
         variability: Fmi2Variability_T,
         initial: Optional[Fmi2Initial_T],
-        start: Optional[Fmi2Value_T],
-        alias: str = None,
+        description: str = None,
     ) -> None:
+        """Expose an attribute of the slave as an variable of the model.
 
+        Args:
+            name (str): name of the attribute
+            type (Fmi2DataType_T): [description]
+            causality (Fmi2Causality_T): [description]
+            variability (Fmi2Variability_T): [description]
+            initial (Optional[Fmi2Initial_T]): [description]
+            description (str, optional): [description]. Defaults to None.
+
+        Raises:
+            Fmi2SlaveError: raised if a combination of variables are provided which does not
+
+        """
+        if initial in {"approx", "exact"}:
+            try:
+                start = getattr(self, name)
+            except Exception as e:
+                raise Fmi2SlaveError(
+                    f"""Failed determining a start value for the variable {name}."""
+                ) from e
+        else:
+            start = None
+
+        value_reference = self._acquire_unused_value_reference()
+        v = Fmi2ScalarVariable(
+            name,
+            type,
+            causality,
+            variability,
+            value_reference,
+            initial,
+            start,
+            description,
+        )
+        self._variables.append(v)
         print(f"registering variable: {type}:{causality}:{initial}:{variability}")
 
     def register_log_category(self, name: str):
