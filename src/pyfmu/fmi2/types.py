@@ -1,11 +1,10 @@
 """Define commonly enumerations and classes for FMI2 types"""
 
-from abc import ABC, abstractmethod
-from enum import Enum
-from typing import List, Tuple, Union
+from abc import abstractmethod
+from typing import List, Tuple, Protocol, TypeVar
 
 
-class Fmi2Causality(Enum):
+class Fmi2Causality:
     """ Defines the causality of the variable, that is whether it is an input, output, parameter, etc.
 
     Values:
@@ -26,7 +25,7 @@ class Fmi2Causality(Enum):
     independent = "independent"
 
 
-class Fmi2DataTypes(Enum):
+class Fmi2DataTypes:
     """Defines the type of a variable.
 
     Values:
@@ -36,27 +35,27 @@ class Fmi2DataTypes(Enum):
         * string: a text string.
     """
 
-    real = "Real"
-    integer = "Integer"
-    boolean = "Boolean"
-    string = "String"
+    real = "read"
+    integer = "integer"
+    boolean = "boolean"
+    string = "string"
 
 
-class Fmi2Initial(Enum):
+class Fmi2Initial:
     """Defines how the initial value of a variable is initialized.
 
     Values:
-        exact: The variable is initialised with the provided start value.
-        calculated: The variable is defined based on other variables during initialisation.
+        exact: The variable is initialized with the provided start value.
+        calculated: The variable is defined based on other variables during initialization.
         "approx": The variable is defined based on the an iteration of an algebraic loop with the provided start value.
     """
 
-    exact = "exact"
     approx = "approx"
     calculated = "calculated"
+    exact = "exact"
 
 
-class Fmi2Variability(Enum):
+class Fmi2Variability:
     """ Defines the time instants where the variable can change value.
 
     Values:
@@ -74,7 +73,7 @@ class Fmi2Variability(Enum):
     continuous = "continuous"
 
 
-class Fmi2Status(Enum):
+class Fmi2Status:
     """Represents the status of the FMU or the results of function calls.
 
     Values:
@@ -98,7 +97,7 @@ class Fmi2Status(Enum):
     pending = 5
 
 
-Fmi2Variable = Union[float, int, bool, str]
+_Fmi2Variable = TypeVar("_Fmi2Variable", float, int, bool, str)
 
 
 class Fmi2ScalarVariable:
@@ -109,7 +108,7 @@ class Fmi2ScalarVariable:
         initial: Fmi2Initial = None,
         causality: Fmi2Causality = None,
         variability: Fmi2Variability = None,
-        start: Fmi2Variable = None,
+        start: _Fmi2Variable = None,
         description: str = "",
         value_reference: int = None,
     ):
@@ -119,7 +118,7 @@ class Fmi2ScalarVariable:
         self.causality = causality
         self.initial = initial
         self.variability = variability
-        self.start = start
+        self.start: _Fmi2Variable = start
         self.description = description
         self.value_reference = value_reference
 
@@ -142,47 +141,38 @@ class Fmi2ScalarVariable:
         return self.__repr__()
 
     def __repr__(self) -> str:
-        initial_str = self.initial.value if self.initial else "omitted"
-        return (
-            f"{self.name}:{self.data_type.value}:{self.causality.value}:{initial_str}"
-        )
+        initial_str = "omitted" if self.initial is None else self.initial
+        return f"{self.name}:{self.data_type}:{self.causality}:{initial_str}"
 
 
-class Fmi2SlaveBase(ABC):
+class IsFmi2Slave(Protocol):
     """Interface implemented by classes adhering to the FMI2 interface.
     It declares a set of functions which are invoked whenever the
     corresponding function is called in the fmi interface.
     """
 
-    @abstractmethod
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
     ) -> Fmi2Status:
         ...
 
-    @abstractmethod
-    def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Variable], Fmi2Status]:
+    def get_xxx(self, references: List[int]) -> Tuple[List[_Fmi2Variable], Fmi2Status]:
         ...
 
-    @abstractmethod
-    def set_xxx(self, references: List[int], values: List[Fmi2Variable]) -> Fmi2Status:
+    def set_xxx(self, references: List[int], values: List[_Fmi2Variable]) -> Fmi2Status:
         ...
 
-    @abstractmethod
     def setup_experiment(
         self, start_time: float, stop_time: float = None, tolerance: float = None
     ) -> Fmi2Status:
         ...
 
-    @abstractmethod
     def enter_initialization_mode(self) -> Fmi2Status:
         ...
 
-    @abstractmethod
     def exit_initialization_mode(self) -> Fmi2Status:
         ...
 
-    @abstractmethod
     def reset(self) -> Fmi2Status:
         ...
 

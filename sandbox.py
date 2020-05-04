@@ -1,30 +1,31 @@
 from __future__ import annotations
 
-from typing import Optional, Union, TypeVar, Literal, Callable
-from functools import partial
-import inspect
-import abc
+from typing import Optional, Literal, Callable, TypeVar, Any, Protocol
 
 
 class Fmi2Variability:
-    constant = "constant"
-    continuous = "continuous"
-    discrete = "discrete"
-    fixed = "fixed"
-    tunable = "tunable"
+    constant: Literal["constant"] = "constant"
+    continuous: Literal["continuous"] = "continuous"
+    discrete: Literal["discrete"] = "discrete"
+    fixed: Literal["fixed"] = "fixed"
+    tunable: Literal["tunable"] = "tunable"
 
 
 class Fmi2DataTypes:
-    real = "real"
-    integer = "integer"
-    boolean = "boolean"
-    string = "string"
+    real: Literal["real"] = "real"
+    integer: Literal["integer"] = "integer"
+    boolean: Literal["boolean"] = "boolean"
+    string: Literal["string"] = "string"
 
 
 class Fmi2Initial:
-    exact = "exact"
-    approx = "approx"
-    calculated = "calculated"
+    exact: Literal["exact"] = "exact"
+    approx: Literal["approx"] = "approx"
+    calculated: Literal["calculated"] = "calculated"
+
+
+_Fmi2Getter = Callable[[Any], TypeVar("_Fmi2Getter", float, int, bool, str)]
+_Fmi2Setter = Callable[[Any, TypeVar("_Fmi2Setter", float, int, bool, str)], None]
 
 
 class _Fmi2Variable:
@@ -59,7 +60,7 @@ class _Fmi2Variable:
         self.fset = fset
         self.alias = alias
 
-    def __call__(self, func):
+    def __call__(self, func: _Fmi2Getter):
         self.fget = func
         return self
 
@@ -67,13 +68,17 @@ class _Fmi2Variable:
         if instance is None:
             return self
         elif self.fget is None:
-            raise AttributeError("no getter is defined.")
+            raise AttributeError(
+                f"No getter has been defined for the specified {self.causality}."
+            )
         else:
             return self.fget(instance)
 
     def __set__(self, instance: SlaveBase, value) -> None:
         if self.fset is None:
-            raise AttributeError("no setter is defined.")
+            raise AttributeError(
+                f"No setter has been defined for the specified {self.causality}."
+            )
         else:
             self.fset(instance, value)
 
@@ -145,7 +150,7 @@ class fmi2Input(_Fmi2Variable):
             alias=alias,
         )
 
-    def __call__(self, func):
+    def __call__(self, func: _Fmi2Setter):
         self.fset = func
         return self
 
@@ -215,6 +220,10 @@ class fmi2Parameter(_Fmi2Variable):
             alias=alias,
         )
 
+    def __call__(self, func: _Fmi2Setter):
+        self.fset = func
+        return self
+
 
 class SlaveBase:
     def __init__(self):
@@ -246,7 +255,7 @@ class Test(SlaveBase):
 
         self._x = 10.0
         self._y = 10
-        self.z = 10
+        self._z = 10
 
     @fmi2Input("real", "continuous")
     def x(self, value) -> None:
@@ -257,12 +266,12 @@ class Test(SlaveBase):
         return self._y
 
     @fmi2Parameter("real", "fixed")
-    def z(self, value: int):
-        return self._z
+    def z(self, value):
+        self._z = value
 
 
 if __name__ == "__main__":
 
     t = Test()
-    print(t.x)
+    t.x = 10
     test = 10
