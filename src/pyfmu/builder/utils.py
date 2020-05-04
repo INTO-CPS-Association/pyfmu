@@ -31,23 +31,16 @@ def rm(path: AnyPath):
     Arguments:
         p {Path} -- path to a directory or a file
     """
+    path = Path(path)
 
-    try:
-        path = Path(path)
-
-        if path.is_dir():
-            rmtree(path)
-            assert not path.is_dir()
-        elif path.is_file() or path.is_symlink():
-            path.unlink()
-            assert not path.is_file()
-        else:
-            raise ValueError("path neither specifies a file, symlink nor a directory.")
-
-    except Exception as e:
-        raise RuntimeError(
-            f"Unable to remove file/directory: {path} and error was raised: {e}"
-        )
+    if path.is_dir():
+        rmtree(path)
+        assert not path.is_dir()
+    elif path.is_file() or path.is_symlink():
+        path.unlink()
+        assert not path.is_file()
+    else:
+        raise ValueError("path neither specifies a file, symlink nor a directory.")
 
 
 def compress(

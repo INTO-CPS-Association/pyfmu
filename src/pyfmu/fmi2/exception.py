@@ -18,6 +18,10 @@ class SlaveAttributeError(SlaveError):
     pass
 
 
+class SlaveConfigError(SlaveError):
+    """Failure to read and parse slave configuration"""
+    pass
+
 class StartValueError(SlaveError):
     """Unable to determine start value of variable or start value is invalid"""
     pass

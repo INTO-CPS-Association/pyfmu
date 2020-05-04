@@ -2,19 +2,25 @@ from math import cos, sin, atan, tan
 
 from scipy.integrate import solve_ivp
 
-from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Variability, Fmi2DataTypes, Fmi2Initial, Fmi2Status
+from pyfmu.fmi2 import (
+    Fmi2Slave,
+    Fmi2Causality,
+    Fmi2Variability,
+    Fmi2DataTypes,
+    Fmi2Initial,
+    Fmi2Status,
+)
 
 
 class Bicycle_Kinematic(Fmi2Slave):
-
     def __init__(self, *args, **kwargs):
 
         author = ""
-        modelName = "BicycleKinematic"
+        model_name = "BicycleKinematic"
         description = ""
 
         super().__init__(
-            modelName=modelName,
+            model_name=model_name,
             author=author,
             description=description,
             *args,
@@ -33,40 +39,60 @@ class Bicycle_Kinematic(Fmi2Slave):
         self.lr = 1.0
 
         # model
-        self.register_variable("a", "real", "input",
-                               description='acceleration', start=0.0)
-        self.register_variable("df", "real", "input",
-                               description='steering angle', start=0.0)
+        self.register_input("a", "real", "continuous", description="acceleration")
+        self.register_input("df", "real", "continuous", description="steering angle")
 
-        self.register_variable("x", "real", "output",
-                               description='x position of the robot')
-        self.register_variable("y", "real", "output",
-                               description='y position of the robot')
-        self.register_variable("psi", "real", "output",
-                               description='inertial heading of the robot')
-        self.register_variable("v", "real", "output",
-                               description='velocity of the robot')
+        self.register_output(
+            "x",
+            "real",
+            "continuous",
+            "calculated",
+            description="x position of the robot",
+        )
+        self.register_output(
+            "y",
+            "real",
+            "continuous",
+            "calculated",
+            description="y position of the robot",
+        )
+        self.register_output(
+            "psi",
+            "real",
+            "continuous",
+            "calculated",
+            description="inertial heading of the robot",
+        )
+        self.register_output(
+            "v", "real", "continuous", "calculated", description="velocity of the robot"
+        )
 
-        self.register_variable('lf', 'real', 'parameter', 'fixed',
-                               start=1, description='distance from CM to front wheel')
-        self.register_variable('lr', 'real', 'parameter', 'fixed',
-                               start=1, description='distance from CM to rear wheel')
+        self.register_parameter(
+            "lf", "real", "fixed", description="distance from CM to front wheel",
+        )
+        self.register_parameter(
+            "lr", "real", "fixed", description="distance from CM to rear wheel",
+        )
 
         # Initial values
         self.x0 = 0.0
         self.y0 = 0.0
         self.psi0 = 0.0
         self.v0 = 0.0
-        self.register_variable("x0", "real", "parameter", "fixed", start=0.0)
-        self.register_variable("y0", "real", "parameter", "fixed", start=0.0)
-        self.register_variable("psi0", "real", "parameter", "fixed", start=0.0)
-        self.register_variable("v0", "real", "parameter", "fixed", start=0.0)
+        self.register_parameter("x0", "real", "fixed")
+        self.register_parameter("y0", "real", "fixed")
+        self.register_parameter("psi0", "real", "fixed")
+        self.register_parameter("v0", "real", "fixed")
 
         # reference model
-        self.register_variable("x_r", "real", "input", start=0.0)
-        self.register_variable("y_r", "real", "input", start=0.0)
-        self.register_variable("psi_r", "real", "input", start=0.0)
-        self.register_variable("v_r", "real", "input", start=0.0)
+        self.x_r = 0.0
+        self.y_r = 0.0
+        self.psi_r = 0.0
+        self.v_r = 0.0
+        self.register_input("x_r", "real", "continuous")
+        self.register_input("y_r", "real", "continuous")
+        self.register_input("psi_r", "real", "continuous")
+        self.register_input("v_r", "real", "continuous")
 
     @staticmethod
     def _derivatives(t, state, params):
@@ -74,7 +100,7 @@ class Bicycle_Kinematic(Fmi2Slave):
 
         _, _, psi, v = state
 
-        beta = atan((lr/(lr+lf)) * tan(df))
+        beta = atan((lr / (lr + lf)) * tan(df))
 
         x_d = v * cos(psi + beta)
         y_d = v * sin(psi + beta)
@@ -98,15 +124,10 @@ class Bicycle_Kinematic(Fmi2Slave):
             return Bicycle_Kinematic._derivatives(t, state, params)
 
         h0 = (self.x, self.y, self.psi, self.v)
-        end = current_time+step_size
+        end = current_time + step_size
         t_span = (current_time, end)
 
-        res = solve_ivp(
-            fun,
-            t_span,
-            h0,
-            max_step=step_size,
-            t_eval=[end])
+        res = solve_ivp(fun, t_span, h0, max_step=step_size, t_eval=[end])
 
         x, y, psi, v = tuple(res.y)
         self.x = x[0]
@@ -115,18 +136,3 @@ class Bicycle_Kinematic(Fmi2Slave):
         self.v = v[0]
 
         return Fmi2Status.ok
-
-
-# validation
-if __name__ == "__main__":
-    model = Bicycle_Kinematic()
-    model.v0 = 1.0
-
-    # extra check used to ensure the fmu is initialized according to the standard (not necessary)
-    s = model._enter_initialization_mode()
-    assert(s == Fmi2Status.ok.value)
-    s = model._exit_initialization_mode()
-    assert(s == Fmi2Status.ok.value)
-
-    model._do_step(0.0, 1, True)
-    test = 10.0

@@ -113,14 +113,14 @@ Fmi2Initial_T = Literal["approx", "calculated", "exact"]
 # ----- FMI2 Scalar variable -----
 
 _causality_and_variability_to_initial: Dict[
-    Tuple[Fmi2Causality_T, Fmi2Variability_T], Optional[Set[Fmi2Initial_T]]
+    Tuple[Fmi2Causality_T, Fmi2Variability_T], Optional[Set[Optional[Fmi2Initial_T]]]
 ] = {
     ("parameter", "fixed"): {"exact"},
     ("parameter", "tunable"): {"exact"},
     ("calculatedParameter", "fixed"): {"approx", "calculated"},
     ("calculatedParameter", "tunable"): {"approx", "calculated"},
-    ("input", "discrete"): None,
-    ("input", "continuous"): None,
+    ("input", "discrete"): {None},
+    ("input", "continuous"): {None},
     ("output", "constant"): {"exact"},
     ("output", "discrete"): {"approx", "calculated", "exact"},
     ("output", "continuous"): {"approx", "calculated", "exact"},
@@ -129,7 +129,7 @@ _causality_and_variability_to_initial: Dict[
     ("local", "tunable"): {"approx", "calculated"},
     ("local", "discrete"): {"approx", "calculated", "exact"},
     ("local", "continuous"): {"approx", "calculated", "exact"},
-    ("independent", "continuous"): None,
+    ("independent", "continuous"): {None},
 }
 
 _type_to_pyType: Dict[Fmi2DataType_T, Fmi2Value_T] = {
@@ -182,7 +182,7 @@ class Fmi2ScalarVariable:
         # validate combinations of causality and variability
         if (causality, variability) not in _causality_and_variability_to_initial:
             raise InvalidVariableError(
-                "Illegal combination of causality: {causality} and variability: {variability}"
+                f"Illegal combination of causality: {causality} and variability: {variability}"
             )
 
         # validate initial value for combination of causality and variability
@@ -191,7 +191,7 @@ class Fmi2ScalarVariable:
             not in _causality_and_variability_to_initial[(causality, variability)]
         ):
             raise InvalidVariableError(
-                f"Illegal initial for combination of causality: {causality} and variability: {variability}"
+                f"Initial: {initial}, is illegal for combination of causality: {causality} and variability: {variability}"
             )
 
         # validate start value for combination of causality, variability and initial
@@ -211,18 +211,20 @@ class Fmi2ScalarVariable:
                 f"Start values {s} for this combination of variability: {variability}, causality: {causality} and initial: {initial}"
             )
 
-        if must_define_start and type(start) is not (
-            expected := _type_to_pyType[data_type]
+        if (
+            must_define_start
+            and start is not None
+            and type(start) is not (expected := _type_to_pyType[data_type])
         ):
             raise InvalidVariableError(
-                f"Start value: {start} and declared data type: {data_type} are not compatible."
+                f"Start value: {start} of type: {type(start)}, and declared data type: {data_type} are not compatible."
             )
 
         self.name = name
-        self.data_type = data_type
-        self.causality = causality
-        self.initial = initial
-        self.variability = variability
+        self.data_type: Fmi2DataType_T = data_type
+        self.causality: Fmi2Causality_T = causality
+        self.initial: Optional[Fmi2Initial_T] = initial
+        self.variability: Fmi2Variability_T = variability
         self.description = description
         self.start = start
         self.value_reference = value_reference
@@ -243,27 +245,27 @@ class IsFmi2Slave(Protocol):
 
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
-    ) -> Fmi2Status:
+    ) -> Fmi2Status_T:
         ...
 
-    def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Value_T], Fmi2Status]:
+    def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Value_T], Fmi2Status_T]:
         ...
 
-    def set_xxx(self, references: List[int], values: List[Fmi2Value_T]) -> Fmi2Status:
+    def set_xxx(self, references: List[int], values: List[Fmi2Value_T]) -> Fmi2Status_T:
         ...
 
     def setup_experiment(
         self, start_time: float, stop_time: float = None, tolerance: float = None
-    ) -> Fmi2Status:
+    ) -> Fmi2Status_T:
         ...
 
-    def enter_initialization_mode(self) -> Fmi2Status:
+    def enter_initialization_mode(self) -> Fmi2Status_T:
         ...
 
-    def exit_initialization_mode(self) -> Fmi2Status:
+    def exit_initialization_mode(self) -> Fmi2Status_T:
         ...
 
-    def reset(self) -> Fmi2Status:
+    def reset(self) -> Fmi2Status_T:
         ...
 
     @property
@@ -274,4 +276,24 @@ class IsFmi2Slave(Protocol):
     @property
     @abstractmethod
     def variables(self) -> List[Fmi2ScalarVariable]:
+        ...
+
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def author(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def guid(self) -> str:
         ...

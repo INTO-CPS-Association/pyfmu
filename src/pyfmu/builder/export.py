@@ -267,12 +267,7 @@ def _instantiate_main_class(main_script_path: str, main_class: str):
             f"Failed to generate model description. The specified file {main_script_path} does not define any callable attribute named {main_class}."
         )
 
-    try:
-        main_class_instance = main_class_ctor()
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed generating model description, The construtor of the slave class threw an exception. Ensure that the script defines a parameterless constructor. Error message was: {repr(e)}"
-        ) from e
+    main_class_instance = main_class_ctor()
 
     return main_class_instance
 
@@ -353,11 +348,7 @@ def export_project(
     _copy_binaries_to_archive(archive)
 
     # generate model description and write
-    try:
-        _write_modelDescription_to_archive(project, archive)
-    except Exception as e:
-        raise RuntimeError(
-            f"Unable to extract model description from project due to: {e}"
-        )
+
+    _write_modelDescription_to_archive(project, archive)
 
     return archive

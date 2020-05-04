@@ -1,32 +1,54 @@
-from os.path import join
-
 import datetime
-import io
-import uuid
-
-# import xml.etree.ElementTree as ET
-# from xml.dom import minidom
-# from xml.etree.ElementTree import ElementTree
+from typing import Dict
 
 from lxml import etree as ET
 
+from pyfmu.fmi2.types import (
+    IsFmi2Slave,
+    Fmi2DataType_T,
+    Fmi2Causality_T,
+    Fmi2Variability_T,
+)
 from pyfmu.fmi2 import Fmi2Causality
 
 
-def extract_model_description_v2(fmu_instance) -> str:
+_type_to_fmi2: Dict[Fmi2DataType_T, str] = {
+    "real": "Real",
+    "integer": "Integer",
+    "boolean": "Boolean",
+    "string": "String",
+}
+
+_causality_to_fmi2: Dict[Fmi2Causality_T, str] = {
+    "calculatedParameter": "calculatedParameter",
+    "independent": "independent",
+    "input": "input",
+    "local": "local",
+    "output": "output",
+    "parameter": "parameter",
+}
+
+_variability_to_fmi2: Dict[Fmi2Variability_T, str] = {
+    "discrete": "discrete",
+    "constant": "constant",
+    "continuous": "continuous",
+    "fixed": "fixed",
+    "tunable": "tunable",
+}
+
+
+def extract_model_description_v2(fmu_instance: IsFmi2Slave) -> str:
 
     # 2.2.1 p.29) Structure
 
     data_time_obj = datetime.datetime.now()
     date_str_xsd = datetime.datetime.strftime(data_time_obj, "%Y-%m-%dT%H:%M:%SZ")
 
-    uid = str(uuid.uuid4())
-
     fmd = ET.Element("fmiModelDescription")
     fmd.set("fmiVersion", "2.0")
-    fmd.set("modelName", fmu_instance._model_name)
-    fmd.set("guid", uid)
-    fmd.set("author", fmu_instance._author)
+    fmd.set("modelName", fmu_instance.model_name)
+    fmd.set("guid", fmu_instance.guid)
+    fmd.set("author", fmu_instance.author)
     fmd.set("generationDateAndTime", date_str_xsd)
     fmd.set("variableNamingConvention", "structured")
     fmd.set("generationTool", "pyfmu")
@@ -37,39 +59,39 @@ def extract_model_description_v2(fmu_instance) -> str:
     cs.set("needsExecutionTool", "true")
 
     # 2.2.4 p.42) Log categories:
-    cs = ET.SubElement(fmd, "LogCategories")
-    for ac in fmu_instance.log_categories():
-        c = ET.SubElement(cs, "Category")
-        c.set("name", ac)
+    # cs = ET.SubElement(fmd, "LogCategories")
+    # for ac in fmu_instance.log_categories:
+    #     c = ET.SubElement(cs, "Category")
+    #     c.set("name", ac)
 
     # 2.2.7 p.47) ModelVariables
     mvs = ET.SubElement(fmd, "ModelVariables")
 
     variable_index = 0
 
-    for var in fmu_instance._get_variables():
+    for var in fmu_instance.variables:
 
-        vref = str(var.value_reference)
-        v = var.variability.value
-        c = var.causality.value
-        t = var.data_type.value
+        value_reference = str(var.value_reference)
+        variability = _variability_to_fmi2[var.variability]
+        causality = _causality_to_fmi2[var.causality]
+        data_type = _type_to_fmi2[var.data_type]
 
         idx_comment = ET.Comment(f'Index of variable = "{variable_index + 1}"')
         mvs.append(idx_comment)
         sv = ET.SubElement(mvs, "ScalarVariable")
         sv.set("name", var.name)
-        sv.set("valueReference", vref)
-        sv.set("variability", v)
-        sv.set("causality", c)
+        sv.set("valueReference", value_reference)
+        sv.set("variability", variability)
+        sv.set("causality", causality)
 
         if var.description:
             sv.set("description", var.description)
 
         if var.initial:
-            i = var.initial.value
+            i = var.initial
             sv.set("initial", i)
 
-        val = ET.SubElement(sv, t)
+        val = ET.SubElement(sv, data_type)
 
         if var.start is not None:
             s = str(var.start).lower()
@@ -81,8 +103,8 @@ def extract_model_description_v2(fmu_instance) -> str:
     # 2.2.8) For each output we must declare 'Outputs' and 'InitialUnknowns'
     outputs = [
         (idx + 1, o)
-        for idx, o in enumerate(fmu_instance._get_variables())
-        if o.causality.name == Fmi2Causality.output.name
+        for idx, o in enumerate(fmu_instance.variables)
+        if o.causality == Fmi2Causality.output
     ]
 
     if outputs:

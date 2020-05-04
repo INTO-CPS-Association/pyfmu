@@ -2,39 +2,34 @@ from os.path import dirname, join
 from tempfile import mkdtemp
 from shutil import rmtree, copytree
 from pathlib import Path
-import platform
 
 
 from pyfmu.builder import export_project, PyfmuProject, PyfmuArchive, compress, rm
 
 
-_ssp_examples = [
-    'SumOfSines'
-]
+_ssp_examples = ["SumOfSines"]
 
 _correct_example = {
-    'Adder',
-    'ConstantSignalGenerator',
-    'SineGenerator',
-    'LoggerFMU',
+    "Adder",
+    "ConstantSignalGenerator",
+    "SineGenerator",
     "BicycleKinematic",
     "LivePlotting",
-    'FmiTypes'
+    "FmiTypes",
 }
 
-_incorrect_examples = {
-    'NoneReturner'
-}
+_incorrect_examples = set()
 
 
 def get_example_directory() -> Path:
     """
     Returns the path to the example projects
     """
-    p = Path(__file__).parent.parent.parent.parent / 'examples'
-    if(not p.is_dir()):
+    p = Path(__file__).parent.parent.parent.parent / "examples"
+    if not p.is_dir():
         raise FileNotFoundError(
-            'Expected example directory : {p} does not appear to exist. Ensure the directory exists at the specified path or update this function.')
+            "Expected example directory : {p} does not appear to exist. Ensure the directory exists at the specified path or update this function."
+        )
 
     return p
 
@@ -69,7 +64,6 @@ def get_all_examples():
 
 def get_system_example(name: str) -> Path:
 
-
     """Returns the path to the specified SSP example.
 
     Arguments:
@@ -80,13 +74,14 @@ def get_system_example(name: str) -> Path:
         Path -- path to the example
     """
 
-    if(name not in _ssp_examples):
+    if name not in _ssp_examples:
         raise ValueError(
-            f'Unable to get path to ssp example: {name}, the project is not recognized')
+            f"Unable to get path to ssp example: {name}, the project is not recognized"
+        )
 
-    path = get_example_directory() / 'ssp' / name
+    path = get_example_directory() / "ssp" / name
 
-    assert(path.exists())
+    assert path.exists()
 
     return path
 
@@ -94,12 +89,13 @@ def get_system_example(name: str) -> Path:
 def get_example_project(name: str) -> Path:
     """ Gets the path to a specific example project.
     """
-    if(name not in get_all_examples()):
+    if name not in get_all_examples():
         raise ValueError(
             f"""Failed to resolve the path to the example project.
-            The project {name} does not exist.""")
+            The project {name} does not exist."""
+        )
 
-    p = get_example_directory() / 'projects' / name
+    p = get_example_directory() / "projects" / name
 
     return p
 
@@ -111,7 +107,7 @@ def get_exported_example_project(name: str):
     return join(projects_dir, name)
 
 
-class ExampleProject():
+class ExampleProject:
     """Wrapper that encapsulates the creation of example projects used for automatic testing.
 
     Wrapper that encapsulates the exporting of example archives used for automatic testing.
@@ -135,15 +131,16 @@ class ExampleProject():
 
     def __init__(self, project_name: str):
 
-        if(project_name not in get_all_examples()):
+        if project_name not in get_all_examples():
             raise ValueError(
-                f'Unable to read the example project. The specified project {project_name} could not be found.')
+                f"Unable to read the example project. The specified project {project_name} could not be found."
+            )
 
         project_path = get_example_project(project_name)
 
         # copy project to temporary directory
         self.tmpdir = mkdtemp()
-        outdir = (Path(self.tmpdir) / project_name)
+        outdir = Path(self.tmpdir) / project_name
         copytree(project_path, outdir)
 
         # instantiate object representation of project
@@ -156,7 +153,7 @@ class ExampleProject():
         rm(self.tmpdir)
 
 
-class ExampleArchive():
+class ExampleArchive:
     """Wrapper that encapsulates the exporting of example archives used for automatic testing.
 
     This allows them to be accessed using a with statements.
@@ -186,15 +183,16 @@ class ExampleArchive():
         rm(self.tmpdir)
 
 
-class ExampleSystem():
+class ExampleSystem:
     """Context manager for exporting example SSP projects for testing.
     """
+
     def __init__(self, name, zipped=True):
 
         in_dir = get_system_example(name)
 
-        if(zipped):
-            system_path = compress(in_dir, extension='ssp')
+        if zipped:
+            system_path = compress(in_dir, extension="ssp")
         else:
             system_path = Path(mkdtemp()) / in_dir.name
             copytree(in_dir, system_path)

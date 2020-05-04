@@ -1,8 +1,7 @@
 """Defines logging related functionality
 """
-from enum import Enum
-from typing import Iterable, List, Callable, Tuple
-from abc import ABC, abstractmethod
+from typing import Iterable, List, Callable
+from abc import ABC
 
 from pyfmu.fmi2 import Fmi2Status
 
@@ -12,7 +11,7 @@ _internal_log_catergory = "pyfmu"
 _default_category = "events"
 
 
-class Fmi2StdLogCats(Enum):
+class Fmi2StdLogCats:
     """Standard log categories defined in the FMI2 specification.
     """
 
@@ -57,13 +56,13 @@ class Fmi2LoggerBase(ABC):
 
         """
 
-        if aliases != None and predicate != None:
+        if aliases is not None and predicate is not None:
             raise ValueError(
                 "Unable to register log category, both a set of aliases and predicate were supplied."
             )
 
         # if neither aliases or predicate is registed log category and category are associated
-        if aliases == None and predicate == None:
+        if aliases is None and predicate is None:
 
             def default_predicated(s, c, m) -> bool:
                 nonlocal category
@@ -111,8 +110,6 @@ class Fmi2LoggerBase(ABC):
         if category is None:
             category = _default_category
 
-        msg = (status, category, message)
-
         # log only for the active categories
         activate_categories_to_predicates = {
             c: p
@@ -123,7 +120,7 @@ class Fmi2LoggerBase(ABC):
         # an message should be logged if a predicate exists which matches it.
         for p in activate_categories_to_predicates.values():
 
-            if p(status, category, message) == True:
+            if p(status, category, message) is True:
 
                 self._do_log(status, category, message)
                 break

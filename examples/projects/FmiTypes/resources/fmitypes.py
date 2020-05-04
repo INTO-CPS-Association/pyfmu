@@ -9,41 +9,52 @@ class FmiTypes(Fmi2Slave):
         description = "FMU for testing different FMI types"
 
         super().__init__(
-            modelName=modelName, author=author, description=description, *args, **kwargs
+            model_name=modelName,
+            author=author,
+            description=description,
+            *args,
+            **kwargs
         )
 
-        self.set_debug_logging(True, ["logAll"])
+        self.real_in = 0.0
+        self.integer_in = 0
+        self.boolean_in = False
+        self.string_in = ""
+
         # Inputs, outputs and parameters may be defined using the 'register_variable' function
-        self.register_variable("real_in", "real", "input")
-        self.register_variable("real_out", "real", "output")
-        self.register_variable("integer_in", "integer", "input", "discrete")
-        self.register_variable("integer_out", "integer", "output", "discrete")
-        self.register_variable("boolean_in", "boolean", "input", "discrete")
-        self.register_variable("boolean_out", "boolean", "output", "discrete")
-        self.register_variable("string_in", "string", "input", "discrete")
-        self.register_variable("string_out", "string", "output", "discrete")
+        self.register_input("real_in", "real", "continuous")
+        self.register_output("real_out", "real", "continuous", "calculated")
+        self.register_input("integer_in", "integer", "discrete")
+        self.register_output("integer_out", "integer", "discrete", "calculated")
+        self.register_input("boolean_in", "boolean", "discrete")
+        self.register_output("boolean_out", "boolean", "discrete", "calculated")
+        self.register_input("string_in", "string", "discrete")
+        self.register_output("string_out", "string", "discrete", "calculated")
 
-    def _update(self):
-        self.real_out = self.real_in
-        self.integer_out = self.integer_in
-        self.boolean_out = self.boolean_in
-        self.string_out = self.string_in
+    @property
+    def real_out(self):
+        return self.real_in
 
-    # functions may be overridden
-    def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
-        self._update()
+    @property
+    def integer_out(self):
+        return self.integer_in
 
-    def enter_initialization_mode(self):
-        self._update()
+    @property
+    def boolean_out(self):
+        return self.boolean_in
+
+    @property
+    def string_out(self):
+        return self.string_in
 
 
 if __name__ == "__main__":
     fmu = FmiTypes()
     # extra check used to ensure the fmu is initialized according to the standard (not necessary)
-    s = fmu._enter_initialization_mode()
-    assert s == Fmi2Status.ok.value
-    s = fmu._exit_initialization_mode()
-    assert s == Fmi2Status.ok.value
+    s = fmu.enter_initialization_mode()
+    assert s == Fmi2Status.ok
+    s = fmu.exit_initialization_mode()
+    assert s == Fmi2Status.ok
 
     for i in range(100):
         fmu.real_in = float(i)
@@ -51,10 +62,8 @@ if __name__ == "__main__":
         fmu.boolean_in = bool(i)
         fmu.string_in = str(i)
 
-        fmu._set_real([0], [1.0])
-
-        s = fmu._do_step(i, i, False)
-        assert s == Fmi2Status.ok.value
+        s = fmu.do_step(i, i, False)
+        assert s == Fmi2Status.ok
         assert fmu.real_in == fmu.real_out
         assert fmu.integer_in == fmu.integer_out
         assert fmu.boolean_in == fmu.boolean_out

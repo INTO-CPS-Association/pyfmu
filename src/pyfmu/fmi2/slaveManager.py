@@ -1,26 +1,26 @@
 from typing import Dict, Tuple, Union, List, Callable
 import importlib
-import urllib
 
 from pathlib import Path
-import pathlib
 import json
 import sys
 
-from pyfmu.fmi2 import Fmi2Status, Fmi2Slave
+from pyfmu.fmi2.types import Fmi2Status_T, Fmi2Status
 from pyfmu.fmi2.logging import Fmi2CallbackLogger
 from pyfmu.utils import file_uri_to_path
+from pyfmu.fmi2.types import IsFmi2Slave
 
 
 SlaveHandle = int
 Fmi2Value = Union[float, int, bool, str]
-Fmi2LoggingCallback = Callable[[Fmi2Status, str, str, str], None]
+Fmi2LoggingCallback = Callable[[Fmi2Status_T, str, str, str], None]
 
 
 class Fmi2SlaveManager:
     def __init__(self):
 
-        self._slaves: Dict[SlaveHandle, Fmi2Slave] = {}
+        self._slaves: Dict[SlaveHandle, IsFmi2Slave] = {}
+        self._slave_to_ids_to_attr: Dict[SlaveHandle, Dict[int, str]] = {}
         self._loggers: Dict[SlaveHandle, Fmi2CallbackLogger] = {}
 
     def instantiate(
@@ -61,18 +61,20 @@ class Fmi2SlaveManager:
         if not str(url_path) in sys.path:
             sys.path.append(str(url_path))
 
+        # read configuration
         config = None
-
         with open(url_path / "slave_configuration.json", "r") as f:
             config = json.load(f)
 
         slave_module = Path(config["main_script"]).stem
         slave_class = config["main_class"]
-        instance = getattr(importlib.import_module(slave_module), slave_class)
 
+        # instantiate object
+        instance = getattr(importlib.import_module(slave_module), slave_class)
         handle = self._get_free_handle()
 
         logger = Fmi2CallbackLogger(instance_name, logging_callback)
+
         self._slaves[handle] = instance
         self._loggers[handle] = logger
 
@@ -84,7 +86,7 @@ class Fmi2SlaveManager:
         current_time: float,
         step_size: float,
         no_set_state_prior: bool,
-    ) -> Fmi2Status:
+    ) -> Fmi2Status_T:
         assert handle in self._slaves
         assert current_time >= 0
 
@@ -92,14 +94,24 @@ class Fmi2SlaveManager:
 
     def set_xxx(
         self, handle: SlaveHandle, references: List[int], values: List[Fmi2Value]
-    ) -> Fmi2Status:
+    ) -> Fmi2Status_T:
 
-        return 0
+        attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
+
+        for a, v in zip(attributes, values):
+            setattr(self._slaves[handle], a, v)
+
+        return Fmi2Status.ok
 
     def get_xxx(
         self, handle: SlaveHandle, references: List[int]
-    ) -> Tuple[List[Fmi2Value], Fmi2Status]:
-        return ([r * 2 for r in references], 0)
+    ) -> Tuple[List[Fmi2Value], Fmi2Status_T]:
+
+        s = self._slaves[handle]
+        attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
+        values = [getattr(s, a) for a in attributes]
+
+        return (values, Fmi2Status.ok)
 
     def _get_free_handle(self) -> SlaveHandle:
         i = 0

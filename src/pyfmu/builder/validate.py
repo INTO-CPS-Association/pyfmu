@@ -38,6 +38,17 @@ class ValidationResult:
     def __getitem__(self, key: str):
         return self.validation_tools[key]
 
+    def get_report(self) -> str:
+        report = """
+        Results of validation:\n
+        """
+        for t, res in self.validation_tools.items():
+            report += "=" * 10
+            report += f"{t}:\n {res['message']}\n"
+            report += "=" * 10 + "\n"
+
+        return report
+
     @property
     def valid(self) -> bool:
         """Check whether errors were detected in the FMU by any of the tools.

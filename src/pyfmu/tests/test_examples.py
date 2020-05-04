@@ -62,8 +62,9 @@ def test_BicycleKinematic():
 
 def test_ConstantSignalGenerator():
     with ExampleArchive("ConstantSignalGenerator") as a:
-
-        assert validate_fmu(a.root, _validate_with).valid
+        res = validate_fmu(a.root, _validate_with)
+        print(res.get_report())
+        assert res.valid
 
 
 def test_FmiTypes():
@@ -75,12 +76,6 @@ def test_FmiTypes():
 
 def test_LivePlotting():
     with ExampleArchive("LivePlotting") as a:
-
-        assert validate_fmu(a.root, _validate_with).valid
-
-
-def test_LoggerFMU():
-    with ExampleArchive("LoggerFMU") as a:
 
         assert validate_fmu(a.root, _validate_with).valid
 
@@ -106,27 +101,28 @@ def test_multipleInstantiationsAllDifferentInstanceNames_canSimulate():
             instance_a = str(idx) + "a"
             instance_b = str(idx) + "b"
 
-            fmu_a = FMU2Slave(
-                guid=md.guid,
-                unzipDirectory=archive.root,
-                modelIdentifier=md.coSimulation.modelIdentifier,
-                instanceName=instance_a,
-                fmiCallLogger=None,
-            )
+            try:
+                fmu_a = FMU2Slave(
+                    guid=md.guid,
+                    unzipDirectory=archive.root,
+                    modelIdentifier=md.coSimulation.modelIdentifier,
+                    instanceName=instance_a,
+                    fmiCallLogger=None,
+                )
 
-            fmu_b = FMU2Slave(
-                guid=md.guid,
-                unzipDirectory=archive.root,
-                modelIdentifier=md.coSimulation.modelIdentifier,
-                instanceName=instance_b,
-                fmiCallLogger=None,
-            )
+                fmu_b = FMU2Slave(
+                    guid=md.guid,
+                    unzipDirectory=archive.root,
+                    modelIdentifier=md.coSimulation.modelIdentifier,
+                    instanceName=instance_b,
+                    fmiCallLogger=None,
+                )
 
-            fmu_a.instantiate()
-            fmu_b.instantiate()
-
-            fmu_a.freeInstance()
-            fmu_b.freeInstance()
+            finally:
+                if fmu_a is not None:
+                    fmu_a.freeInstance()
+                if fmu_b is not None:
+                    fmu_b.freeInstance()
 
 
 def atest_identicalNamesSameTypes_throws():
@@ -158,6 +154,8 @@ def atest_identicalNamesSameTypes_throws():
 
             fmu_a.instantiate()
             fmu_b.instantiate()
+            fmu_a.freeInstance()
+            fmu_b.freeInstance()
 
 
 def atest_identicalNamesDifferentTypes_throws():
@@ -191,3 +189,6 @@ def atest_identicalNamesDifferentTypes_throws():
 
             fmu_a.instantiate()
             fmu_b.instantiate()
+
+            fmu_a.freeInstance()
+            fmu_b.freeInstance()
