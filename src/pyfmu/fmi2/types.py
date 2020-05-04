@@ -1,7 +1,7 @@
 """Define commonly enumerations and classes for FMI2 types"""
 
 from abc import abstractmethod
-from typing import List, Tuple, Protocol, TypeVar
+from typing import List, Tuple, Protocol, TypeVar, Literal
 
 
 class Fmi2Causality:
@@ -17,12 +17,12 @@ class Fmi2Causality:
 
     """
 
-    parameter = "parameter"
-    calculatedParameter = "calculatedParameter"
-    input = "input"
-    output = "output"
-    local = "local"
-    independent = "independent"
+    parameter: str = "parameter"
+    calculatedParameter: str = "calculatedParameter"
+    input: str = "input"
+    output: str = "output"
+    local: str = "local"
+    independent: str = "independent"
 
 
 class Fmi2DataTypes:
@@ -35,10 +35,10 @@ class Fmi2DataTypes:
         * string: a text string.
     """
 
-    real = "read"
-    integer = "integer"
-    boolean = "boolean"
-    string = "string"
+    real: Literal["real"] = "real"
+    integer: Literal["integer"] = "integer"
+    boolean: Literal["boolean"] = "boolean"
+    string: Literal["string"] = "string"
 
 
 class Fmi2Initial:
@@ -50,9 +50,9 @@ class Fmi2Initial:
         "approx": The variable is defined based on the an iteration of an algebraic loop with the provided start value.
     """
 
-    approx = "approx"
-    calculated = "calculated"
-    exact = "exact"
+    approx: Literal["approx"] = "approx"
+    calculated: Literal["calculated"] = "calculated"
+    exact: Literal["exact"] = "exact"
 
 
 class Fmi2Variability:
@@ -66,11 +66,11 @@ class Fmi2Variability:
         * continuous : No restriction on when the variable can change.
     """
 
-    constant = "constant"
-    fixed = "fixed"
-    tunable = "tunable"
-    discrete = "discrete"
-    continuous = "continuous"
+    constant: Literal["constant"] = "constant"
+    fixed: Literal["fixed"] = "fixed"
+    tunable: Literal["tunable"] = "tunable"
+    discrete: Literal["discrete"] = "discrete"
+    continuous: Literal["continuous"] = "continuous"
 
 
 class Fmi2Status:
@@ -89,53 +89,61 @@ class Fmi2Status:
 
     """
 
-    ok = 0
-    warning = 1
-    discard = 2
-    error = 3
-    fatal = 4
-    pending = 5
+    ok: Literal[0] = 0
+    warning: Literal[1] = 1
+    discard: Literal[2] = 2
+    error: Literal[3] = 3
+    fatal: Literal[4] = 4
+    pending: Literal[5] = 5
 
 
-_Fmi2Variable = TypeVar("_Fmi2Variable", float, int, bool, str)
+Fmi2Status_T = Literal[0, 1, 2, 3, 4, 5]
+Fmi2Value_T = TypeVar("Fmi2Value_T", float, int, bool, str)
+
+
+Fmi2DataType_T = Literal["real", "integer", "boolean", "string"]
+Fmi2Causality_T = Literal[
+    "calculatedParameter", "independent", "input", "output", "parameter"
+]
+Fmi2Variability_T = Literal["constant", "continuous", "discrete", "fixed", "tunable"]
+Fmi2Initial_T = Literal["approx", "calculated", "exact"]
 
 
 class Fmi2ScalarVariable:
+    """Represents an variable as defined by the FMI2 specification.
+    """
+
     def __init__(
         self,
         name: str,
-        data_type: Fmi2DataTypes,
-        initial: Fmi2Initial = None,
-        causality: Fmi2Causality = None,
-        variability: Fmi2Variability = None,
-        start: _Fmi2Variable = None,
-        description: str = "",
-        value_reference: int = None,
+        data_type: Fmi2DataType_T,
+        causality: Fmi2Causality_T,
+        variability: Fmi2Variability_T,
+        value_reference: int,
+        initial: Fmi2Initial_T = None,
+        start: Fmi2Value_T = None,
+        description: str = None,
     ):
+        """Create a new variable with the specified type, causality, variability, initial and start value.
 
+        Args:
+            name: name of the variable
+            data_type: the type of the variable.
+            causality: whether the variable is an input, output, etc.
+            variability: declares when the variable's value is allowed to change.
+            value_reference: an index used to refer to the variable by the FMI interface.
+            initial: declares how the start value of the variable should be determined.
+            start: in case initial is exact or approx, this value defines the start value of the variable.
+            description: an optional description of the variable, typically displayed by simulation tools.
+
+        """
         self.name = name
         self.data_type = data_type
         self.causality = causality
         self.initial = initial
         self.variability = variability
-        self.start: _Fmi2Variable = start
         self.description = description
         self.value_reference = value_reference
-
-    def is_type(self, t: Fmi2DataTypes):
-        return self.data_type == t
-
-    def is_real(self) -> bool:
-        return self.data_type == Fmi2DataTypes.real
-
-    def is_integer(self) -> bool:
-        return self.data_type == Fmi2DataTypes.integer
-
-    def is_boolean(self) -> bool:
-        return self.data_type == Fmi2DataTypes.boolean
-
-    def is_string(self) -> bool:
-        return self.data_type == Fmi2DataTypes.string
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -156,10 +164,10 @@ class IsFmi2Slave(Protocol):
     ) -> Fmi2Status:
         ...
 
-    def get_xxx(self, references: List[int]) -> Tuple[List[_Fmi2Variable], Fmi2Status]:
+    def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Value_T], Fmi2Status]:
         ...
 
-    def set_xxx(self, references: List[int], values: List[_Fmi2Variable]) -> Fmi2Status:
+    def set_xxx(self, references: List[int], values: List[Fmi2Value_T]) -> Fmi2Status:
         ...
 
     def setup_experiment(

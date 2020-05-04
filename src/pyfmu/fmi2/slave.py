@@ -1,21 +1,230 @@
-from typing import List, Tuple, Union
-from uuid import uuid4
+from __future__ import annotations
 
-from pyfmu.fmi2.validation import infer_undefined_attributes
+
+from typing import List, Tuple, Optional, Callable, TypeVar, Any, Literal
+from uuid import uuid4
+from pyfmu.fmi2.exception import Fmi2ModelExtractionError
 
 from pyfmu.fmi2.types import (
-    Fmi2SlaveBase,
     Fmi2Status,
-    Fmi2Variable,
+    Fmi2Value_T,
+    Fmi2Status_T,
     Fmi2ScalarVariable,
-    Fmi2DataTypes,
-    Fmi2Variability,
-    Fmi2Causality,
-    Fmi2Initial,
+    Fmi2DataType_T,
+    Fmi2Variability_T,
+    Fmi2Causality_T,
+    Fmi2Initial_T,
 )
 
 
-class Fmi2Slave(Fmi2SlaveBase):
+# -------- input, output and parameter decorators for Fmi2Slave class --------
+
+Fmi2Getter_T = Callable[[Any], TypeVar("Fmi2Getter_T", float, int, bool, str)]
+Fmi2Setter_T = Callable[[Any, TypeVar("Fmi2Setter_T", float, int, bool, str)], None]
+
+
+class _Fmi2VariableDecorator:
+    def __set_name__(self, owner: Fmi2Slave, name):
+        """hook used for accessing instance described in PEP 487"""
+
+        if self.causality in {"approx", "exact"}:
+            try:
+                start = getattr(owner, name)
+            except Exception as e:
+                raise Fmi2ModelExtractionError(
+                    f"Unable to get start value by reading attribute: {name}"
+                ) from e
+        else:
+            start = None
+
+        owner._register_variable(
+            owner, name, self.type, self.causality, self.variability, self.initial, self.alias, start  # type: ignore
+        )
+
+    def __init__(
+        self,
+        type: Fmi2DataType_T,
+        causality: Fmi2Causality_T,
+        variability: Fmi2Variability_T,
+        initial: Optional[Fmi2Initial_T],
+        alias: str = None,
+        fget: Callable = None,
+        fset: Callable = None,
+    ):
+        self.type: Fmi2DataType_T = type
+        self.causality: Fmi2Causality_T = causality
+        self.variability: Fmi2Variability_T = variability
+        self.initial: Optional[Fmi2Initial_T] = initial
+        self.fget = fget
+        self.fset = fset
+        self.alias = alias
+
+    def __call__(self, func: Fmi2Getter_T):
+        self.fget = func
+        return self
+
+    def __get__(self, instance: Fmi2Slave, owner):
+        if instance is None:
+            return self
+        elif self.fget is None:
+            raise AttributeError(
+                f"No getter has been defined for the specified {self.causality}."
+            )
+        else:
+            return self.fget(instance)
+
+    def __set__(self, instance: Fmi2Slave, value) -> None:
+        if self.fset is None:
+            raise AttributeError(
+                f"No setter has been defined for the specified {self.causality}."
+            )
+        else:
+            self.fset(instance, value)
+
+    def getter(self, fget):
+        self.fget = fget
+        return self
+        return type(self)(
+            self.type,  # type: ignore
+            self.causality,  # type: ignore
+            self.variability,  # type: ignore
+            self.initial,  # type: ignore
+            self.alias,
+            fget,
+            self.fset,
+        )
+
+    def setter(self, fset):
+        self.fset = fset
+        return self
+        return type(self)(
+            self.type,  # type: ignore
+            self.causality,  # type: ignore
+            self.variability,  # type: ignore
+            self.initial,  # type: ignore
+            self.alias,
+            self.fget,
+            fset,
+        )
+
+
+class _Fmi2InputDecorator(_Fmi2VariableDecorator):
+    """Register an input to the model which uses the specified "setter" to
+    handle new inputs to the model.
+
+    For example it may store it to an attribute "_x" for later use:
+        >>> class slave(Fmi2Slave):
+        ...
+        ...     def __init__(self):
+        ...         self._x = 10
+        ...
+        ...     @fmi2Input("real","continuous")
+        ...     def x(self,value):
+        ...         self._x = value
+        ...
+        >>> s = slave()
+        >>> v.variables[0].name
+        "x"
+        >>> v.variables[0].causality
+        "input"
+        >>> v.variables[0] = 10
+        >>> v.variables[0]
+        10
+
+    ..note:
+        This may only be used to decorate methods of classes which implement the Fmi2Slave protocol.
+    """
+
+    def __init__(
+        self,
+        type: Literal["real", "integer", "boolean", "string"],
+        variability: Literal["continuous", "discrete"],
+        alias: str = None,
+    ):
+        super().__init__(
+            type=type,
+            causality="input",
+            variability=variability,
+            initial=None,
+            alias=alias,
+        )
+
+    def __call__(self, func: Fmi2Setter_T):
+        self.fset = func
+        return self
+
+
+class _Fmi2OutputDecorator(_Fmi2VariableDecorator):
+    """Register a new output to the model using specified "getter" read the values.
+
+    In the simplest case this may simply return an attribute of the slave which has
+    been computed and stored in a prior step:
+        >>> class slave(Fmi2Slave):
+        ...
+        ...     def __init__(self):
+        ...         self._x = 10
+        ...
+        ...     @fmi2Output("real","continuous","exact")
+        ...     def x(self):
+        ...         return self._x
+        ...
+        >>> v = slave().variables[0]
+        >>> v.name
+        "x"
+        >>> v.causality
+        "output"
+        >>> v.start
+        10
+
+    If initial is set to either exact or approx, the outputs start value will
+    be determined by sampling the value after initialization of the slave object.
+
+    ..note:
+        This may only be used to decorate methods of classes which implement the Fmi2Slave protocol.
+    """
+
+    def __init__(
+        self,
+        type: Literal["real", "integer", "boolean", "string"],
+        variability: Literal["constant", "discrete", "continuous"],
+        initial: Literal["approx", "calculated", "exact"],
+        alias: str = None,
+    ):
+        super().__init__(
+            type=type,
+            causality="output",
+            variability=variability,
+            initial=initial,
+            alias=alias,
+        )
+
+
+class _Fmi2ParameterDecorator(_Fmi2VariableDecorator):
+    """Register the specified property as an parameter of the model.
+
+    This may only be used to decorate methods of classes which implement the Fmi2Slave protocol.
+    """
+
+    def __init__(
+        self,
+        type: Fmi2DataType_T,
+        variability: Literal["fixed", "tunable"],
+        alias: str = None,
+    ):
+        super().__init__(
+            type=type,
+            causality="parameter",
+            variability=variability,
+            initial=None,
+            alias=alias,
+        )
+
+    def __call__(self, func: Fmi2Setter_T):
+        self.fset = func
+        return self
+
+
+class Fmi2Slave:
     def __init__(
         self,
         modelName: str,
@@ -55,232 +264,45 @@ class Fmi2Slave(Fmi2SlaveBase):
         self._value_reference_counter = 0
         self._used_value_references = {}
 
-        self.type_to_tuple = {
-            Fmi2DataTypes.integer: (int, "integer"),
-            Fmi2DataTypes.real: (float, "real"),
-            Fmi2DataTypes.boolean: (bool, "boolean"),
-            Fmi2DataTypes.string: (str, "string"),
-        }
-
     def register_variable(
         self,
         name: str,
-        data_type: Fmi2DataTypes = None,
-        causality=Fmi2Causality.local,
-        variability=Fmi2Variability.continuous,
-        initial: Fmi2Initial = None,
-        start=None,
-        description: str = "",
-        define_attribute: bool = True,
-        value_reference: int = None,
-    ) -> Union[float, int, bool, str]:
-        """Add a variable to the model such as an input, output or parameter.
+        type: Fmi2DataType_T,
+        causality: Fmi2Causality_T,
+        variability: Fmi2Variability_T,
+        initial: Optional[Fmi2Initial_T],
+        start: Optional[Fmi2Value_T],
+        alias: str = None,
+    ) -> None:
 
-        Arguments:
-            name -- [description]
-            data_type -- [description]
-
-        Keyword Arguments:
-            causality -- defines the type of the variable, such as input, output or parameter (default: {Fmi2Causality.local})
-            variability -- defines the time dependency of the variable. (default: {Fmi2Variability.continuous})
-            initial -- defines how the variable is initialized (default: {None})
-            start -- start value of the variable. (default: {None})
-            description -- a description of the variable which is added to the model description (default: {""})
-            define_attribute -- if true, automatically add the specified attribute to instance if it does not already exist. (default: {True})
-
-        Inference Rules:
-            i1. shorthands and aliases:
-                data_type,causality,initial and variablity can be defined using string shorthands.
-
-            i2. default start values:
-                if data_type is defined but start is undefined, default values are used based on data_type
-
-            i3. data type inference:
-                if data_type is undefined but start is defined, data_type is inferred from start's type.
-
-            i4. initial based on causality and variability (2.2.7 p.49)
-                Default initial are defined based on the combination of causality and variability:
-                    * exact : constant[local|output], [fixed|tunable]parameter
-                    * calculated : [fixed|tunable][calculatedParameter|local], [continuos|discrete][local|output]
-                    * (do not define) : [discrete|continuous]input, continuos independent.
-
-
-        Validation Rules:
-            v1: data type and causality (2.2.7 p.48)
-                only real valued variables may have causality continuous
-
-            v2: causality and variability (2.2.7 p.48-49)
-                Only the following combinations of variability and causality are allowed:
-                * calculatedParameter: {fixed,tunable}
-                * independent: {continuous}
-                * input : {continuous,discrete}
-                * local : {continuous,constant,discrete,fixed,tuneable}
-                * output : {continuous,constant,discrete}
-                * parameter : {fixed,tuneable}
-
-            v3: initial allowed (2.2.7 p.49)
-                Only certain certain initials are allowed for a given combination of varability and causality.
-
-            v4: should define start (2.2.7 p.47)
-                Only certain combinations of causality, initial are allowed to provide start values.
-                * [exact|approx] -> must define start
-                * calculated -> must not define start
-                *
-
-            Ordering:
-            i1 -> i2 -> i3 -> v2 -> i4 -> v1 -> v3
-
-        """
-
-        # i1. shorthands and aliases
-        type_aliases = {
-            None: None,
-            Fmi2DataTypes.real: Fmi2DataTypes.real,
-            "real": Fmi2DataTypes.real,
-            float: Fmi2DataTypes.real,
-            Fmi2DataTypes.boolean: Fmi2DataTypes.boolean,
-            "bool": Fmi2DataTypes.boolean,
-            "boolean": Fmi2DataTypes.boolean,
-            bool: Fmi2DataTypes.boolean,
-            Fmi2DataTypes.integer: Fmi2DataTypes.integer,
-            "int": Fmi2DataTypes.integer,
-            "integer": Fmi2DataTypes.integer,
-            int: Fmi2DataTypes.integer,
-            Fmi2DataTypes.string: Fmi2DataTypes.string,
-            "string": Fmi2DataTypes.string,
-            "str": Fmi2DataTypes.string,
-            str: Fmi2DataTypes.string,
-        }
-        causality_aliases = {
-            None: None,
-            Fmi2Causality.parameter: Fmi2Causality.parameter,
-            "parameter": Fmi2Causality.parameter,
-            Fmi2Causality.calculatedParameter: Fmi2Causality.calculatedParameter,
-            "calculatedparameter": Fmi2Causality.calculatedParameter,
-            Fmi2Causality.input: Fmi2Causality.input,
-            "input": Fmi2Causality.input,
-            Fmi2Causality.output: Fmi2Causality.output,
-            "output": Fmi2Causality.output,
-            Fmi2Causality.local: Fmi2Causality.local,
-            "local": Fmi2Causality.local,
-            Fmi2Causality.independent: Fmi2Causality.independent,
-            "independent": Fmi2Causality.independent,
-        }
-        initial_aliases = {
-            None: None,
-            Fmi2Initial.exact: Fmi2Initial.exact,
-            "exact": Fmi2Initial.exact,
-            Fmi2Initial.approx: Fmi2Initial.approx,
-            "approx": Fmi2Initial.approx,
-            Fmi2Initial.calculated: Fmi2Initial.calculated,
-            "calculated": Fmi2Initial.calculated,
-        }
-        variability_aliases = {
-            None: None,
-            Fmi2Variability.constant: Fmi2Variability.constant,
-            "constant": Fmi2Variability.constant,
-            Fmi2Variability.fixed: Fmi2Variability.fixed,
-            "fixed": Fmi2Variability.fixed,
-            Fmi2Variability.tunable: Fmi2Variability.tunable,
-            "tunable": Fmi2Variability.tunable,
-            Fmi2Variability.discrete: Fmi2Variability.discrete,
-            "discrete": Fmi2Variability.discrete,
-            Fmi2Variability.continuous: Fmi2Variability.continuous,
-            "continuous": Fmi2Variability.continuous,
-        }
-
-        if data_type not in type_aliases:
-            raise ValueError(
-                f"Unrecognized data type: {data_type}. Possible values are {type_aliases.keys()}"
-            )
-
-        if causality not in causality_aliases:
-            raise ValueError(
-                f"Unrecognized causality: {causality}. Possible values are {causality_aliases.keys()}"
-            )
-
-        if initial not in initial_aliases:
-            raise ValueError(
-                f"Unrecognized initial: {initial}. Possible values are {initial_aliases.keys()}"
-            )
-
-        if variability not in variability_aliases:
-            raise ValueError(
-                f"Unrecognized initial: {variability}. Possible values are {variability_aliases.keys()}"
-            )
-
-        data_type = type_aliases[data_type]
-        causality = causality_aliases[causality]
-        initial = initial_aliases[initial]
-        variability = variability_aliases[variability]
-
-        data_type, causality, variability, initial, start = infer_undefined_attributes(
-            data_type, causality, variability, initial, start
-        )
-
-        # if not specified find an unused value reference
-        if value_reference is None:
-            value_reference = self._acquire_unused_value_reference()
-
-        var = Fmi2ScalarVariable(
-            name=name,
-            data_type=data_type,
-            initial=initial,
-            causality=causality,
-            variability=variability,
-            description=description,
-            start=start,
-            value_reference=value_reference,
-        )
-
-        self._vars.append(var)
-
-        if define_attribute:
-            self._define_variable(var)
-
-        return start
+        print(f"registering variable: {type}:{causality}:{initial}:{variability}")
 
     def register_log_category(self, name: str):
-        """Registers a new log category which will be visible to the simulation tool..
-        This information is used by co-simulation engines to filter messages.
-
-
-        Arguments:
-            name {str} -- name of the category.
-
-        Examples:
-
-        ```
-        self.register_log_category('runtime validation')
-
-        ```
-        """
-
-        self._logger.register_log_category(name)
+        raise NotImplementedError()
 
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
-    ) -> Fmi2Status:
+    ) -> Fmi2Status_T:
         return Fmi2Status.ok
 
-    def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Variable], Fmi2Status]:
+    def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Value_T], Fmi2Status_T]:
         raise NotImplementedError()
 
-    def set_xxx(self, references: List[int], values: List[Fmi2Variable]) -> Fmi2Status:
+    def set_xxx(self, references: List[int], values: List[Fmi2Value_T]) -> Fmi2Status_T:
         raise NotImplementedError()
 
     def setup_experiment(
         self, start_time: float, stop_time: float = None, tolerance: float = None
-    ) -> Fmi2Status:
+    ) -> Fmi2Status_T:
         return Fmi2Status.ok
 
-    def enter_initialization_mode(self) -> Fmi2Status:
+    def enter_initialization_mode(self) -> Fmi2Status_T:
         return Fmi2Status.ok
 
-    def exit_initialization_mode(self) -> Fmi2Status:
+    def exit_initialization_mode(self) -> Fmi2Status_T:
         return Fmi2Status.ok
 
-    def reset(self) -> Fmi2Status:
+    def reset(self) -> Fmi2Status_T:
         return Fmi2Status.ok
 
     def _acquire_unused_value_reference(self) -> int:
@@ -293,29 +315,17 @@ class Fmi2Slave(Fmi2SlaveBase):
             if vr not in self._used_value_references:
                 return vr
 
-    def _define_variable(self, sv: Fmi2ScalarVariable):
-
-        if not hasattr(self, sv.name):
-
-            setattr(self, sv.name, sv.start)
-            return
-
-        if sv.initial in {Fmi2Initial.exact, Fmi2Initial.approx}:
-            old = getattr(self, sv.name)
-            new = sv.start
-
-            if old != new:
-                self.log(
-                    f"start value variable defined using the 'register_variable' function does not match initial value, using the new value: {new}",
-                    "wrapper",
-                    Fmi2Status.warning,
-                )
-                setattr(self, sv.name, new)
-
     @property
     def log_categories(self) -> List[str]:
+        raise NotImplementedError()
         return []  # TODO
 
     @property
     def variables(self) -> List[Fmi2ScalarVariable]:
-        return self._vars
+        raise NotImplementedError()
+        return []  # TODO
+
+    # ----- Short-hand access to decorators -----
+    input = _Fmi2InputDecorator
+    output = _Fmi2OutputDecorator
+    parameter = _Fmi2ParameterDecorator
