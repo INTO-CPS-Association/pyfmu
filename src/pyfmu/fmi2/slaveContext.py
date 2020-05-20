@@ -8,7 +8,7 @@ import sys
 from pyfmu.fmi2.types import Fmi2Status_T, Fmi2Status
 from pyfmu.fmi2.logging import Fmi2CallbackLogger
 from pyfmu.utils import file_uri_to_path
-from pyfmu.fmi2.types import IsFmi2Slave
+from pyfmu.fmi2.types import IsFmi2Slave, Fmi2Value_T
 
 
 SlaveHandle = int
@@ -16,7 +16,10 @@ Fmi2Value = Union[float, int, bool, str]
 Fmi2LoggingCallback = Callable[[Fmi2Status_T, str, str, str], None]
 
 
-class Fmi2SlaveManager:
+class Fmi2SlaveContext:
+    """Mediate access to multiple slave instances using handles as references.
+    """
+
     def __init__(self):
 
         self._slaves: Dict[SlaveHandle, IsFmi2Slave] = {}
@@ -42,11 +45,11 @@ class Fmi2SlaveManager:
             4. A handle to the instance is returned to the FMI interface.
 
         Args:
-            instance_name: [description]
+            instance_name: identifier of the slave instance
             type: [description]
             guid: [description]
             resources_uri: [description]
-            logging_callback ([type]): [description]
+            logging_callback: [description]
             visible (bool): [description]
             logging_on (bool): [description]
 
@@ -79,6 +82,12 @@ class Fmi2SlaveManager:
         self._loggers[handle] = logger
 
         return handle
+
+    def free_instance(self, handle: SlaveHandle) -> Fmi2Value_T:
+        try:
+            del self._slaves[handle]
+        except Exception as e:
+            self._loggers[handle].log(str(e))
 
     def do_step(
         self,

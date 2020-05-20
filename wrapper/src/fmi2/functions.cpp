@@ -1,29 +1,32 @@
 #include <exception>
+#include <iostream>
 #include <limits>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <vector>
 
+#include "pybind11/embed.h"
 #include <fmt/format.h>
 
+#include "pyfmu/utils.hpp"
 #include "spec/fmi2/fmi2Functions.h"
 
-#include "pyfmu/fmi2/logging.hpp"
-#include "pyfmu/fmi2/slaveAdapter.hpp"
-#include "pyfmu/fmi2/slaveFactory.hpp"
-#include "pyfmu/utils.hpp"
+inline pybind11::object slaveContext;
+inline std::mutex mutex;
+inline bool initialized = false;
 
-using namespace fmt;
-using namespace std;
-using namespace pyfmu::fmi2;
-using namespace std;
-using std::filesystem::path;
+using lock = std::scoped_lock<std::mutex>;
 
-void noOpsLogCallback(fmi2ComponentEnvironment, fmi2String, fmi2Status,
-                      fmi2String, fmi2String, ...) {}
-
-SlaveFactory slaveFactory;
+void initManager() {
+  if (!Py_IsInitialized()) {
+    pybind11::initialize_interpreter();
+  }
+  pybind11::gil_scoped_acquire gil;
+  slaveContext = pybind11::module::import("pyfmu.fmi2.slaveContext")
+                     .attr("Fmi2SlaveContext")();
+}
 
 // FMI functions
 extern "C" {
@@ -41,127 +44,111 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                               fmi2String fmuResourceLocation,
                               const fmi2CallbackFunctions *functions,
                               fmi2Boolean visible, fmi2Boolean loggingOn) {
+  lock l(mutex);
+  pybind11::gil_scoped_acquire gil;
 
-  bool useLogger = functions != nullptr && functions->logger && loggingOn;
-  Logger *logger;
-
-  if (useLogger) {
-    logger = new Logger(functions->componentEnvironment, functions->logger,
-                        instanceName);
-  } else {
-    logger = new Logger(functions->componentEnvironment, noOpsLogCallback,
-                        instanceName);
+  if (!initialized) {
+    try {
+      initManager();
+    } catch (const std::exception &e) {
+      std::cerr << e.what() << '\n';
+      return nullptr;
+    }
   }
 
   try {
-    path resources = pyfmu::getPathFromFileUri(fmuResourceLocation);
-    auto test = pyfmu::getFileUriFromPath(resources);
-    logger->ok("wrapper",
-               "Successfully parsed the resource folder URI pointing to : {}",
-               resources.string());
-    auto config =
-        read_configuration(resources / "slave_configuration.json", logger);
-    logger->ok("wrapper", "The slave configuration successfully parsed.");
-    return slaveFactory.createSlaveForConfiguration(config, logger);
 
+    int fmuTypeInt = fmuType;
+    auto handle = slaveContext
+                      .attr("instantiate")(instanceName, fmuTypeInt, fmuGUID,
+                                           fmuResourceLocation, nullptr,
+                                           visible, loggingOn)
+                      .cast<int>();
+    return new int(handle);
   } catch (const std::exception &e) {
-    logger->fatal("wrapper",
-                  "Failed to instantiate the FMU, an error was raised: {}.",
-                  e.what());
-    return nullptr;
+
+    std::cerr << e.what() << '\n';
   }
+
+  return nullptr;
 }
 
 void fmi2FreeInstance(fmi2Component c) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  delete cc;
+  std::lock_guard lock(mutex);
+  try {
+    slaveContext.attr("free_instance")(*(int *)(c));
+    delete c;
+  } catch (const std::exception &) {
+    return; // TODO
+  }
 }
 
 fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,
                                size_t nCategories,
                                const fmi2String categories[]) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->setDebugLogging(true, nCategories, categories);
+  std::lock_guard lock(mutex);
+  pybind11::gil_scoped_acquire gil;
+
+  bool loggingOnBool = loggingOn;
+  std::vector categoriesVector slaveContext.attr("set_debug_logging",
+                                                 loggingOnBool)
 }
 
 fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
                                fmi2Real tolerance, fmi2Real startTime,
                                fmi2Boolean stopTimeDefined, fmi2Real stopTime) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->setupExperiment(toleranceDefined, tolerance, startTime,
-                             stopTimeDefined, stopTime);
+  return fmi2Fatal;
 }
 
-fmi2Status fmi2EnterInitializationMode(fmi2Component c) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->enterInitializationMode();
-}
+fmi2Status fmi2EnterInitializationMode(fmi2Component c) { return fmi2Fatal; }
 
-fmi2Status fmi2ExitInitializationMode(fmi2Component c) {
+fmi2Status fmi2ExitInitializationMode(fmi2Component c) { return fmi2Fatal; }
 
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->exitInitializationMode();
-}
+fmi2Status fmi2Terminate(fmi2Component c) { return fmi2Fatal; }
 
-fmi2Status fmi2Terminate(fmi2Component c) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->terminate();
-}
-
-fmi2Status fmi2Reset(fmi2Component c) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->reset();
-}
+fmi2Status fmi2Reset(fmi2Component c) { return fmi2Fatal; }
 
 fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[],
                        size_t nvr, fmi2Real value[]) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->getReal(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[],
                           size_t nvr, fmi2Integer value[]) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->getInteger(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2GetBoolean(fmi2Component c, const fmi2ValueReference vr[],
                           size_t nvr, fmi2Boolean value[]) {
 
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->getBoolean(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2GetString(fmi2Component c, const fmi2ValueReference vr[],
                          size_t nvr, fmi2String value[]) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->getString(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2SetReal(fmi2Component c, const fmi2ValueReference vr[],
                        size_t nvr, const fmi2Real value[]) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->setReal(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2SetInteger(fmi2Component c, const fmi2ValueReference vr[],
                           size_t nvr, const fmi2Integer value[]) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->setInteger(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2SetBoolean(fmi2Component c, const fmi2ValueReference vr[],
                           size_t nvr, const fmi2Boolean value[]) {
 
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->setBoolean(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2SetString(fmi2Component c, const fmi2ValueReference vr[],
                          size_t nvr, const fmi2String value[]) {
 
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->setString(vr, nvr, value);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2GetFMUstate(fmi2Component c, fmi2FMUstate *) {
@@ -210,9 +197,7 @@ fmi2Status fmi2GetRealOutputDerivatives(fmi2Component c,
 fmi2Status fmi2DoStep(fmi2Component c, fmi2Real currentCommunicationPoint,
                       fmi2Real communicationStepSize,
                       fmi2Boolean noSetFMUStatePriorToCurrentPoint) {
-  auto cc = reinterpret_cast<SlaveAdapter *>(c);
-  return cc->doStep(currentCommunicationPoint, communicationStepSize,
-                    noSetFMUStatePriorToCurrentPoint);
+  return fmi2Fatal;
 }
 
 fmi2Status fmi2CancelStep(fmi2Component c) { return fmi2Error; }

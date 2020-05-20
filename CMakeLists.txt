@@ -80,10 +80,6 @@ set(EXTERNAL_LIBS uriparser)
 add_library(pyfmu 
         SHARED
         wrapper/src/fmi2/functions.cpp
-        wrapper/src/fmi2/embeddedSlave.cpp
-        wrapper/src/fmi2/slaveAdapter.cpp
-        wrapper/src/fmi2/slaveFactory.cpp
-        wrapper/src/fmi2/configuration.cpp
         wrapper/src/utils.cpp
 )
 target_include_directories(pyfmu

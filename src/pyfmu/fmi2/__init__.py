@@ -6,4 +6,4 @@ from .types import (  # noqa: F401
     Fmi2Variability,
 )
 from .slave import Fmi2Slave  # noqa: F401
-from .slaveManager import Fmi2SlaveManager  # noqa: F401
+from .slaveContext import Fmi2SlaveContext  # noqa: F401

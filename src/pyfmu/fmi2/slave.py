@@ -112,10 +112,6 @@ class Fmi2Slave:
             Fmi2SlaveError: raised if a combination of variables are provided which does not
 
         """
-        if attr_name not in dir(self):
-            raise SlaveAttributeError(
-                f"The slave instance has no attribute: {attr_name}"
-            )
 
         if attr_name in [v.name for v in self.variables]:
             raise SlaveAttributeError(f"Attribute has already been registered.")
