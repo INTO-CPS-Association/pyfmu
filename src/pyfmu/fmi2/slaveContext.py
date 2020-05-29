@@ -1,6 +1,6 @@
-from typing import Dict, Tuple, Union, List, Callable
+from typing import Dict, Tuple, Union, List, Callable, Optional
 import importlib
-
+import logging
 from pathlib import Path
 import json
 import sys
@@ -32,9 +32,8 @@ class Fmi2SlaveContext:
         fmu_type: str,
         guid: str,
         resources_uri: str,
-        logging_callback: Fmi2LoggingCallback,
+        logging_callback: Optional[Fmi2LoggingCallback],
         visible: bool,
-        logging_on: bool,
     ) -> SlaveHandle:
         """Create a new instance of the specified FMU and return a handle to the caller.
 
@@ -50,7 +49,7 @@ class Fmi2SlaveContext:
             guid: [description]
             resources_uri: [description]
             logging_callback: [description]
-            visible (bool): [description]
+            visible (bool): if false, limit the FMUs interaction with the user plotting and animatios, see (2.1.5 p.19)
             logging_on (bool): [description]
 
         Returns:
@@ -69,11 +68,11 @@ class Fmi2SlaveContext:
         with open(url_path / "slave_configuration.json", "r") as f:
             config = json.load(f)
 
-        slave_module = Path(config["main_script"]).stem
-        slave_class = config["main_class"]
+        slave_module = Path(config["slave_script"]).stem
+        slave_class = config["slave_class"]
 
         # instantiate object
-        instance = getattr(importlib.import_module(slave_module), slave_class)
+        instance = getattr(importlib.import_module(slave_module), slave_class)()
 
         def get_free_handle() -> SlaveHandle:
             i = 0
