@@ -25,11 +25,10 @@ def get_example_directory() -> Path:
     """
     Returns the path to the example projects
     """
-    p = Path(__file__).parent.parent / "examples"
-    if not p.is_dir():
-        raise FileNotFoundError(
-            "Expected example directory : {p} does not appear to exist. Ensure the directory exists at the specified path or update this function."
-        )
+    p = Path(__file__).parent.parent.parent / "examples"
+    assert (
+        p.is_dir()
+    ), f"Expected example directory : {p} does not appear to exist. Ensure the directory exists at the specified path or update this function."
 
     return p
 
@@ -174,7 +173,7 @@ class ExampleArchive:
         outdir = Path(self.tmpdir) / project_name
 
         with ExampleProject(project_name) as p:
-            self.archive = export_project(p, outdir, store_compressed=False)
+            self.archive = export_project(p, outdir, compress=False)
 
     def __enter__(self) -> PyfmuArchive:
         return self.archive

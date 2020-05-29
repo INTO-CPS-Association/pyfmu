@@ -1,10 +1,8 @@
-"""Contains definitions for common types used throughout the library."""
+"""Contains definitions for types that are not specific for FMI2 and FMI3."""
 
-from pathlib import Path
 import os
-from typing import Union, Any, Protocol
+from typing import Union
 
 
 """A path represented either by a path object or a platform specific string."""
 AnyPath = Union[str, os.PathLike]
-os.PathLike

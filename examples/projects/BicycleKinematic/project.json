@@ -1,1 +1,4 @@
-{"main_class": "Bicycle_Kinematic", "main_script": "bicycle_kinematic.py"}
+{
+    "slave_class": "Bicycle_Kinematic",
+    "slave_script": "bicycle_kinematic.py"
+}

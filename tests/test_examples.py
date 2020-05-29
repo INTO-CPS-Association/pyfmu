@@ -24,7 +24,7 @@ def fmi_logger(m):
 
 # validate every example with
 _validate_with = ["fmpy", "fmucheck", "vdmcheck", "maestro_v1"]
-_validate_with = ["fmucheck"]
+_validate_with = ["vdmcheck"]
 
 
 def test_shared_library_can_be_loaded():
@@ -50,8 +50,8 @@ def test_shared_library_can_be_loaded():
 
 def test_Adder():
     with ExampleArchive("Adder") as a:
-
-        assert validate_fmu(a.root, _validate_with).valid
+        res = validate_fmu(a.root, _validate_with)
+        assert res.valid
 
 
 def test_BicycleKinematic():

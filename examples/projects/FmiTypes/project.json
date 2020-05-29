@@ -1,1 +1,4 @@
-{"main_class": "FmiTypes", "main_script": "fmitypes.py"}
+{
+    "slave_class": "FmiTypes",
+    "slave_script": "fmitypes.py"
+}

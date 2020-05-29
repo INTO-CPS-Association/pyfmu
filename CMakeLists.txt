@@ -80,7 +80,6 @@ find_package(pybind11 REQUIRED)
 add_library(pyfmu 
         SHARED
         wrapper/src/fmi2/functions.cpp
-        wrapper/src/utils.cpp
 )
 target_include_directories(pyfmu
         PUBLIC
@@ -102,25 +101,25 @@ target_link_libraries(pyfmu
 
 ######################################## WRAPPER-TESTS ########################################
 
-add_executable(wrapper-tests
-        wrapper/tests/src/tests.cpp
-        wrapper/tests/src/example_finder.cpp
-        wrapper/tests/src/tmpdir.cpp
-)
+# add_executable(wrapper-tests
+#         wrapper/tests/src/tests.cpp
+#         wrapper/tests/src/example_finder.cpp
+#         wrapper/tests/src/tmpdir.cpp
+# )
 
-target_include_directories(wrapper-tests 
-        PRIVATE 
-        wrapper/tests/include
-)
+# target_include_directories(wrapper-tests 
+#         PRIVATE 
+#         wrapper/tests/include
+# )
 
-target_compile_features(wrapper-tests PUBLIC "cxx_std_20")
+# target_compile_features(wrapper-tests PUBLIC "cxx_std_20")
 
-target_link_libraries(wrapper-tests 
-        PRIVATE 
-        pyfmu
-        CONAN_PKG::catch2
-        CONAN_PKG::spdlog
-)
+# target_link_libraries(wrapper-tests 
+#         PRIVATE 
+#         pyfmu
+#         CONAN_PKG::catch2
+#         CONAN_PKG::spdlog
+# )
 
 # multi-configuration generators such as MSVC puts different builds in seperate folders
 # we dumpy them in the root of the build to be able to copy them more easily.

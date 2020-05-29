@@ -10,7 +10,6 @@
 #include "pybind11/embed.h"
 #include <fmt/format.h>
 
-#include "pyfmu/utils.hpp"
 #include "spec/fmi2/fmi2Functions.h"
 
 inline pybind11::object slaveContext;
@@ -86,12 +85,13 @@ void fmi2FreeInstance(fmi2Component c) {
 fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,
                                size_t nCategories,
                                const fmi2String categories[]) {
+  return fmi2Status::fmi2OK;
   std::lock_guard lock(mutex);
   pybind11::gil_scoped_acquire gil;
 
   bool loggingOnBool = loggingOn;
-  std::vector categoriesVector slaveContext.attr("set_debug_logging",
-                                                 loggingOnBool)
+  // std::vector categoriesVector slaveContext.attr("set_debug_logging",
+  //                                                loggingOnBool)
 }
 
 fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,

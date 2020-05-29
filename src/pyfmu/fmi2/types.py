@@ -237,21 +237,26 @@ class Fmi2ScalarVariable:
         return f"{self.name}:{self.data_type}:{self.causality}:{initial_str}"
 
 
-class IsFmi2Slave(Protocol):
+class Fmi2SlaveLike(Protocol):
     """Interface implemented by classes adhering to the FMI2 interface.
+
     It declares a set of functions which are invoked whenever the
-    corresponding function is called in the fmi interface.
+    corresponding function is called in the fmi interface. In most cases it is
+    recommended to subclass the Fmi2Slave rather than the Fmi2SlaveLike interface. 
+    
+    .. note::
+        Slaves variables are accessed as attributes rather than the fmi2SetXXX or 
+        fmi2GetXXX methods defined by the FMI2 interface.The mapping between value 
+        references and attribute names is carried out by the slave context class.
+
+        Specifically, every entry in the variables list must be backed by an attribute
+        on the slave object. This may be defined as a plain attribute, a property or by
+        overloading the __setattr__ method.
     """
 
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
     ) -> Fmi2Status_T:
-        ...
-
-    def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Value_T], Fmi2Status_T]:
-        ...
-
-    def set_xxx(self, references: List[int], values: List[Fmi2Value_T]) -> Fmi2Status_T:
         ...
 
     def setup_experiment(

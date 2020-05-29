@@ -1,4 +1,4 @@
 {
-    "main_script": "sinegenerator.py",
-    "main_class": "SineGenerator"
+    "slave_script": "sinegenerator.py",
+    "slave_class": "SineGenerator"
 }

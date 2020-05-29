@@ -3,13 +3,10 @@
 #include <set>
 #include <stdexcept>
 
-
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 #include "example_finder.hpp"
-#include "pyfmu/utils.hpp"
-
 
 using namespace std;
 using namespace fmt;

@@ -203,7 +203,7 @@ def is_fmu_archive(path_to_archive: AnyPath) -> bool:
 
      >>> is_fmu_archive("myfmu.fmu")
      True
-     >>> is_fmu_arcive("myfmu")
+     >>> is_fmu_archive("myfmu")
      False
      >>> is_fmu_archive("test.txt")
      False
@@ -252,7 +252,7 @@ def is_fmu_directory(path_to_directory: AnyPath) -> bool:
     Returns:
         bool -- true if the path refers to a extracted FMU, false otherwise
     """
-    path_to_directory = Path(path_to_directory)
+    path_to_directory: Path = Path(path_to_directory)
     model_description_path = path_to_directory / "modelDescription.xml"
     return model_description_path.is_file()
 
@@ -290,7 +290,7 @@ class TemporaryFMUArchive:
             self.should_cleanup = True
         else:
             raise ValueError(
-                "The specified path does not appear to be a FMU archive or directory."
+                "The specified path does not appear to be a FMU archive or FMU directory."
             )
 
     def __enter__(self) -> Path:

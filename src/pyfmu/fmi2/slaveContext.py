@@ -8,7 +8,7 @@ import sys
 from pyfmu.fmi2.types import Fmi2Status_T, Fmi2Status
 from pyfmu.fmi2.logging import Fmi2CallbackLogger
 from pyfmu.utils import file_uri_to_path
-from pyfmu.fmi2.types import IsFmi2Slave, Fmi2Value_T
+from pyfmu.fmi2.types import Fmi2SlaveLike, Fmi2Value_T
 
 
 SlaveHandle = int
@@ -22,7 +22,7 @@ class Fmi2SlaveContext:
 
     def __init__(self):
 
-        self._slaves: Dict[SlaveHandle, IsFmi2Slave] = {}
+        self._slaves: Dict[SlaveHandle, Fmi2SlaveLike] = {}
         self._slave_to_ids_to_attr: Dict[SlaveHandle, Dict[int, str]] = {}
         self._loggers: Dict[SlaveHandle, Fmi2CallbackLogger] = {}
 

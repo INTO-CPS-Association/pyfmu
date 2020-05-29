@@ -1,4 +1,4 @@
 {
-    "main_script": "adder.py",
-    "main_class": "Adder"
+    "slave_script": "adder.py",
+    "slave_class": "Adder"
 }

@@ -1,18 +1,27 @@
 """Script for building the C++ code and copying it to the resources
 """
-import subprocess
-from pathlib import Path
+import argparse
+import logging
 import os
 import platform
-import logging
+import subprocess
 import sys
+from pathlib import Path
 from shutil import copy
-import argparse
 
-from src.pyfmu.resources.resources import Resources
+from tqdm import tqdm
+
+from tests.utils.example_finder import (
+    get_all_examples,
+    get_example_directory,
+    get_example_project,
+)
+from pyfmu.builder import export_project
+from pyfmu.resources import Resources
+
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-l = logging.getLogger(__file__)
+logger = logging.getLogger(__file__)
 
 
 class cd:
@@ -112,14 +121,14 @@ def copy_binaries():
 
     binary_in = _get_input_binary_path_for_host()
 
-    l.debug(f"Looking for compiled binary at path: {binary_in}")
+    logger.debug(f"Looking for compiled binary at path: {binary_in}")
 
     if not binary_in.is_file():
         raise RuntimeError(f"The compiled binary could not be found at: {binary_in}")
 
     binary_out = _get_output_binary_path_for_host()
 
-    l.debug("Binaries were found.")
+    logger.debug("Binaries were found.")
 
     try:
         os.makedirs(binary_out.parent, exist_ok=True)
@@ -147,12 +156,12 @@ def build(debug_build: bool):
     p = platform.system()
 
     build_dir = Path(__file__).parent / "build"
-    l.log(logging.DEBUG, f"Preparing build to folder {build_dir}")
+    logger.log(logging.DEBUG, f"Preparing build to folder {build_dir}")
 
     # Create build folder and configure CMake
     if not build_dir.is_dir():
 
-        l.log(logging.DEBUG, "Build folder does not exists, creating")
+        logger.log(logging.DEBUG, "Build folder does not exists, creating")
 
         try:
             os.makedirs(build_dir)
@@ -190,7 +199,7 @@ def build(debug_build: bool):
 
         # CMake build
         try:
-            l.log(logging.DEBUG, "Building project")
+            logger.log(logging.DEBUG, "Building project")
 
             if p == "Windows":
                 res = subprocess.run(
@@ -240,43 +249,44 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    l.log(logging.DEBUG, "Building project.")
+    logger.log(logging.DEBUG, "Building project.")
     try:
         build(debug_build=args.debug_build)
     except Exception as e:
-        l.log(logging.ERROR, f"Failed building PyFMU, an exception was thrown:\n{e}")
+        logger.log(
+            logging.ERROR, f"Failed building PyFMU, an exception was thrown:\n{e}"
+        )
         sys.exit(-1)
 
-    l.debug("Succesfully build project.")
+    logger.debug("Succesfully build project.")
 
     should_update_wrapper = args.update_wrapper or args.export_examples
 
     if should_update_wrapper:
-        l.debug("Copying the binaries to resource folder")
+        logger.debug("Copying the binaries to resource folder")
 
         try:
             copy_binaries()
             pass
         except Exception as e:
-            l.log(
+            logger.log(
                 logging.ERROR,
                 f"Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}",
             )
             sys.exit(-1)
 
-        l.debug("Binaries were sucessfully copied to resources.")
+        logger.debug("Binaries were sucessfully copied to resources.")
 
     if args.export_examples:
 
-        try:
-            from pyfmu.tests import export_all
+        logger.debug(f"Exporting examples {get_all_examples()}")
 
-        except Exception as e:
-            l.warning(
-                'Unable to export projects, pyfmu is not built. To export build the python application first using : "pip install -e ." '
+        for name in tqdm(get_all_examples(), desc="exported"):
+
+            project = get_example_project(name)
+
+            export_project(
+                project_or_path=project,
+                output_path=get_example_directory() / "exported" / name,
+                compress=False,
             )
-            sys.exit(-1)
-
-        export_all()
-
-        l.debug("Sucessfully exported projects")

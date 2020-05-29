@@ -8,7 +8,6 @@
 #include "spdlog/spdlog.h"
 
 #include "example_finder.hpp"
-#include "pyfmu/utils.hpp"
 #include "spec/fmi2/fmi2Functions.h"
 
 using namespace std;
