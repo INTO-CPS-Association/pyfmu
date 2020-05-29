@@ -72,8 +72,8 @@ conan_cmake_run(REQUIRES
 find_package(pybind11 REQUIRED)
 
 # 2. source tree packages
-add_subdirectory(uriparser)
-set(EXTERNAL_LIBS uriparser)
+# add_subdirectory(uriparser)
+# set(EXTERNAL_LIBS uriparser)
 
 
 ######################################## WRAPPER ########################################

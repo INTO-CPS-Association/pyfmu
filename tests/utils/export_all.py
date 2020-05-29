@@ -2,11 +2,7 @@
 """
 
 
-from pathlib import Path
-
-import tqdm
-
-from pyfmu.tests import get_example_project, get_all_examples, get_example_directory
+from . import get_example_project, get_all_examples, get_example_directory
 
 from pyfmu.builder.export import export_project
 from pyfmu.builder.generate import PyfmuProject
@@ -17,7 +13,7 @@ def export_all():
 
         p = get_example_project(name)
 
-        outdir = get_example_directory() / 'exported' / name
+        outdir = get_example_directory() / "exported" / name
         project = PyfmuProject.from_existing(p)
         export_project(project, outdir, overwrite=True)
 

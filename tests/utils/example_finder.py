@@ -25,7 +25,7 @@ def get_example_directory() -> Path:
     """
     Returns the path to the example projects
     """
-    p = Path(__file__).parent.parent.parent.parent / "examples"
+    p = Path(__file__).parent.parent / "examples"
     if not p.is_dir():
         raise FileNotFoundError(
             "Expected example directory : {p} does not appear to exist. Ensure the directory exists at the specified path or update this function."

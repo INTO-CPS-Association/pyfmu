@@ -8,7 +8,7 @@ from pyfmu.builder.utils import (
     TemporaryFMUArchive,
     rm,
 )
-from pyfmu.tests import ExampleArchive
+from .utils import ExampleArchive
 
 
 class TestCompress:

@@ -6,10 +6,10 @@
 
 PyFMU is a library that allows FMUs to be implemented using in Python 3. Its goal is to enable rapid prototyping of a wide of FMUs for a wide range of use cases.
 
-Its highligts include:
+Its highlights include:
 
 * Supports FMI 2.0.
-* Write FMUs in high-level langauge.
+* Write FMUs in high-level language.
 * Use the extensive collection of standard and third party libraries.
 * Model description automatically generated.
 * Model can be changed without re-compilation.

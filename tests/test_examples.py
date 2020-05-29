@@ -11,7 +11,7 @@ from fmpy.simulation import FMU2Slave
 from fmpy.model_description import read_model_description
 
 from pyfmu.builder import validate_fmu
-from pyfmu.tests import get_all_examples, get_correct_examples, ExampleArchive
+from .utils import get_all_examples, get_correct_examples, ExampleArchive
 
 
 def log_callback(e, i, s, c, m):

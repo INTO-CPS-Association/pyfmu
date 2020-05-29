@@ -74,7 +74,14 @@ class Fmi2SlaveContext:
 
         # instantiate object
         instance = getattr(importlib.import_module(slave_module), slave_class)
-        handle = self._get_free_handle()
+
+        def get_free_handle() -> SlaveHandle:
+            i = 0
+            while i in self._slaves:
+                i += 1
+            return i
+
+        handle = get_free_handle()
 
         logger = Fmi2CallbackLogger(instance_name, logging_callback)
 
@@ -88,6 +95,7 @@ class Fmi2SlaveContext:
             del self._slaves[handle]
         except Exception as e:
             self._loggers[handle].log(str(e))
+            raise e
 
     def do_step(
         self,
@@ -96,6 +104,17 @@ class Fmi2SlaveContext:
         step_size: float,
         no_set_state_prior: bool,
     ) -> Fmi2Status_T:
+        """Invoke step method on the slave specified by the handle.
+
+        Args:
+            handle (SlaveHandle): [description]
+            current_time (float): [description]
+            step_size (float): [description]
+            no_set_state_prior (bool): [description]
+
+        Returns:
+            Fmi2Status_T: [description]
+        """
         assert handle in self._slaves
         assert current_time >= 0
 
@@ -104,6 +123,16 @@ class Fmi2SlaveContext:
     def set_xxx(
         self, handle: SlaveHandle, references: List[int], values: List[Fmi2Value]
     ) -> Fmi2Status_T:
+        """Set variables of the slave specified by the handle.
+
+        Args:
+            handle (SlaveHandle): [description]
+            references (List[int]): [description]
+            values (List[Fmi2Value]): [description]
+
+        Returns:
+            Fmi2Status_T: [description]
+        """
 
         attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
 
@@ -115,15 +144,11 @@ class Fmi2SlaveContext:
     def get_xxx(
         self, handle: SlaveHandle, references: List[int]
     ) -> Tuple[List[Fmi2Value], Fmi2Status_T]:
+        """Read variables of the slave specified by the handle.
+        """
 
         s = self._slaves[handle]
         attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
         values = [getattr(s, a) for a in attributes]
 
         return (values, Fmi2Status.ok)
-
-    def _get_free_handle(self) -> SlaveHandle:
-        i = 0
-        while i in self._slaves:
-            i += 1
-        return i

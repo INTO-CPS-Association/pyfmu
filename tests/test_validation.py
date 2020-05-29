@@ -1,6 +1,6 @@
 import pytest
 
-from pyfmu.tests import get_all_examples, ExampleArchive
+from .utils import get_all_examples, ExampleArchive
 from pyfmu.builder import validate_fmu
 
 

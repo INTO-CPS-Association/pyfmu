@@ -1,30 +1,21 @@
-from distutils.dir_util import copy_tree
-
-from os import makedirs, rename
-from os.path import (
-    join,
-    dirname,
-    basename,
-    exists,
-    splitext,
-)
-from pathlib import Path
-from shutil import copytree, rmtree, make_archive
 import importlib
 import json
 import logging
 import sys
+from importlib.util import module_from_spec, spec_from_file_location
+from os import makedirs, rename
+from os.path import basename, dirname, exists, join, splitext
+from pathlib import Path
+from shutil import copytree, make_archive, rmtree
+from tempfile import TemporaryDirectory
+from typing import Union
 
-from pyfmu.builder import (
-    extract_model_description_v2,
-    validate_project,
-    PyfmuProject,
-)
+from pyfmu.builder import PyfmuProject, extract_model_description_v2, validate_project
 from pyfmu.resources import Resources
+from pyfmu.types import AnyPath
+from pyfmu.builder.utils import DisplayablePath
 
-_log = logging.getLogger(__name__)
-
-_exists_ok = True
+logger = logging.getLogger(__name__)
 
 
 class PyfmuArchive:
@@ -67,29 +58,6 @@ class PyfmuArchive:
         self.wrapper_win64 = wrapper_win64
         self.wrapper_linux64 = wrapper_linux64
         self.pyfmu_dir = pyfmu_dir
-
-
-def import_by_source(path: str):
-    """Loads a python module using its name and the path to the python source script.
-
-    Arguments:
-        path {str} -- path to the module
-
-    Returns:
-        module -- module loaded from the source file.
-    """
-
-    module = splitext(basename(path))[0]
-
-    sys.path.append(dirname(path))
-
-    spec = importlib.util.spec_from_file_location(module, path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    sys.path.pop()
-
-    return module
 
 
 def _available_export_platforms():
@@ -213,7 +181,7 @@ def _write_slaveConfiguration_to_archive(
 
     # currently project and slave configuration contains same info
     slave_configuration = project.project_configuration
-    slave_configuration["logging"] = {"override_log_categories": []}
+    slave_configuration["logging"] = {"overridelogger_categories": []}
 
     makedirs(archive_slave_configuration_path.parent)
 
@@ -276,7 +244,7 @@ def _validate_model_description(md: str) -> bool:
     return True
 
 
-def export_project(
+def export_project_old(
     project: PyfmuProject,
     outputPath: Path,
     overwrite=False,
@@ -352,3 +320,95 @@ def export_project(
     _write_modelDescription_to_archive(project, archive)
 
     return archive
+
+
+def export_project(
+    project_or_path: Union[PyfmuProject, AnyPath], output_path: AnyPath, compress: bool
+) -> PyfmuArchive:
+
+    if compress:
+        raise NotImplementedError()
+
+    output_path = Path(output_path)
+
+    if not isinstance(project_or_path, PyfmuProject):
+        project = PyfmuProject.from_existing(project_or_path)
+    else:
+        project: PyfmuProject = project_or_path
+
+    logger.debug(
+        "Creating temporary directory for archive used to store files until the archive is finalized"
+    )
+    with TemporaryDirectory() as tmpdir:
+
+        # create directories
+        tmpdir = Path(tmpdir)
+
+        # slave configuration
+        config_path = tmpdir / "resources" / "slave_configuration.json"
+        logger.debug(f"Writing slave configuration to {config_path}")
+        (tmpdir / "resources").mkdir()
+        with open(config_path, "w") as config:
+            json.dump(
+                obj={
+                    "slave_class": project.slave_class,
+                    "slave_script": project.slave_script,
+                },
+                fp=config,
+            )
+
+        # copy resources
+        archive_resources_path = tmpdir / "resources"
+        logger.debug(
+            f"Copying projects resource directory {project.resources_dir} to archive resources {archive_resources_path}"
+        )
+        copytree(
+            src=project.resources_dir, dst=archive_resources_path,
+        )
+
+        # copy-binaries
+        binaries_dir = Resources.get().binaries_dir
+        archive_binaries_dir = tmpdir / "binaries"
+        logger.debug(
+            f"copying binaries form {binaries_dir} to archive binaries {archive_binaries_dir}"
+        )
+        copytree(src=binaries_dir, dst=archive_binaries_dir)
+
+        # Instantiate slave
+        """
+        Extract model description by creating an instance of the main class
+        https://docs.python.org/3/library/importlib.html?highlight=import_module#importing-a-source-file-directly
+        """
+        try:
+            module = project.slave_script_path.stem
+            logger.debug(
+                f"Importing module {module} defined by {project.slave_script} which defines slave class {project.slave_class}"
+            )
+            sys.path.append(project.slave_script_path.parent.__fspath__())
+            spec = spec_from_file_location(module, project.slave_script_path)
+            module = module_from_spec(spec)
+            spec.loader.exec_module(
+                module
+            )  # TODO consider supressing if false positive.
+            sys.path.pop()  # TODO may mess up in case of exception
+
+            logger.debug("Module loaded, creating instance of slave")
+            slave = getattr(module, project.slave_class)()
+
+        except Exception as e:
+            raise RuntimeError(
+                "Extracting model description from slave failed, an exception was raised during loading and instantiation of the slave"
+            ) from e
+
+        # extract model description
+        archive_md_path = tmpdir / "model_description.xml"
+        logger.debug(
+            "Slave instantiated, extracting model description and writing to {archive_md_path}"
+        )
+        with open(archive_md_path, "w") as md:
+            md.write(extract_model_description_v2(slave))
+
+    logger.debug(f"Copying temporary archive {tmpdir} to output path {output_path} ")
+    copytree(tmpdir, output_path)
+
+    return None

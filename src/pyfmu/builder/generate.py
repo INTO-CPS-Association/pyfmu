@@ -10,13 +10,16 @@ import json
 from jinja2 import Template
 
 from pyfmu.resources import Resources
+from pyfmu.types import AnyPath
 
 
 def _create_config(config_path: str, class_name: str, relative_script_path: str):
 
     with open(config_path, "w") as f:
         json.dump(
-            {"main_script": relative_script_path, "main_class": class_name}, f, indent=4
+            {"slave_script": relative_script_path, "slave_class": class_name},
+            f,
+            indent=4,
         )
 
 
@@ -40,7 +43,7 @@ def read_configuration(config_path: str) -> object:
         )
 
     # TODO use json schema
-    _ = hasattr(config, "main_script") and hasattr(config, "class_name")
+    _ = hasattr(config, "slave_script") and hasattr(config, "class_name")
 
     return config
 
@@ -52,24 +55,27 @@ class PyfmuProject:
     def __init__(
         self,
         root: Path,
-        main_class: str = None,
-        main_script: str = None,
-        main_script_path: Path = None,
+        slave_class: str = None,
+        slave_script: str = None,
+        slave_script_path: Path = None,
         project_configuration: dict = None,
         project_configuration_path: Path = None,
         resources_dir: Path = None,
     ):
 
-        self.main_class = main_class
-        self.main_script = main_script
-        self.main_script_path = main_script_path
+        self.slave_class = slave_class
+        self.slave_script = slave_script
+        self.slave_script_path = slave_script_path
         self.project_configuration = project_configuration
         self.project_configuration_path = project_configuration_path
         self.resources_dir = resources_dir
         self.root = root
 
+    def __fspath__(self):
+        return self.root
+
     @staticmethod
-    def from_existing(p: Path):
+    def from_existing(p: AnyPath) -> "PyfmuProject":
         """Instantiates an object representation based on an existing project
 
         Arguments:
@@ -106,9 +112,9 @@ class PyfmuProject:
             project_json = json.load(f)
 
         # 2+ TODO validate using json schema
-        main_script = project_json["main_script"]
-        main_class = project_json["main_class"]
-        main_script_path = p / "resources" / main_script
+        slave_script = project_json["slave_script"]
+        slave_class = project_json["slave_class"]
+        slave_script_path = p / "resources" / slave_script
         project_configuration_path = p / "project.json"
         project_configuration = project_json
         resources_dir = p / "resources"
@@ -120,20 +126,20 @@ class PyfmuProject:
             raise ValueError("The directory does not contain a resource folder.")
 
         # 4. slave script should exist inside resources.
-        has_main_script = (p / "resources" / main_script).is_file()
+        has_slave_script = (p / "resources" / slave_script).is_file()
 
-        if not has_main_script:
+        if not has_slave_script:
             raise ValueError(
-                f'The main python script: {main_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.'
+                f'The main python script: {slave_script} could not be found in the resources folder. Ensure that the "project.json" defines the correct script.'
             )
 
         # 5. TODO slave class should be defined by slave script
 
         project = PyfmuProject(
             root=p,
-            main_script=main_script,
-            main_class=main_class,
-            main_script_path=main_script_path,
+            slave_script=slave_script,
+            slave_class=slave_class,
+            slave_script_path=slave_script_path,
             project_configuration=project_configuration,
             project_configuration_path=project_configuration_path,
             resources_dir=resources_dir,
@@ -156,7 +162,7 @@ def _create_dirs(project_path: str, exist_ok: bool = True):
 
 
 def _generate_fmu_template(
-    template_path: str, main_class_name: str, script_output_path: str
+    template_path: str, slave_class_name: str, script_output_path: str
 ) -> None:
 
     r = None
@@ -166,9 +172,9 @@ def _generate_fmu_template(
 
         r = template.render(
             {
-                "class_name": main_class_name,
+                "class_name": slave_class_name,
                 "description": "",
-                "model_name": main_class_name,
+                "model_name": slave_class_name,
                 "author": "",
             }
         )
@@ -189,28 +195,28 @@ def _write_templateScript_to_project(project: PyfmuProject):
 
         r = template.render(
             {
-                "class_name": project.main_class,
+                "class_name": project.slave_class,
                 "description": "",
-                "model_name": project.main_class,
+                "model_name": project.slave_class,
                 "author": "",
             }
         )
 
-    project_scriptTemplate_path = project.root / "resources" / project.main_script
+    project_scriptTemplate_path = project.root / "resources" / project.slave_script
 
     makedirs(project_scriptTemplate_path.parent, exist_ok=True)
 
     with open(project_scriptTemplate_path, "w") as f:
         f.write(r)
 
-    project.main_script_path = project_scriptTemplate_path
+    project.slave_script_path = project_scriptTemplate_path
 
 
 def _write_projectConfig_to_project(project: PyfmuProject):
 
     project_configuration_path = project.root / "project.json"
 
-    config = {"main_class": project.main_class, "main_script": project.main_script}
+    config = {"slave_class": project.slave_class, "slave_script": project.slave_script}
 
     with open(project_configuration_path, "w") as f:
         json.dump(config, f)
@@ -220,7 +226,7 @@ def _write_projectConfig_to_project(project: PyfmuProject):
 
 
 def create_project(
-    project_path: str, main_class_name: str, overwrite=True
+    project_path: str, slave_class_name: str, overwrite=True
 ) -> PyfmuProject:
     """Creates a new PyFMU project at the specified path.
 
@@ -228,7 +234,7 @@ def create_project(
     ----------
     project_path : str
         output path of the project
-    main_class_name : str
+    slave_class_name : str
         name of the slave script 
     overwrite : bool, optional
         if true overwrite any existing files at the specified output path, by default True
@@ -245,9 +251,9 @@ def create_project(
         rmtree(project_path)
 
     # TODO validate script names
-    main_script = main_class_name.lower() + ".py"
+    slave_script = slave_class_name.lower() + ".py"
     project = PyfmuProject(
-        project_path, main_class=main_class_name, main_script=main_script
+        project_path, slave_class=slave_class_name, slave_script=slave_script
     )
 
     # _copy_pyfmu_to_project(project)

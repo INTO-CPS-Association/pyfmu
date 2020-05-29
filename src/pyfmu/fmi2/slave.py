@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from typing import List, Tuple, Optional, Literal
 from uuid import uuid4
 from pyfmu.fmi2.exception import SlaveAttributeError

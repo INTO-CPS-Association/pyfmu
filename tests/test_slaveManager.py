@@ -1,6 +1,9 @@
-from pyfmu.tests.example_finder import ExampleArchive
+# from test.example_finder import ExampleArchive
+import os
 
-from pyfmu.fmi2 import Fmi2SlaveManager
+
+from pyfmu.fmi2 import Fmi2SlaveContext
+from tests.utils.example_finder import ExampleArchive
 
 
 def callback(*args):
@@ -9,7 +12,7 @@ def callback(*args):
 
 class TestSlaveManager:
     def test_instantiate(self):
-        mgr = Fmi2SlaveManager()
+        mgr = Fmi2SlaveContext()
 
         with ExampleArchive("Adder") as a:
 

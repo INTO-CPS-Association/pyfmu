@@ -7,7 +7,7 @@ def file_uri_to_path(file_uri: str, path_class=pathlib.PurePath) -> pathlib.Path
 
     Args:
         file_uri: an file-type uri
-        path_class: type of path 
+        path_class: type of path
 
     Returns:
         path object referencing the specified uri
