@@ -20,7 +20,7 @@ from pyfmu.builder import export_project
 from pyfmu.resources import Resources
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger(__file__)
 
 
@@ -121,26 +121,18 @@ def copy_binaries():
 
     binary_in = _get_input_binary_path_for_host()
 
-    logger.debug(f"Looking for compiled binary at path: {binary_in}")
-
-    if not binary_in.is_file():
-        raise RuntimeError(f"The compiled binary could not be found at: {binary_in}")
+    logger.info(f"Looking for compiled binary at path: {binary_in}")
 
     binary_out = _get_output_binary_path_for_host()
 
-    logger.debug("Binaries were found.")
+    logger.info("Binaries were found.")
 
-    try:
-        os.makedirs(binary_out.parent, exist_ok=True)
+    os.makedirs(binary_out.parent, exist_ok=True)
 
-        if binary_out.is_file():
-            os.remove(binary_out)
+    if binary_out.is_file():
+        os.remove(binary_out)
 
-        copy(binary_in, binary_out)
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed to copy binaries into the resources, an exception was thrown:\n{e}"
-        ) from e
+    copy(binary_in, binary_out)
 
 
 def build(debug_build: bool):
@@ -258,28 +250,31 @@ if __name__ == "__main__":
         )
         sys.exit(-1)
 
-    logger.debug("Succesfully build project.")
+    logger.info("Succesfully build project.")
 
     should_update_wrapper = args.update_wrapper or args.export_examples
 
     if should_update_wrapper:
-        logger.debug("Copying the binaries to resource folder")
 
-        try:
-            copy_binaries()
-            pass
-        except Exception as e:
-            logger.log(
-                logging.ERROR,
-                f"Failed copying the results of the built into the resources directory, an exception was thrown:\n{e}",
-            )
-            sys.exit(-1)
+        binary_in = _get_input_binary_path_for_host()
+        binary_out = _get_output_binary_path_for_host()
 
-        logger.debug("Binaries were sucessfully copied to resources.")
+        logger.info(
+            f"Copying binaries from build folder {binary_in} to resource folder {binary_out}"
+        )
+
+        os.makedirs(binary_out.parent, exist_ok=True)
+
+        if binary_out.is_file():
+            os.remove(binary_out)
+
+        copy(binary_in, binary_out)
+
+        logger.info(f"Binaries were sucessfully copied to resources {binary_out}.")
 
     if args.export_examples:
 
-        logger.debug(f"Exporting examples {get_all_examples()}")
+        logger.info(f"Exporting examples {get_all_examples()}")
 
         for name in tqdm(get_all_examples(), desc="exported"):
 

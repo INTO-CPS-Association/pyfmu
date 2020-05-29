@@ -248,7 +248,7 @@ def export_project(
         # extract model description
         archive_md_path = tmpdir / "modelDescription.xml"
         logger.debug(
-            "Slave instantiated, extracting model description and writing to {archive_md_path}"
+            f"Slave instantiated, extracting model description and writing to {archive_md_path}"
         )
         model_description = extract_model_description(slave)
         with open(archive_md_path, "w") as md:
