@@ -1,7 +1,17 @@
 """Define commonly enumerations and classes for FMI2 types"""
 
 from abc import abstractmethod
-from typing import List, Tuple, Protocol, TypeVar, Literal, Dict, Set, Optional
+from typing import (
+    List,
+    Tuple,
+    Protocol,
+    TypeVar,
+    Literal,
+    Dict,
+    Set,
+    Optional,
+    Callable,
+)
 
 from pyfmu.fmi2.exception import InvalidVariableError
 
@@ -235,6 +245,15 @@ class Fmi2ScalarVariable:
     def __repr__(self) -> str:
         initial_str = "omitted" if self.initial is None else self.initial
         return f"{self.name}:{self.data_type}:{self.causality}:{initial_str}"
+
+
+class Fmi2LoggingCallback(Protocol):
+    """ See 2.1.5 p.18"""
+
+    def __call__(
+        self, instance_name: str, status: Fmi2Status_T, category: str, message: str
+    ) -> None:
+        ...
 
 
 class Fmi2SlaveLike(Protocol):

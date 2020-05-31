@@ -3,6 +3,7 @@ from .types import (  # noqa: F401
     Fmi2DataTypes,
     Fmi2Initial,
     Fmi2Status,
+    Fmi2Status_T,
     Fmi2Variability,
 )
 from .slave import Fmi2Slave  # noqa: F401

@@ -2,8 +2,11 @@
 """
 from typing import Iterable, List, Callable
 from abc import ABC
+import logging
 
-from pyfmu.fmi2 import Fmi2Status
+
+from pyfmu.fmi2.types import Fmi2Status, Fmi2Status, Fmi2Status_T, Fmi2LoggingCallback
+
 
 # log category which the pyfmu framework logs to
 _internal_log_catergory = "pyfmu"
@@ -274,3 +277,123 @@ class Fmi2NullLogger(Fmi2LoggerBase):
 
     def log(self, message, category: str = "", status=None):
         pass
+
+
+class FMI2SlaveLogger:
+    """Logger object specific to a given slave instance.
+    
+    The interface is inspired by the logging library:
+    https://docs.python.org/3/library/logging.html
+    """
+
+    def __init__(
+        self,
+        instance_name: str,
+        slave_handle: int,
+        callback: Fmi2LoggingCallback,
+        log_stdout=True,
+    ):
+
+        self._callback = callback
+        self._instance_name = instance_name
+
+        if log_stdout:
+            raise NotImplementedError()
+            self._logger = logging.getLogger(f"{instance_name}.{slave_handle}")
+
+    def ok(
+        self, msg: str, category: str, exc_info=False, stack_info=False,
+    ):
+        self._log(
+            status=Fmi2Status.ok,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def warning(
+        self,
+        msg: str,
+        category: str,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.warning,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def error(
+        self,
+        msg: str,
+        category: str,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.error,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def fatal(
+        self,
+        msg: str,
+        category: str,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.fatal,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def pending(
+        self,
+        msg: str,
+        category: str,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.pending,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def _log(
+        self,
+        status: Fmi2Status_T,
+        msg: str,
+        category: str,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        if exc_info or stack_info or stack_level:
+            raise NotImplementedError()
+
+        self._callback(
+            instance_name=self._instance_name,
+            status=status,
+            category=category,
+            message=msg,
+        )
+
+    def register_new_category(self, categrory: str, predicate: Callable[[str], bool]):
+        raise NotImplementedError()
