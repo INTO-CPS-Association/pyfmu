@@ -3,7 +3,7 @@
 from typing import Iterable, List, Callable
 from abc import ABC
 import logging
-
+from traceback import format_exc
 
 from pyfmu.fmi2.types import Fmi2Status, Fmi2Status, Fmi2Status_T, Fmi2LoggingCallback
 
@@ -286,6 +286,14 @@ class FMI2SlaveLogger:
     https://docs.python.org/3/library/logging.html
     """
 
+    _fmi_to_log_categories = {
+        Fmi2Status.ok: logging.INFO,
+        Fmi2Status.warning: logging.WARNING,
+        Fmi2Status.discard: logging.WARNING,
+        Fmi2Status.error: logging.ERROR,
+        Fmi2Status.fatal: logging.CRITICAL,
+    }
+
     def __init__(
         self,
         instance_name: str,
@@ -298,11 +306,10 @@ class FMI2SlaveLogger:
         self._instance_name = instance_name
 
         if log_stdout:
-            raise NotImplementedError()
             self._logger = logging.getLogger(f"{instance_name}.{slave_handle}")
 
     def ok(
-        self, msg: str, category: str, exc_info=False, stack_info=False,
+        self, msg: str, category: str = None, exc_info=False, stack_info=False,
     ):
         self._log(
             status=Fmi2Status.ok,
@@ -315,7 +322,7 @@ class FMI2SlaveLogger:
     def warning(
         self,
         msg: str,
-        category: str,
+        category: str = None,
         exc_info=False,
         stack_info=False,
         stack_level: float = None,
@@ -328,10 +335,26 @@ class FMI2SlaveLogger:
             stack_info=stack_info,
         )
 
+    def discard(
+        self,
+        msg: str,
+        category: str = None,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.discard,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
     def error(
         self,
         msg: str,
-        category: str,
+        category: str = None,
         exc_info=False,
         stack_info=False,
         stack_level: float = None,
@@ -347,7 +370,7 @@ class FMI2SlaveLogger:
     def fatal(
         self,
         msg: str,
-        category: str,
+        category: str = None,
         exc_info=False,
         stack_info=False,
         stack_level: float = None,
@@ -363,7 +386,7 @@ class FMI2SlaveLogger:
     def pending(
         self,
         msg: str,
-        category: str,
+        category: str = None,
         exc_info=False,
         stack_info=False,
         stack_level: float = None,
@@ -380,13 +403,25 @@ class FMI2SlaveLogger:
         self,
         status: Fmi2Status_T,
         msg: str,
-        category: str,
+        category: str = None,
         exc_info=False,
         stack_info=False,
         stack_level: float = None,
     ):
-        if exc_info or stack_info or stack_level:
+
+        if exc_info:
+            msg = f"{msg}\n{format_exc()}"
+
+        if stack_info or stack_level:
             raise NotImplementedError()
+
+        if category is None:
+            category = "info"
+
+        if self._logger:
+            self._logger.log(
+                level=FMI2SlaveLogger._fmi_to_log_categories[status], msg=msg
+            )
 
         self._callback(
             instance_name=self._instance_name,

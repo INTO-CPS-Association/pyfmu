@@ -7,7 +7,7 @@ from pyfmu.fmi2.types import Fmi2Status
 from tests.utils.example_finder import ExampleArchive
 
 
-def callback(*args):
+def callback(**kwargs):
     pass
 
 
@@ -34,6 +34,9 @@ class TestSlaveManager:
                 logging_callback=callback,
                 visible=True,
             )
+
+            assert h1 is not None
+            assert h2 is not None
 
             assert mgr.do_step(h1, 0, 1, False) is Fmi2Status.ok
             assert mgr.do_step(h2, 0, 1, False) is Fmi2Status.ok

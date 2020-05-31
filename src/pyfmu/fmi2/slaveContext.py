@@ -5,15 +5,15 @@ from pathlib import Path
 import json
 import sys
 
-from pyfmu.fmi2.types import Fmi2Status_T, Fmi2Status
-from pyfmu.fmi2.logging import Fmi2CallbackLogger, Fmi2NullLogger
+
+from pyfmu.fmi2.types import Fmi2Status_T, Fmi2Status, Fmi2LoggingCallback
+from pyfmu.fmi2.logging import Fmi2CallbackLogger, Fmi2NullLogger, FMI2SlaveLogger
 from pyfmu.utils import file_uri_to_path
 from pyfmu.fmi2.types import Fmi2SlaveLike, Fmi2Value_T
 
 
 SlaveHandle = int
 Fmi2Value = Union[float, int, bool, str]
-Fmi2LoggingCallback = Callable[[Fmi2Status_T, str, str, str], None]
 
 
 class Fmi2SlaveContext:
@@ -71,7 +71,7 @@ class Fmi2SlaveContext:
 
         self._slaves: Dict[SlaveHandle, Fmi2SlaveLike] = {}
         self._slave_to_ids_to_attr: Dict[SlaveHandle, Dict[int, str]] = {}
-        self._loggers: Dict[SlaveHandle, Fmi2CallbackLogger] = {}
+        self._loggers: Dict[SlaveHandle, FMI2SlaveLogger] = {}
 
     def instantiate(
         self,
@@ -103,42 +103,6 @@ class Fmi2SlaveContext:
             SlaveHandle: [description]
         """
 
-        try:
-            pass
-        except Exception as e:
-
-            return None
-
-        if logging_callback:
-            logger = Fmi2CallbackLogger(logging_callback)
-        else:
-            logger = Fmi2NullLogger()
-
-        if fmu_type != "fmi2CoSimulation":
-
-            raise NotImplementedError("Only co-simulation is supported.")
-
-        if logging_callback:
-            logger = Fmi2CallbackLogger(logging_callback)
-        else:
-            logger = Fmi2NullLogger()
-
-        url_path = file_uri_to_path(resources_uri)
-
-        if not str(url_path) in sys.path:
-            sys.path.append(str(url_path))
-
-        # read configuration
-        config = None
-        with open(url_path / "slave_configuration.json", "r") as f:
-            config = json.load(f)
-
-        slave_module = Path(config["slave_script"]).stem
-        slave_class = config["slave_class"]
-
-        # instantiate object
-        instance = getattr(importlib.import_module(slave_module), slave_class)()
-
         def get_free_handle() -> SlaveHandle:
             i = 0
             while i in self._slaves:
@@ -147,19 +111,61 @@ class Fmi2SlaveContext:
 
         handle = get_free_handle()
 
-        logger = Fmi2CallbackLogger(instance_name, logging_callback)
+        if logging_callback:
+            logger = FMI2SlaveLogger(
+                instance_name=instance_name,
+                slave_handle=handle,
+                callback=logging_callback,
+            )
+        else:
+            raise NotImplementedError()
 
-        self._slaves[handle] = instance
-        self._loggers[handle] = logger
+        if fmu_type != "fmi2CoSimulation":
+            logger.error("Only co-simulation is supported")
+            return None
 
-        return handle
+        try:
+            url_path = file_uri_to_path(resources_uri)
+
+            if not str(url_path) in sys.path:
+                sys.path.append(str(url_path))
+
+            # read configuration
+            config_path = url_path / "slave_configuration.json"
+            logger.ok(f"Reading configuration {config_path}")
+            config = None
+            with open(config_path, "r") as f:
+                config = json.load(f)
+
+            slave_module = Path(config["slave_script"]).stem
+            slave_class = config["slave_class"]
+
+            logger.ok(
+                f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}"
+            )
+
+            # instantiate object
+            instance = getattr(importlib.import_module(slave_module), slave_class)()
+
+            self._slaves[handle] = instance
+            self._loggers[handle] = logger
+
+            logger.ok("Instance succesfully instantiated")
+
+            return handle
+
+        except Exception:
+            logger.error(f"Instantiation failed an exception was raised", exc_info=True)
+            return None
 
     def free_instance(self, handle: SlaveHandle) -> Fmi2Value_T:
         try:
             del self._slaves[handle]
-        except Exception as e:
-            self._loggers[handle].log(str(e))
-            raise e
+        except Exception:
+            self._loggers[handle].error(
+                "Unable to free slave instance, an exception was raised", exc_info=True
+            )
+            return Fmi2Status.fatal
 
     def do_step(
         self,
@@ -179,10 +185,18 @@ class Fmi2SlaveContext:
         Returns:
             Fmi2Status_T: [description]
         """
-        assert handle in self._slaves
-        assert current_time >= 0
 
-        return self._slaves[handle].do_step(current_time, step_size, no_set_state_prior)
+        try:
+            return self._slaves[handle].do_step(
+                current_time=current_time,
+                step_size=step_size,
+                no_set_fmu_state_prior=no_set_state_prior,
+            )
+        except Exception:
+            self._loggers[handle].error(
+                msg="invoking do_step raised an error", exc_info=True
+            )
+            return Fmi2Status.error
 
     def setup_experiment(
         self,
@@ -196,8 +210,11 @@ class Fmi2SlaveContext:
             return self._slaves[handle].setup_experiment(
                 start_time=start_time, tolerance=tolerance, stop_time=stop_time
             )
-        except Exception as e:
-            raise NotImplementedError()
+        except Exception:
+            self._loggers[handle].error(
+                msg="call to the slave's setup_experiment raised an exception",
+                exc_info=True,
+            )
             return Fmi2Status.error
 
     def set_xxx(
@@ -214,16 +231,18 @@ class Fmi2SlaveContext:
             Fmi2Status_T: [description]
         """
 
-        attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
-
         try:
+            attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
             for a, v in zip(attributes, values):
                 setattr(self._slaves[handle], a, v)
 
             return Fmi2Status.ok
 
-        except Exception as e:
-            raise NotImplementedError()
+        except Exception:
+
+            self._loggers[handle].error(
+                msg=f"writing a variable of the slave failed", exc_info=True,
+            )
             return Fmi2Status.error
 
     def get_xxx(
@@ -231,11 +250,12 @@ class Fmi2SlaveContext:
     ) -> Tuple[List[Fmi2Value], Fmi2Status_T]:
         """Read variables of the slave specified by the handle.
         """
-        attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
-
         try:
+            attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
             values = [getattr(self._slaves[handle], a) for a in attributes]
             return (values, Fmi2Status.ok)
-        except Exception as e:
-            raise NotImplementedError()
-            return Fmi2Status.error
+        except Exception:
+            self._loggers[handle].error(
+                msg=f"writing a variable of the slave failed", exc_info=True,
+            )
+            return ([], Fmi2Status.error)
