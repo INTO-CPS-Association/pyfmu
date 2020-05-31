@@ -7,7 +7,9 @@
 #include <optional>
 #include <vector>
 
+//#include <Python.h>
 #include "pybind11/embed.h"
+
 #include <fmt/format.h>
 
 #include "spec/fmi2/fmi2Functions.h"
@@ -17,15 +19,6 @@ inline std::mutex mutex;
 inline bool initialized = false;
 
 using lock = std::scoped_lock<std::mutex>;
-
-void initManager() {
-  if (!Py_IsInitialized()) {
-    pybind11::initialize_interpreter();
-  }
-  pybind11::gil_scoped_acquire gil;
-  slaveContext = pybind11::module::import("pyfmu.fmi2.slaveContext")
-                     .attr("Fmi2SlaveContext")();
-}
 
 // FMI functions
 extern "C" {
@@ -43,55 +36,64 @@ fmi2Component fmi2Instantiate(fmi2String instanceName, fmi2Type fmuType,
                               fmi2String fmuResourceLocation,
                               const fmi2CallbackFunctions *functions,
                               fmi2Boolean visible, fmi2Boolean loggingOn) {
-  lock l(mutex);
-  pybind11::gil_scoped_acquire gil;
-
-  if (!initialized) {
-    try {
-      initManager();
-    } catch (const std::exception &e) {
-      std::cerr << e.what() << '\n';
-      return nullptr;
-    }
-  }
 
   try {
+    lock l(mutex);
+    pybind11::gil_scoped_acquire gil;
 
+    if (!Py_IsInitialized()) {
+      pybind11::initialize_interpreter();
+    }
+
+    if (!initialized) {
+      slaveContext = pybind11::module::import("pyfmu.fmi2.slaveContext")
+                         .attr("Fmi2SlaveContext")();
+    }
     int fmuTypeInt = fmuType;
-    auto handle = slaveContext
-                      .attr("instantiate")(instanceName, fmuTypeInt, fmuGUID,
-                                           fmuResourceLocation, nullptr,
-                                           visible, loggingOn)
-                      .cast<int>();
+    auto handle =
+        slaveContext
+            .attr("instantiate")(instanceName, fmuTypeInt, fmuGUID,
+                                 fmuResourceLocation, nullptr, visible)
+            .cast<int>();
     return new int(handle);
+
   } catch (const std::exception &e) {
-
     std::cerr << e.what() << '\n';
+    return nullptr;
   }
-
-  return nullptr;
 }
 
 void fmi2FreeInstance(fmi2Component c) {
   std::lock_guard lock(mutex);
   try {
-    slaveContext.attr("free_instance")(*(int *)(c));
+
+    slaveContext.attr("free_instance")(*static_cast<int *>(c));
     delete c;
-  } catch (const std::exception &) {
-    return; // TODO
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
   }
 }
 
 fmi2Status fmi2SetDebugLogging(fmi2Component c, fmi2Boolean loggingOn,
                                size_t nCategories,
                                const fmi2String categories[]) {
-  return fmi2Status::fmi2OK;
-  std::lock_guard lock(mutex);
-  pybind11::gil_scoped_acquire gil;
 
-  bool loggingOnBool = loggingOn;
-  // std::vector categoriesVector slaveContext.attr("set_debug_logging",
-  //                                                loggingOnBool)
+  try {
+    std::lock_guard lock(mutex);
+    pybind11::gil_scoped_acquire gil;
+
+    bool loggingOnBool = loggingOn;
+    std::vector<std::string> categories_vector(categories,
+                                               categories + nCategories);
+
+    return slaveContext
+        .attr("set_debug_logging")(categories_vector, loggingOnBool)
+        .cast<fmi2Status>();
+
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
+    return fmi2Status::fmi2Error;
+  }
 }
 
 fmi2Status fmi2SetupExperiment(fmi2Component c, fmi2Boolean toleranceDefined,
@@ -110,7 +112,20 @@ fmi2Status fmi2Reset(fmi2Component c) { return fmi2Fatal; }
 
 fmi2Status fmi2GetReal(fmi2Component c, const fmi2ValueReference vr[],
                        size_t nvr, fmi2Real value[]) {
-  return fmi2Fatal;
+
+  try {
+    std::lock_guard lock(mutex);
+    pybind11::gil_scoped_acquire gil;
+
+    std::vector reference_vector(vr, vr + nvr);
+    auto values = slaveContext.attr("get_xxx")().cast<std::vector<fmi2Real>>();
+
+    return fmi2OK;
+
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
+    return fmi2Fatal;
+  }
 }
 
 fmi2Status fmi2GetInteger(fmi2Component c, const fmi2ValueReference vr[],

@@ -283,6 +283,11 @@ class Fmi2SlaveLike(Protocol):
     ) -> Fmi2Status_T:
         ...
 
+    def set_debug_logging(
+        self, categories: list[str], logging_on: bool
+    ) -> Fmi2Status_T:
+        ...
+
     def enter_initialization_mode(self) -> Fmi2Status_T:
         ...
 

@@ -7,7 +7,6 @@
 #include "fmt/format.h"
 #include "spdlog/spdlog.h"
 
-#include "example_finder.hpp"
 #include "spec/fmi2/fmi2Functions.h"
 
 using namespace std;
@@ -89,8 +88,9 @@ TEST_CASE("SlaveWrapper") {
 
   SECTION("FmiTypes") {
 
-    auto a = ExampleArchive("FmiTypes");
-    string resources_uri = a.getResourcesURI();
+    // auto a = ExampleArchive("FmiTypes");
+    string resources_uri = "file:///C:/Users/clega/Desktop/pyfmu/examples/"
+                           "exported/Adder/resources";
     const char *resources_cstr = resources_uri.c_str();
 
     fmi2CallbackFunctions callbacks = {.logger = logger,

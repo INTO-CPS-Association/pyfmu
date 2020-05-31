@@ -1,10 +1,11 @@
+from __future__ import annotations
 from typing import Dict, Tuple, Union, List, Callable, Optional
 import importlib
 import logging
 from pathlib import Path
 import json
 import sys
-
+import xml.etree.ElementTree as ET
 
 from pyfmu.fmi2.types import Fmi2Status_T, Fmi2Status, Fmi2LoggingCallback
 from pyfmu.fmi2.logging import Fmi2CallbackLogger, Fmi2NullLogger, FMI2SlaveLogger
@@ -54,9 +55,6 @@ class Fmi2SlaveContext:
     Dut to the FMI's close ties to the C language, integer status codes are used by slaves to communicate the 
     outcome of their operation to the environment. This is in contrast to Python's exception-based fault handling.
 
-    
-    
-
     ----------
     Validation
     ----------
@@ -72,6 +70,8 @@ class Fmi2SlaveContext:
         self._slaves: Dict[SlaveHandle, Fmi2SlaveLike] = {}
         self._slave_to_ids_to_attr: Dict[SlaveHandle, Dict[int, str]] = {}
         self._loggers: Dict[SlaveHandle, FMI2SlaveLogger] = {}
+
+        logging.basicConfig(level=logging.DEBUG)
 
     def instantiate(
         self,
@@ -118,7 +118,7 @@ class Fmi2SlaveContext:
                 callback=logging_callback,
             )
         else:
-            raise NotImplementedError()
+            raise NotImplementedError("replace with null logger")
 
         if fmu_type != "fmi2CoSimulation":
             logger.error("Only co-simulation is supported")
@@ -141,11 +141,22 @@ class Fmi2SlaveContext:
             slave_class = config["slave_class"]
 
             logger.ok(
-                f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}"
+                msg=f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}"
             )
 
             # instantiate object
             instance = getattr(importlib.import_module(slave_module), slave_class)()
+
+            logger.ok(
+                msg="Extracting mapping between value references and attribute names from modelDescription.xml"
+            )
+
+            with open(url_path.parent / "modelDescription.xml", "r") as f:
+                variables = ET.parse(source=f).getroot().iter("ScalarVariable")
+                vref_to_attr = {
+                    int(v.attrib["valueReference"]): v.attrib["name"] for v in variables
+                }
+                self._slave_to_ids_to_attr[handle] = vref_to_attr
 
             self._slaves[handle] = instance
             self._loggers[handle] = logger
@@ -242,6 +253,19 @@ class Fmi2SlaveContext:
 
             self._loggers[handle].error(
                 msg=f"writing a variable of the slave failed", exc_info=True,
+            )
+            return Fmi2Status.error
+
+    def set_debug_logging(
+        self, handle: SlaveHandle, categories: list[str], logging_on: bool
+    ) -> Fmi2Status_T:
+
+        try:
+            self._slaves[handle].set_debug_logging(categories, logging_on)
+            return Fmi2Status.ok
+        except Exception:
+            self._loggers[handle].error(
+                msg="Call to set_debug_logging of slave failed", exc_info=True
             )
             return Fmi2Status.error
 
