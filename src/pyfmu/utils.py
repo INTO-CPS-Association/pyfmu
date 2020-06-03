@@ -22,8 +22,6 @@ def file_uri_to_path(file_uri: str, path_class=pathlib.PurePath) -> pathlib.Path
         result = path_class(file_uri_path_unquoted)
     if result.is_absolute() == False:
         raise ValueError(
-            "Invalid file uri {} : resulting path {} not absolute".format(
-                file_uri, result
-            )
+            f"Invalid file uri {file_uri} : resulting path {result} not absolute".format()
         )
     return result

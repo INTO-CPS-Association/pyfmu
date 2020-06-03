@@ -7,10 +7,17 @@ import json
 import sys
 import xml.etree.ElementTree as ET
 
-from pyfmu.fmi2.types import Fmi2Status_T, Fmi2Status, Fmi2LoggingCallback
-from pyfmu.fmi2.logging import Fmi2CallbackLogger, Fmi2NullLogger, FMI2SlaveLogger
+from pyfmu.fmi2.types import (
+    Fmi2Status_T,
+    Fmi2Type,
+    Fmi2Type_T,
+    Fmi2Status,
+    Fmi2LoggingCallback,
+    Fmi2SlaveLike,
+    Fmi2Value_T,
+)
+from pyfmu.fmi2.logging import FMI2SlaveLogger
 from pyfmu.utils import file_uri_to_path
-from pyfmu.fmi2.types import Fmi2SlaveLike, Fmi2Value_T
 
 
 SlaveHandle = int
@@ -76,11 +83,12 @@ class Fmi2SlaveContext:
     def instantiate(
         self,
         instance_name: str,
-        fmu_type: str,
+        fmu_type: Fmi2Type_T,
         guid: str,
         resources_uri: str,
         logging_callback: Optional[Fmi2LoggingCallback],
         visible: bool,
+        logging_on: bool,
     ) -> Optional[SlaveHandle]:
         """Create a new instance of the specified FMU and return a handle to the caller.
 
@@ -103,6 +111,10 @@ class Fmi2SlaveContext:
             SlaveHandle: [description]
         """
 
+        print(
+            f"instance_name {instance_name}, fmu_type: {fmu_type}, guid: {guid}, resources_uri {resources_uri}, logging_callback: {logging_callback}, visible: {visible}, logging_on: {logging_on}"
+        )
+
         def get_free_handle() -> SlaveHandle:
             i = 0
             while i in self._slaves:
@@ -111,16 +123,11 @@ class Fmi2SlaveContext:
 
         handle = get_free_handle()
 
-        if logging_callback:
-            logger = FMI2SlaveLogger(
-                instance_name=instance_name,
-                slave_handle=handle,
-                callback=logging_callback,
-            )
-        else:
-            raise NotImplementedError("replace with null logger")
+        logger = FMI2SlaveLogger(
+            instance_name=instance_name, slave_handle=handle, callback=logging_callback,
+        )
 
-        if fmu_type != "fmi2CoSimulation":
+        if fmu_type is not Fmi2Type.co_simulation:
             logger.error("Only co-simulation is supported")
             return None
 
@@ -170,6 +177,9 @@ class Fmi2SlaveContext:
             return None
 
     def free_instance(self, handle: SlaveHandle) -> Fmi2Value_T:
+
+        self._loggers[handle].ok(f"Removing slave with handle {handle}")
+
         try:
             del self._slaves[handle]
         except Exception:
@@ -177,6 +187,8 @@ class Fmi2SlaveContext:
                 "Unable to free slave instance, an exception was raised", exc_info=True
             )
             return Fmi2Status.fatal
+
+        self._loggers[handle].ok(f"Slave succesfully removed")
 
     def do_step(
         self,

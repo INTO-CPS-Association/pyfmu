@@ -27,7 +27,7 @@ if (MSVC)
 
         # Microsoft's set of  "safe" _s functions are poorly supported in GCC. The two options are:
         # * conditionally use these on windows
-        # * supress the warning 
+        # * supress the warning
         _CRT_SECURE_NO_WARNINGS
 )
 endif()
@@ -52,24 +52,24 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 
 include(${CMAKE_BINARY_DIR}/conan.cmake)
-conan_cmake_run(REQUIRES 
-                
-                pybind11/2.3.0@conan/stable
-                catch2/2.5.0@bincrafters/stable
-                fmt/6.1.1
-                spdlog/[>=1.4.1]
+conan_cmake_run(REQUIRES
+
+                pybind11/2.4.3
+                catch2/2.12.2
+                fmt/6.2.1
+                spdlog/1.6.0
                 nlohmann_json/3.7.3
-                pybind11/2.3.0@conan/stable
-                
-                BASIC_SETUP 
-                CMAKE_TARGETS
+
+                BASIC_SETUP
                 BUILD missing
+                CMAKE_TARGETS
+                CONFIGURATION_TYPES "Release;Debug;RelWithDebInfo"
                 # fix to keep conan from overwriting output dirs on UNIX, seems to be a bug
                 # https://github.com/conan-io/conan/issues/1982
-                NO_OUTPUT_DIRS 
+                NO_OUTPUT_DIRS
                 )
 
-find_package(pybind11 REQUIRED)
+add_subdirectory(pybind11)
 
 # 2. source tree packages
 # add_subdirectory(uriparser)
@@ -77,7 +77,7 @@ find_package(pybind11 REQUIRED)
 
 
 ######################################## WRAPPER ########################################
-add_library(pyfmu 
+add_library(pyfmu
         SHARED
         wrapper/src/fmi2/functions.cpp
 )
@@ -90,51 +90,48 @@ target_compile_features(pyfmu PUBLIC "cxx_std_20")
 
 
 target_link_libraries(pyfmu
-        PRIVATE
-        pybind11::embed        
         PUBLIC
         CONAN_PKG::fmt
-        CONAN_PKG::spdlog
-        CONAN_PKG::nlohmann_json
-        ${EXTERNAL_LIBS}
+        pybind11::embed
+        
 )
 
 ######################################## WRAPPER-TESTS ########################################
 
-# add_executable(wrapper-tests
-#         wrapper/tests/src/tests.cpp
-#         wrapper/tests/src/example_finder.cpp
-#         wrapper/tests/src/tmpdir.cpp
-# )
+add_executable(wrapper-tests
+        wrapper/tests/src/tests.cpp
+        #wrapper/tests/src/example_finder.cpp
+        #wrapper/tests/src/tmpdir.cpp
+)
 
-# target_include_directories(wrapper-tests 
-#         PRIVATE 
-#         wrapper/tests/include
-# )
+target_include_directories(wrapper-tests
+        PRIVATE
+        wrapper/tests/include
+)
 
-# target_compile_features(wrapper-tests PUBLIC "cxx_std_20")
+target_compile_features(wrapper-tests PUBLIC "cxx_std_20")
 
-# target_link_libraries(wrapper-tests 
-#         PRIVATE 
-#         pyfmu
-#         CONAN_PKG::catch2
-#         CONAN_PKG::spdlog
-# )
+target_link_libraries(wrapper-tests
+        PUBLIC
+        pyfmu
+        CONAN_PKG::catch2
+        CONAN_PKG::spdlog
+)
 
 # multi-configuration generators such as MSVC puts different builds in seperate folders
 # we dumpy them in the root of the build to be able to copy them more easily.
-if(MSVC)
-    set_target_properties(pyfmu PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
-    set_target_properties(pyfmu PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
+# if(MSVC)
+#     set_target_properties(pyfmu PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Debug>:>)
+#     set_target_properties(pyfmu PROPERTIES
+#         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<$<CONFIG:Release>:>)
 
-elseif(UNIX)
-    
-    set_target_properties(pyfmu PROPERTIES 
-        PREFIX ""
-        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
-        LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
-        )
+# elseif(UNIX)
 
-endif()
+#     set_target_properties(pyfmu PROPERTIES
+#         PREFIX ""
+#         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+#         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
+#         )
+
+# endif()

@@ -53,6 +53,17 @@ class Fmi2DataTypes:
     string: Literal["string"] = "string"
 
 
+Fmi2DataType_T = Literal["real", "integer", "boolean", "string"]
+
+
+class Fmi2Type:
+    model_exchange: Literal[0] = 0
+    co_simulation: Literal[1] = 1
+
+
+Fmi2Type_T = Literal[0, 1]
+
+
 class Fmi2Initial:
     """Defines how the initial value of a variable is initialized.
 
@@ -113,7 +124,6 @@ Fmi2Status_T = Literal[0, 1, 2, 3, 4, 5]
 Fmi2Value_T = TypeVar("Fmi2Value_T", float, int, bool, str)
 
 
-Fmi2DataType_T = Literal["real", "integer", "boolean", "string"]
 Fmi2Causality_T = Literal[
     "calculatedParameter", "independent", "input", "local", "output", "parameter"
 ]
@@ -284,7 +294,7 @@ class Fmi2SlaveLike(Protocol):
         ...
 
     def set_debug_logging(
-        self, categories: list[str], logging_on: bool
+        self, categories: List[str], logging_on: bool
     ) -> Fmi2Status_T:
         ...
 

@@ -1,6 +1,6 @@
 """Defines logging related functionality
 """
-from typing import Iterable, List, Callable
+from typing import Iterable, List, Callable, Optional
 from abc import ABC
 import logging
 from traceback import format_exc
@@ -281,7 +281,7 @@ class Fmi2NullLogger(Fmi2LoggerBase):
 
 class FMI2SlaveLogger:
     """Logger object specific to a given slave instance.
-    
+
     The interface is inspired by the logging library:
     https://docs.python.org/3/library/logging.html
     """
@@ -298,10 +298,9 @@ class FMI2SlaveLogger:
         self,
         instance_name: str,
         slave_handle: int,
-        callback: Fmi2LoggingCallback,
+        callback: Optional[Fmi2LoggingCallback],
         log_stdout=True,
     ):
-
         self._callback = callback
         self._instance_name = instance_name
 
@@ -418,17 +417,15 @@ class FMI2SlaveLogger:
         if category is None:
             category = "info"
 
-        if self._logger:
-            self._logger.log(
-                level=FMI2SlaveLogger._fmi_to_log_categories[status], msg=msg
-            )
+        self._logger.log(level=FMI2SlaveLogger._fmi_to_log_categories[status], msg=msg)
 
-        self._callback(
-            instance_name=self._instance_name,
-            status=status,
-            category=category,
-            message=msg,
-        )
+        if self._callback is not None:
+            self._callback(
+                instance_name=self._instance_name,
+                status=status,
+                category=category,
+                message=msg,
+            )
 
     def register_new_category(self, categrory: str, predicate: Callable[[str], bool]):
         raise NotImplementedError()

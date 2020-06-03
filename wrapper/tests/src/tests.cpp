@@ -4,7 +4,6 @@
 #include <map>
 
 #include "catch2/catch.hpp"
-#include "fmt/format.h"
 #include "spdlog/spdlog.h"
 
 #include "spec/fmi2/fmi2Functions.h"
@@ -92,7 +91,7 @@ TEST_CASE("SlaveWrapper") {
     string resources_uri = "file:///C:/Users/clega/Desktop/pyfmu/examples/"
                            "exported/Adder/resources";
     const char *resources_cstr = resources_uri.c_str();
-
+    int a = 10;
     fmi2CallbackFunctions callbacks = {.logger = logger,
                                        .allocateMemory = calloc,
                                        .freeMemory = free,
