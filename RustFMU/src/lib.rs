@@ -1,8 +1,13 @@
+use failure::Error;
+use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
+use num_enum::TryFromPrimitiveError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
+use pyo3::PyClass;
 use std::boxed::Box;
 use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -13,21 +18,12 @@ use std::os::raw::c_ulonglong;
 use std::os::raw::c_void;
 use std::panic::catch_unwind;
 use std::sync::Mutex;
+use std::vec::from_elem;
+use std::vec::Vec;
 
 #[macro_use]
 extern crate lazy_static;
 extern crate num_enum;
-
-pub enum PyCallResult<T, E> {
-    /// Contains the success value
-    Ok(T),
-
-    /// Contains the error value
-    Err(E),
-
-    // Contains the python error
-    PyErr(PyErr),
-}
 
 pub type SlaveHandle = i32;
 
@@ -66,15 +62,15 @@ pub struct Fmi2CallbackFunctions {
     component_environment: Option<Fmi2ComponentEnvironment>,
 }
 
-#[derive(Debug, TryFromPrimitive, PartialEq, Eq)]
+#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, Eq)]
 #[repr(i32)]
 pub enum Fmi2Status {
-    Fmi2OK = 0,
-    Fmi2Warning = 1,
-    Fmi2Discard = 2,
-    Fmi2Error = 3,
-    Fmi2Fatal = 4,
-    Fmi2Pending = 5,
+    Fmi2OK,
+    Fmi2Warning,
+    Fmi2Discard,
+    Fmi2Error,
+    Fmi2Fatal,
+    Fmi2Pending,
 }
 
 #[derive(Debug, TryFromPrimitive, PartialEq, Eq)]
@@ -143,7 +139,38 @@ pub extern "C" fn fmi2GetVersion() -> Fmi2String {
 
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern "C" fn fmi2SetDebugLogging() -> Fmi2Status {
+pub extern "C" fn fmi2SetDebugLogging(
+    c: Fmi2Component,
+    logging_on: Fmi2Boolean,
+    n_categories: size_t,
+    categories: *const Fmi2String,
+) -> Fmi2Status {
+    let set_debug = || -> Result<Fmi2Status, Error> {
+        let mut categories_vec: Vec<&str> = vec![];
+        let n_categories = n_categories as isize;
+
+        for i in 0..n_categories {
+            let cat = unsafe { CStr::from_ptr(*categories.offset(i)).to_str()? };
+            categories_vec.push(cat);
+        }
+
+        let h = unsafe { *c.expect("handle was null") };
+
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        let status: i32 = SLAVE_MANAGER
+            .call_method1(
+                py,
+                "set_debug_logging",
+                (h, categories_vec, logging_on != 0),
+            )
+            .unwrap()
+            .extract(py)
+            .unwrap();
+
+        Ok(Fmi2Status::try_from(status)?)
+    };
+
     Fmi2Status::Fmi2Fatal
 }
 
@@ -184,15 +211,82 @@ pub extern "C" fn fmi2Reset() -> Fmi2Status {
     Fmi2Status::Fmi2Fatal
 }
 
+fn get_xxx<T>(
+    c: Fmi2Component,
+    vr: *const Fmi2ValueReference,
+    nvr: size_t,
+    values: *mut T,
+) -> Fmi2Status
+where
+    T: for<'a> FromPyObject<'a>,
+{
+    let get_real = || -> Result<Fmi2Status, Error> {
+        let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize) }.to_vec();
+        let h = unsafe { *c.expect("handle was null") };
+
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+
+        // TODO replace with "map_error"
+        let (values_vec, status): (Vec<T>, i32) = SLAVE_MANAGER
+            .call_method1(py, "get_xxx", (h, references))
+            .unwrap()
+            .extract(py)
+            .unwrap();
+
+        unsafe {
+            std::ptr::copy(values_vec.as_ptr(), values, nvr as usize);
+        }
+
+        Ok(Fmi2Status::try_from(status)?)
+    };
+
+    match get_real() {
+        Ok(s) => s,
+        Err(e) => {
+            println!("{}", e);
+            Fmi2Status::Fmi2Error
+        }
+    }
+}
+
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2GetReal(
     c: Fmi2Component,
     vr: *const Fmi2ValueReference,
     nvr: size_t,
-    value: *const Fmi2Real,
+    values: *mut Fmi2Real,
 ) -> Fmi2Status {
-    Fmi2Status::Fmi2Fatal
+    get_xxx(c, vr, nvr, values)
+    // let get_real = || -> Result<Fmi2Status, Error> {
+    //     let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize) }.to_vec();
+    //     let h = unsafe { *c.expect("handle was null") };
+
+    //     let gil = Python::acquire_gil();
+    //     let py = gil.python();
+
+    //     // TODO replace with "?"
+    //     let (values_vec, status): (Vec<Fmi2Real>, i32) = SLAVE_MANAGER
+    //         .call_method1(py, "get_xxx", (h, references))
+    //         .unwrap()
+    //         .extract(py)
+    //         .unwrap();
+
+    //     unsafe {
+    //         std::ptr::copy(values_vec.as_ptr(), values, nvr as usize);
+    //     }
+
+    //     Ok(Fmi2Status::try_from(status)?)
+    // };
+
+    // match get_real() {
+    //     Ok(s) => s,
+    //     Err(e) => {
+    //         println!("{}", e);
+    //         Fmi2Status::Fmi2Error
+    //     }
+    // }
 }
 
 #[no_mangle]
@@ -201,9 +295,9 @@ pub extern "C" fn fmi2GetInteger(
     c: Fmi2Component,
     vr: *const Fmi2ValueReference,
     nvr: size_t,
-    value: *const Fmi2Integer,
+    values: *mut Fmi2Integer,
 ) -> Fmi2Status {
-    Fmi2Status::Fmi2Fatal
+    get_xxx(c, vr, nvr, values)
 }
 
 #[no_mangle]
@@ -234,9 +328,33 @@ pub extern "C" fn fmi2SetReal(
     c: Fmi2Component,
     vr: *const Fmi2ValueReference,
     nvr: size_t,
-    value: *const Fmi2Real,
+    values: *const Fmi2Real,
 ) -> Fmi2Status {
-    Fmi2Status::Fmi2Fatal
+    let set_real = || -> Result<Fmi2Status, Error> {
+        let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize).to_vec() };
+        let values = unsafe { std::slice::from_raw_parts(values, nvr as usize).to_vec() };
+        let h = unsafe { *c.expect("handle was null") };
+
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+
+        // TODO replace with ?
+        let status: i32 = SLAVE_MANAGER
+            .call_method1(py, "set_xxx", (h, references, values))
+            .unwrap()
+            .extract(py)
+            .unwrap();
+
+        Ok(Fmi2Status::try_from(status)?)
+    };
+
+    match set_real() {
+        Ok(s) => s,
+        Err(e) => {
+            println!("{}", e);
+            Fmi2Status::Fmi2Error
+        }
+    }
 }
 
 #[no_mangle]
@@ -420,6 +538,42 @@ mod tests {
         assert_ne!(h1, None);
 
         let status = fmi2DoStep(h1, 0.0, 10.0, 0);
+
+        let references = &[0, 1];
+        let mut values = [10.0, 20.0];
+
+        let references_ptr = references.as_ptr();
+        let values_ptr = values.as_mut_ptr();
+
+        // let logAll = CString::new("logAll").unwrap();
+        // let categories = [];
+        // let categories_ptr = categories.as_ptr();
+
+        // assert_eq!(
+        //     fmi2SetDebugLogging(h1, 0, 1, categories_ptr),
+        //     Fmi2Status::Fmi2OK
+        // );
+
+        assert_eq!(
+            fmi2SetReal(h1, references_ptr, 2, values_ptr),
+            Fmi2Status::Fmi2OK
+        );
+
+        assert_eq!(
+            fmi2GetReal(h1, references_ptr, 2, values_ptr),
+            Fmi2Status::Fmi2OK
+        );
+        assert_eq!(values, [10.0, 20.0]);
+
+        let references = &[2];
+        let references_ptr = references.as_ptr();
+
+        assert_eq!(
+            fmi2GetReal(h1, references_ptr, 1, values_ptr),
+            Fmi2Status::Fmi2OK
+        );
+
+        assert_eq!(values[0], 30.0);
 
         fmi2FreeInstance(h1);
 
