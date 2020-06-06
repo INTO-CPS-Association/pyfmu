@@ -157,6 +157,11 @@ class Fmi2Slave:
     ) -> Fmi2Status_T:
         return Fmi2Status.ok
 
+    def set_debug_logging(
+        self, categories: list[str], logging_on: bool
+    ) -> Fmi2Status_T:
+        return Fmi2Status.ok
+
     def enter_initialization_mode(self) -> Fmi2Status_T:
         return Fmi2Status.ok
 

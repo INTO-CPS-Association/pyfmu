@@ -1,9 +1,0 @@
-[requires]
-pybind11/2.4.3
-catch2/2.12.2
-fmt/6.2.1
-spdlog/[>=1.4.1]
-nlohmann_json/3.7.3
-
-[generators]
-cmake

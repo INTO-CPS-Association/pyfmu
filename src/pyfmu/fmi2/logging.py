@@ -420,6 +420,7 @@ class FMI2SlaveLogger:
         self._logger.log(level=FMI2SlaveLogger._fmi_to_log_categories[status], msg=msg)
 
         if self._callback is not None:
+            print("Invoking callback!")
             self._callback(
                 instance_name=self._instance_name,
                 status=status,

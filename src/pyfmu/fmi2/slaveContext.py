@@ -295,3 +295,25 @@ class Fmi2SlaveContext:
                 msg=f"writing a variable of the slave failed", exc_info=True,
             )
             return ([], Fmi2Status.error)
+
+    def enter_initialization_mode(self, handle: SlaveHandle,) -> Fmi2Status_T:
+
+        try:
+            return self._slaves[handle].enter_initialization_mode()
+        except Exception:
+            self._loggers[handle].error(
+                msg="call to the slave's enter_initialization_mode raised an exception",
+                exc_info=True,
+            )
+            return Fmi2Status.error
+
+    def exit_initialization_mode(self, handle: SlaveHandle,) -> Fmi2Status_T:
+
+        try:
+            return self._slaves[handle].exit_initialization_mode()
+        except Exception:
+            self._loggers[handle].error(
+                msg="call to the slave's exit_initialization_mode raised an exception",
+                exc_info=True,
+            )
+            return Fmi2Status.error

@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 pl.LightningModule
 
 from pyfmu.fmi2 import Fmi2SlaveContext
-from pyfmu.fmi2.types import Fmi2Status
+from pyfmu.fmi2.types import Fmi2Status, Fmi2Type
 from tests.utils.example_finder import ExampleArchive
 
 
@@ -23,19 +23,21 @@ class TestSlaveManager:
 
             h1 = mgr.instantiate(
                 instance_name="a",
-                fmu_type="fmi2CoSimulation",
+                fmu_type=Fmi2Type.co_simulation,
                 guid="",
                 resources_uri=a.resources_dir.as_uri(),
                 logging_callback=callback,
+                logging_on=True,
                 visible=True,
             )
 
             h2 = mgr.instantiate(
                 instance_name="a",
-                fmu_type="fmi2CoSimulation",
+                fmu_type=Fmi2Type.co_simulation,
                 guid="",
                 resources_uri=a.resources_dir.as_uri(),
                 logging_callback=callback,
+                logging_on=True,
                 visible=True,
             )
 
