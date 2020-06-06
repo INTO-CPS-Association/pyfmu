@@ -2,11 +2,13 @@
 This module contains functionality to the creation of Python FMU projects
 """
 from os.path import exists, isfile
+from os import makedirs
 from pathlib import Path
 import json
 import logging
 from tempfile import TemporaryDirectory
 from shutil import copytree
+
 
 from jinja2 import Template
 
@@ -158,7 +160,7 @@ def generate_project(output_path: AnyPath, slave_class: str) -> PyfmuProject:
             )
 
         project_template_path = tmpdir / "resources" / slave_script
-        project_template_path.mkdir()
+        makedirs(project_template_path.parent, exist_ok=True)
 
         with open(project_template_path, "w") as f:
             f.write(r)
@@ -179,6 +181,7 @@ def generate_project(output_path: AnyPath, slave_class: str) -> PyfmuProject:
         logging.debug(
             f"Copying temporary directory {tmpdir} to output directory {output}"
         )
+
         copytree(src=tmpdir, dst=output)
 
         return PyfmuProject(

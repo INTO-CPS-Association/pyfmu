@@ -100,6 +100,13 @@ def extract_model_description(slave: Fmi2SlaveLike) -> str:
 
     variable_index = 0
 
+    type_to_fmitype = {
+        "real": "Real",
+        "integer": "Integer",
+        "boolean": "Boolean",
+        "string": "String",
+    }
+
     for var in slave.variables:
         var.variability
         value_reference = str(var.value_reference)
@@ -119,10 +126,10 @@ def extract_model_description(slave: Fmi2SlaveLike) -> str:
             i = var.initial
             sv.set("initial", i)
 
-        val = ET.SubElement(sv, var.data_type)
+        val = ET.SubElement(sv, type_to_fmitype[var.data_type])
 
         # 2.2.7. p.48) start values
-        if var.initial in {"initial", "approx"} or var.causality == "input":
+        if var.initial in {"exact", "approx"} or var.causality == "input":
             start = str(
                 getattr(slave, var.name)
             ).lower()  # lower maps from python uppercase True to fmi2 true.

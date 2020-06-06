@@ -9,7 +9,7 @@ class Adder(Fmi2Slave):
 
         super().__init__(
             model_name="Adder",
-            author="Christian Møldrup Legaard",
+            author="Christian Moeldrup Legaard",
             description="Two input adder",
             *args,
             **kwargs,
