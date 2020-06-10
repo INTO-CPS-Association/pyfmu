@@ -128,8 +128,7 @@ class Fmi2SlaveContext:
         )
 
         if fmu_type is not Fmi2Type.co_simulation:
-            logger.error("Only co-simulation is supported")
-            return None
+            raise NotImplementedError("Currently, only co-simulation is supported.")
 
         try:
             url_path = file_uri_to_path(resources_uri)

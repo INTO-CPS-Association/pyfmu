@@ -17,6 +17,7 @@ use std::os::raw::c_uint;
 use std::os::raw::c_ulonglong;
 use std::os::raw::c_void;
 use std::panic::catch_unwind;
+use std::ptr::null_mut;
 use std::sync::Mutex;
 use std::vec::Vec;
 
@@ -29,7 +30,7 @@ extern crate num_enum;
 pub type SlaveHandle = i32;
 
 //pub type Fmi2Component = *mut c_void;
-pub type Fmi2Component = Option<*mut i32>;
+pub type Fmi2Component = *mut i32;
 pub type Fmi2ComponentEnvironment = *mut c_void;
 pub type Fmi2FMUstate = *mut c_void;
 pub type Fmi2ValueReference = c_uint;
@@ -40,6 +41,7 @@ pub type Fmi2Char = c_char;
 pub type Fmi2String = *const Fmi2Char;
 pub type Fmi2Byte = c_char;
 pub type Fmi2StatusType = c_int;
+pub type Fmi2StatusKindType = c_int;
 pub type SizeT = c_ulonglong;
 
 /// Capture Rust panics and return Fmi2Error instead
@@ -250,7 +252,7 @@ pub extern "C" fn fmi2SetDebugLogging(
                 let cat = unsafe { CStr::from_ptr(*categories.offset(i)).to_str()? };
                 categories_vec.push(cat);
             }
-            let h = unsafe { *c.expect("handle was null") };
+            let h = unsafe { *c };
             let gil = Python::acquire_gil();
             let py = gil.python();
             let status: i32 = SLAVE_MANAGER
@@ -306,7 +308,7 @@ pub extern "C" fn fmi2SetupExperiment(
 
         let kwargs = PyDict::new(py);
 
-        let h: i32 = unsafe { *c.unwrap() };
+        let h: i32 = unsafe { *c };
 
         kwargs.set_item("start_time", start_time).unwrap();
         kwargs.set_item("handle", h).unwrap();
@@ -384,16 +386,16 @@ pub extern "C" fn fmi2Reset(c: Fmi2Component) -> Fmi2StatusType {
 /// Call generic
 fn call_parameterless_method(c: Fmi2Component, function: &str) -> Fmi2StatusType {
     let call_parameterless = || -> Result<Fmi2StatusType, Error> {
-        let h = unsafe { *c.expect("handle was null") };
+        let h = unsafe { *c };
 
         let gil = Python::acquire_gil();
         let py = gil.python();
 
         let status: i32 = SLAVE_MANAGER
             .call_method1(py, function, (h,))
-            .unwrap()
+            .map_pyerr(py)?
             .extract(py)
-            .unwrap();
+            .map_pyerr(py)?;
 
         Fmi2Status::try_from(status)?;
 
@@ -420,7 +422,7 @@ where
 {
     let get_real = || -> Result<Fmi2StatusType, Error> {
         let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize) }.to_vec();
-        let h = unsafe { *c.expect("handle was null") };
+        let h = unsafe { *c };
 
         let gil = Python::acquire_gil();
         let py = gil.python();
@@ -516,7 +518,7 @@ where
     let set_xxx = || -> Result<Fmi2StatusType, Error> {
         let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize).to_vec() };
         let values = unsafe { std::slice::from_raw_parts(values, nvr as usize).to_vec() };
-        let h = unsafe { *c.expect("handle was null") };
+        let h = unsafe { *c };
 
         let gil = Python::acquire_gil();
         let py = gil.python();
@@ -593,61 +595,168 @@ pub extern "C" fn fmi2SetString(
     Fmi2Status::Fmi2Fatal.into() // TODO
 }
 
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern "C" fn fmi2Instantiate(
-    instance_name: Fmi2String,
-    fmu_type: Fmi2Type,
-    fmu_guid: Fmi2String,
-    fmu_resource_location: Fmi2String,
-    functions: Fmi2CallbackFunctions,
-    visible: Fmi2Boolean,
-    logging_on: Fmi2Boolean,
-) -> Fmi2Component {
-    let gil = Python::acquire_gil();
-    let py = gil.python();
+trait PyErrToErr<T> {
+    fn map_pyerr(self, py: Python) -> Result<T, Error>;
+}
 
-    let kwargs = PyDict::new(py);
-
-    kwargs
-        .set_item("instance_name", cstr_to_string(instance_name))
-        .unwrap();
-    kwargs.set_item("fmu_type", fmu_type as i32).unwrap();
-    kwargs.set_item("guid", cstr_to_string(fmu_guid)).unwrap();
-    kwargs
-        .set_item("resources_uri", cstr_to_string(fmu_resource_location))
-        .unwrap();
-    kwargs.set_item("visible", visible != 0).unwrap();
-    kwargs.set_item("logging_on", logging_on != 0).unwrap();
-    // kwargs.set_item("logging_callback", ()).unwrap();
-
-    let wrapper = Py::new(
-        py,
-        CallbacksWrapper {
-            logger_callback: None,
-        },
-    )
-    .unwrap();
-
-    kwargs.set_item("logging_callback", wrapper).unwrap();
-
-    let get_instance = || -> PyResult<SlaveHandle> {
-        let handle: i32 = SLAVE_MANAGER
-            .call_method(py, "instantiate", (), Some(kwargs))?
-            .extract(py)?;
-        Ok(handle)
-    };
-
-    match get_instance() {
-        Err(e) => {
+/// Map PyErr to Error
+impl<T> PyErrToErr<T> for PyResult<T> {
+    fn map_pyerr(self, py: Python) -> Result<T, Error> {
+        self.map_err(|e| {
             e.print_and_set_sys_last_vars(py);
-            // TODO log error message
-            None
-        }
-        Ok(h) => Some(Box::into_raw(Box::new(h))),
+            anyhow::anyhow!(
+                "whoops some python code failed, TODO put into message instead of printing"
+            )
+        })
     }
 }
 
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn fmi2Instantiate(
+    instance_name: *const c_char,
+    fmu_type: c_int,
+    fmu_guid: *const c_char,
+    fmu_resource_location: *const c_char,
+    functions: Fmi2CallbackFunctions,
+    visible: c_int,
+    logging_on: c_int,
+) -> Fmi2Component {
+    eprintln!("YOOOOO this should really be passed to stderr");
+
+    let get_instance = || -> Result<SlaveHandle, Error> {
+        println!("Trying to acquire GIL");
+
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        let kwargs = PyDict::new(py);
+
+        kwargs
+            .set_item("instance_name", cstr_to_string(instance_name))
+            .map_pyerr(py)?;
+
+        kwargs.set_item("fmu_type", fmu_type as i32).map_pyerr(py)?;
+        kwargs
+            .set_item("guid", cstr_to_string(fmu_guid))
+            .map_pyerr(py)?;
+        kwargs
+            .set_item("resources_uri", cstr_to_string(fmu_resource_location))
+            .map_pyerr(py)?;
+        kwargs.set_item("visible", visible != 0).map_pyerr(py)?;
+        kwargs
+            .set_item("logging_on", logging_on != 0)
+            .map_pyerr(py)?;
+        // kwargs.set_item("logging_callback", ()).unwrap();
+        let wrapper = Py::new(
+            py,
+            CallbacksWrapper {
+                logger_callback: None,
+            },
+        )
+        .map_pyerr(py)?;
+        kwargs.set_item("logging_callback", wrapper).map_pyerr(py)?;
+
+        let handle: i32 = SLAVE_MANAGER
+            .call_method(py, "instantiate", (), Some(kwargs))
+            .map_pyerr(py)?
+            .extract(py)
+            .map_pyerr(py)?;
+
+        Ok(handle)
+    };
+
+    match catch_unwind(|| get_instance()) {
+        Err(e) => {
+            println!("a panic occurrec inside the code");
+            // TODO log error message
+            null_mut()
+        }
+
+        Ok(res) => match res {
+            Ok(h) => {
+                println!("Returning handle {}", h);
+                Box::into_raw(Box::new(h))
+            }
+            Err(e) => {
+                println!("whoops an error was raised: {}", e);
+                null_mut()
+            }
+        },
+    }
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2SetRealInputDerivatives(
+    c: Fmi2Component,
+    vr: *const Fmi2ValueReference,
+) -> Fmi2StatusType {
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetRealOutputDerivatives(c: Fmi2Component) -> Fmi2StatusType {
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2CancelStep(c: Fmi2Component) -> Fmi2StatusType {
+    call_parameterless_method(c, "cancel_step")
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetRealStatus(
+    c: Fmi2Component,
+    status_kind: u8,
+    value: *mut Fmi2Real,
+) -> Fmi2StatusType {
+    Fmi2Status::Fmi2OK.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetStatus(
+    c: Fmi2Component,
+    status_kind: Fmi2StatusKindType,
+    Fmi2Status: *mut Fmi2StatusType,
+) -> Fmi2StatusType {
+    Fmi2Status::Fmi2OK.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetIntegerStatus(
+    c: Fmi2Component,
+    status_kind: u8,
+    value: *mut Fmi2Integer,
+) -> Fmi2StatusType {
+    Fmi2Status::Fmi2OK.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetBooleanStatus(
+    c: Fmi2Component,
+    status_kind: u8,
+    value: *mut Fmi2Boolean,
+) -> Fmi2StatusType {
+    Fmi2Status::Fmi2OK.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetStringStatus(
+    c: Fmi2Component,
+    status_kind: u8,
+    value: *mut Fmi2String,
+) -> Fmi2StatusType {
+    Fmi2Status::Fmi2OK.into()
+}
+
+#[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2DoStep(
     c: Fmi2Component,
@@ -656,8 +765,8 @@ pub extern "C" fn fmi2DoStep(
     no_set_fmu_state_prior_to_current_point: Fmi2Boolean,
 ) -> Fmi2StatusType {
     match c {
-        None => Fmi2Status::Fmi2Error.into(), // TODO add logging
-        Some(c) => {
+        c if c.is_null() => Fmi2Status::Fmi2Error.into(), // TODO add logging
+        c => {
             let gil = Python::acquire_gil();
             let py = gil.python();
             let status: i32 = SLAVE_MANAGER
@@ -696,40 +805,59 @@ pub extern "C" fn fmi2DoStep(
 /// If a null pointer is provided for “c”, the function call is ignored (does not have an effect)."
 /// **(2.1.5 p.21)**
 #[no_mangle]
-pub extern "C" fn fmi2FreeInstance(c: Fmi2Component) {
+pub extern "C" fn fmi2FreeInstance(c: *mut i32) {
     let gil = Python::acquire_gil();
     let py = gil.python();
-    let free_instance = || match c {
-        None => (),
 
-        Some(c) => {
-            match SLAVE_MANAGER.call_method1(py, "free_instance", (unsafe { *c },)) {
-                Err(e) => {
-                    e.print_and_set_sys_last_vars(py);
-                }
-                _ => (),
-            };
-
-            let _ = unsafe {
-                Box::from_raw(c);
-            };
+    if c.is_null() {
+        ()
+    }
+    match SLAVE_MANAGER.call_method1(py, "free_instance", (unsafe { *c },)) {
+        Err(e) => {
+            e.print_and_set_sys_last_vars(py);
         }
+        _ => (),
     };
 
-    free_instance();
+    let _ = unsafe {
+        Box::from_raw(c);
+    };
+}
+
+#[no_mangle]
+pub extern "C" fn print_str(msg: *const c_char) {
+    let cstr = unsafe { CStr::from_ptr(msg).to_str().unwrap() };
+
+    let uppercase = cstr.to_uppercase();
+
+    println!("In uppercase is {}", uppercase)
+
+    //unsafe { std::ptr::copy(uppercase.as_ptr(), msg as *mut u8, 10) };
+}
+
+#[no_mangle]
+pub extern "C" fn print_str_callback(msg: *const c_char, functions: Fmi2CallbackFunctions) {
+    let cstr = unsafe { CStr::from_ptr(msg).to_str().unwrap() };
+
+    let uppercase = cstr.to_uppercase();
+
+    println!("In uppercase is {}", uppercase)
+
+    //unsafe { std::ptr::copy(uppercase.as_ptr(), msg as *mut u8, 10) };
 }
 
 #[cfg(test)]
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
+    use std::ptr::null_mut;
     #[test]
     fn instantiate_works() {
         // see documentation of Cstring.as_ptr
         let instance_name = CString::new("a").unwrap();
         let instance_name_ptr = instance_name.as_ptr();
 
-        let fmu_type = Fmi2Type::Fmi2CoSimulation;
+        let fmu_type = 1;
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
@@ -750,7 +878,7 @@ mod tests {
 
         println!("{:?}", instance_name);
 
-        let h1 = fmi2Instantiate(
+        let mut h1 = fmi2Instantiate(
             instance_name_ptr,
             fmu_type,
             guid_ptr,
@@ -760,7 +888,7 @@ mod tests {
             logging_on,
         );
 
-        assert_ne!(h1, None);
+        assert_ne!(h1, null_mut());
 
         let status = fmi2DoStep(h1, 0.0, 10.0, 0);
 

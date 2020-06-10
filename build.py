@@ -83,3 +83,14 @@ if __name__ == "__main__":
         )
 
         copy(input_dir, output_dir)
+
+    if args.export_examples:
+        logger.info("Exporting example projects")
+
+        for example in [get_example_project(name) for name in get_all_examples()]:
+            export_project(
+                project_or_path=example,
+                output_path=root_dir / "examples" / "exported" / example.stem,
+                compress=False,
+                overwrite=True,
+            )
