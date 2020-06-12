@@ -110,18 +110,22 @@ impl CallbacksWrapper {
         category: String,
         message: String,
     ) {
-        //println!("lib.rs: {}:{}:{}", category, instance_name, message);
-        let instance_name = CString::new(instance_name).unwrap().as_ptr();
-        let category = CString::new(category).unwrap().as_ptr();
-        let message = CString::new(message).unwrap().as_ptr();
+        // println!(
+        //     "Wrapper going to invoke the C callback with: {}:{}:{}",
+        //     category, instance_name, message
+        // );
+
+        let instance_name = CString::new(instance_name).unwrap();
+        let category = CString::new(category).unwrap();
+        let message = CString::new(message).unwrap();
 
         match &self.logger_callback {
             Some(callback) => callback(
                 std::ptr::null_mut(),
-                instance_name,
+                instance_name.as_ptr(),
                 status,
-                category,
-                message,
+                category.as_ptr(),
+                message.as_ptr(),
             ),
             _ => (),
         }
