@@ -14,7 +14,6 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
-use std::os::raw::c_float;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_ulonglong;
@@ -243,7 +242,7 @@ pub extern "C" fn fmi2GetVersion() -> *const c_char {
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2SetDebugLogging(
     c: *const i32,
-    logging_on: i32,
+    logging_on: c_int,
     n_categories: usize,
     categories: *const *const c_char,
 ) -> i32 {
@@ -456,7 +455,7 @@ pub extern "C" fn fmi2GetReal(
     c: *const i32,
     vr: *const c_uint,
     nvr: usize,
-    values: *mut c_float,
+    values: *mut c_double,
 ) -> i32 {
     get_xxx(c, vr, nvr, values)
 }
@@ -538,12 +537,12 @@ pub extern "C" fn fmi2GetString(
 
 fn set_xxx<T>(c: *const i32, vr: *const c_uint, nvr: usize, values: *const T) -> i32
 where
-    T: for<'a> FromPyObject<'a> + Clone,
+    T: for<'a> FromPyObject<'a> + Clone + std::fmt::Debug,
     (i32, Vec<c_uint>, Vec<T>): IntoPy<Py<PyTuple>>,
 {
     let set_xxx = || -> Result<i32, Error> {
-        let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize).to_vec() };
-        let values = unsafe { std::slice::from_raw_parts(values, nvr as usize).to_vec() };
+        let references = unsafe { std::slice::from_raw_parts(vr, nvr).to_vec() };
+        let values = unsafe { std::slice::from_raw_parts(values, nvr).to_vec() };
         let h = unsafe { *c };
 
         let gil = Python::acquire_gil();
@@ -576,8 +575,13 @@ pub extern "C" fn fmi2SetReal(
     c: *const i32,
     vr: *const c_uint,
     nvr: usize,
-    values: *const c_float,
+    values: *const c_double,
 ) -> i32 {
+    let test = unsafe { std::slice::from_raw_parts(values, nvr) };
+    println!("wrapper:set_xxx: as slice values are {:?}", unsafe {
+        *values
+    });
+
     set_xxx(c, vr, nvr, values)
 }
 
@@ -905,7 +909,7 @@ mod tests {
         let status = fmi2DoStep(h1, 0.0, 10.0, 0);
 
         let references = &[0, 1];
-        let mut values = [10.0, 20.0];
+        let mut values: [f64; 2] = [10.0, 20.0];
 
         let references_ptr = references.as_ptr();
         let values_ptr = values.as_mut_ptr();

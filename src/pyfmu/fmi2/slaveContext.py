@@ -213,7 +213,6 @@ class Fmi2SlaveContext:
         """
 
         try:
-            self._loggers[handle].ok("Preparing to call do_step")
 
             status = self._slaves[handle].do_step(
                 current_time, step_size, no_set_state_prior,
@@ -279,7 +278,7 @@ class Fmi2SlaveContext:
             attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
 
             self._loggers[handle].ok(
-                f"Setting references {references} with names {attributes} to values {references}"
+                f"Setting references {references} with names {attributes} to values {values}"
             )
 
             for a, v in zip(attributes, values):

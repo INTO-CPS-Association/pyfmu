@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     if args.run_rust_tests:
         logger.info("Running rust tests")
-        subprocess.run(["cargo", "build"]).check_returncode()
+        subprocess.run(["cargo", "test", "--", "--nocapture"]).check_returncode()
 
     if args.update_wrapper:
 
