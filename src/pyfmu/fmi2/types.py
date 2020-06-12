@@ -304,6 +304,9 @@ class Fmi2SlaveLike(Protocol):
     def exit_initialization_mode(self) -> Fmi2Status_T:
         ...
 
+    def terminate(self) -> Fmi2Status_T:
+        ...
+
     def reset(self) -> Fmi2Status_T:
         ...
 

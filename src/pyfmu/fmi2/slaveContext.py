@@ -177,7 +177,9 @@ class Fmi2SlaveContext:
 
     def free_instance(self, handle: SlaveHandle) -> Fmi2Value_T:
 
-        self._loggers[handle].ok(f"Removing slave with handle {handle}")
+        self._loggers[handle].ok(
+            f"Removing slave with handle {handle}, current number of slaves is {len(self._slaves)}"
+        )
 
         try:
             del self._slaves[handle]
@@ -187,7 +189,9 @@ class Fmi2SlaveContext:
             )
             return Fmi2Status.fatal
 
-        self._loggers[handle].ok(f"Slave succesfully removed")
+        self._loggers[handle].ok(
+            f"Slave succesfully removed, number of slaves after is {len(self._slaves)}"
+        )
 
     def do_step(
         self,
@@ -209,11 +213,20 @@ class Fmi2SlaveContext:
         """
 
         try:
-            return self._slaves[handle].do_step(
-                current_time=current_time,
-                step_size=step_size,
-                no_set_fmu_state_prior=no_set_state_prior,
+            self._loggers[handle].ok("Preparing to call do_step")
+
+            status = self._slaves[handle].do_step(
+                current_time, step_size, no_set_state_prior,
             )
+
+            if Fmi2SlaveContext._is_valid_status(status) is False:
+                self._loggers[handle].error(
+                    f"call to slave's do_step returned an invalid status code: {status}",
+                )
+                return Fmi2Status.error
+
+            return status
+
         except Exception:
             self._loggers[handle].error(
                 msg="invoking do_step raised an error", exc_info=True
@@ -229,9 +242,18 @@ class Fmi2SlaveContext:
     ) -> Fmi2Status_T:
 
         try:
-            return self._slaves[handle].setup_experiment(
+            status = self._slaves[handle].setup_experiment(
                 start_time=start_time, tolerance=tolerance, stop_time=stop_time
             )
+
+            if Fmi2SlaveContext._is_valid_status(status) is False:
+                self._loggers[handle].error(
+                    f"call to slave's setup_experiment returned an invalid status code: {status}",
+                )
+                return Fmi2Status.error
+
+            return status
+
         except Exception:
             self._loggers[handle].error(
                 msg="call to the slave's setup_experiment raised an exception",
@@ -255,6 +277,11 @@ class Fmi2SlaveContext:
 
         try:
             attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
+
+            self._loggers[handle].ok(
+                f"Setting references {references} with names {attributes} to values {references}"
+            )
+
             for a, v in zip(attributes, values):
                 setattr(self._slaves[handle], a, v)
 
@@ -298,7 +325,17 @@ class Fmi2SlaveContext:
     def enter_initialization_mode(self, handle: SlaveHandle,) -> Fmi2Status_T:
 
         try:
-            return self._slaves[handle].enter_initialization_mode()
+
+            status = self._slaves[handle].enter_initialization_mode()
+
+            if Fmi2SlaveContext._is_valid_status(status) is False:
+                self._loggers[handle].error(
+                    "call to slave's enter_initialization returned an invalid status code: {status}"
+                )
+                return Fmi2Status.error
+
+            return status
+
         except Exception:
             self._loggers[handle].error(
                 msg="call to the slave's enter_initialization_mode raised an exception",
@@ -309,10 +346,42 @@ class Fmi2SlaveContext:
     def exit_initialization_mode(self, handle: SlaveHandle,) -> Fmi2Status_T:
 
         try:
-            return self._slaves[handle].exit_initialization_mode()
+
+            status = self._slaves[handle].enter_initialization_mode()
+
+            if Fmi2SlaveContext._is_valid_status(status) is False:
+                self._loggers[handle].error(
+                    "call to slave's exit_initialization_mode returned an invalid status code: {status}"
+                )
+                return Fmi2Status.error
+
+            return status
+
         except Exception:
             self._loggers[handle].error(
                 msg="call to the slave's exit_initialization_mode raised an exception",
                 exc_info=True,
             )
             return Fmi2Status.error
+
+    def terminate(self, handle: SlaveHandle) -> Fmi2Status_T:
+
+        try:
+            status = self._slaves[handle].terminate()
+            if Fmi2SlaveContext._is_valid_status(status) is False:
+                self._loggers[handle].error(
+                    "call to slave's terminate returned an invalid status code: {status}"
+                )
+                return Fmi2Status.error
+
+            return status
+
+        except Exception:
+            self._loggers[handle].error(
+                "call to slave's termiante raised an error", exc_info=True
+            )
+            return Fmi2Status.error
+
+    @staticmethod
+    def _is_valid_status(status: int) -> bool:
+        return status in range(Fmi2Status.ok, Fmi2Status.pending + 1)

@@ -3,7 +3,7 @@
 from typing import Iterable, List, Callable, Optional
 from abc import ABC
 import logging
-from traceback import format_exc
+from traceback import format_exc, format_stack
 
 from pyfmu.fmi2.types import Fmi2Status, Fmi2Status, Fmi2Status_T, Fmi2LoggingCallback
 

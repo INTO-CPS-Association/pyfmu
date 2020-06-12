@@ -36,8 +36,11 @@ class SineGenerator(Fmi2Slave):
 
     def setup_experiment(self, start_time, stop_time, tolerance):
         self.t = start_time
+        return Fmi2Status.ok
 
-    def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
+    def do_step(
+        self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
+    ):
         self.t = current_time + step_size
         return Fmi2Status.ok
 

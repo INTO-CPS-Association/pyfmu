@@ -54,7 +54,7 @@ class LivePlotting(Fmi2Slave):
         self._lastSimTime = 0.0
         self._running = False
 
-    def terminate(self):
+    def __del__(self):
 
         if not self.plot_process.is_alive():
             return
@@ -67,12 +67,10 @@ class LivePlotting(Fmi2Slave):
         except Exception:
             pass
 
-    def __del__(self):
-        self.terminate()
-
     def exit_initialization_mode(self):
         self._running = True
         self.plot_process.start()
+        return Fmi2Status.ok
 
     def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
 
@@ -85,6 +83,8 @@ class LivePlotting(Fmi2Slave):
         self._lastSimTime = current_time
 
         self.q.put(np.array([self.x0, self.y0]))
+
+        return Fmi2Status.ok
 
     @staticmethod
     def _draw_process_func(q: multiprocessing.Queue):

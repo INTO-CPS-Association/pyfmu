@@ -115,9 +115,11 @@ class Bicycle_Kinematic(Fmi2Slave):
         self.y = self.y0
         self.psi = self.psi0
         self.v = self.v0
+        return Fmi2Status.ok
 
     def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
 
+        print("stepping")
         # bundle the parameters in the function call
         def fun(t, state):
             params = (self.df, self.a, self.lf, self.lr)
@@ -127,7 +129,7 @@ class Bicycle_Kinematic(Fmi2Slave):
         end = current_time + step_size
         t_span = (current_time, end)
 
-        res = solve_ivp(fun, t_span, h0, max_step=step_size, t_eval=[end])
+        res = solve_ivp(fun, t_span, h0, max_step=0.1, t_eval=[end])
 
         x, y, psi, v = tuple(res.y)
         self.x = x[0]
@@ -136,3 +138,10 @@ class Bicycle_Kinematic(Fmi2Slave):
         self.v = v[0]
 
         return Fmi2Status.ok
+
+
+if __name__ == "__main__":
+    m = Bicycle_Kinematic()
+
+    for i in range(10):
+        m.do_step(0, 1, False)

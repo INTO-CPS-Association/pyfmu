@@ -37,13 +37,15 @@ def test_Adder():
 def test_BicycleKinematic():
     with ExampleArchive("BicycleKinematic") as a:
 
-        assert validate_fmu(a.root, _validate_with).valid
+        res = validate_fmu(a.root, _validate_with)
+        print(res.get_report())
+        assert res.valid
 
 
 def test_ConstantSignalGenerator():
     with ExampleArchive("ConstantSignalGenerator") as a:
         res = validate_fmu(a.root, _validate_with)
-
+        print(res.get_report())
         assert res.valid
 
 
@@ -51,16 +53,19 @@ def test_FmiTypes():
     with ExampleArchive("FmiTypes") as a:
 
         res = validate_fmu(a.root, _validate_with)
+        print(res.get_report())
         assert res.valid
 
 
 def test_LivePlotting():
     with ExampleArchive("LivePlotting") as a:
-
-        assert validate_fmu(a.root, _validate_with).valid
+        res = validate_fmu(a.root, _validate_with)
+        print(res.get_report())
+        assert res.valid
 
 
 def test_SineGenerator():
     with ExampleArchive("SineGenerator") as a:
-
-        assert validate_fmu(a.root, _validate_with).valid
+        res = validate_fmu(a.root, _validate_with)
+        print(res.get_report())
+        assert res.valid

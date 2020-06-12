@@ -171,6 +171,9 @@ class Fmi2Slave:
     def reset(self) -> Fmi2Status_T:
         return Fmi2Status.ok
 
+    def terminate(self) -> Fmi2Status_T:
+        return Fmi2Status.ok
+
     def _acquire_unused_value_reference(self) -> int:
         """ Returns the an unused value reference
         """
