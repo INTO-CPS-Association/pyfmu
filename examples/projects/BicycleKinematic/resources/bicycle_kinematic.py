@@ -119,7 +119,6 @@ class Bicycle_Kinematic(Fmi2Slave):
 
     def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
 
-        print("stepping")
         # bundle the parameters in the function call
         def fun(t, state):
             params = (self.df, self.a, self.lf, self.lr)
@@ -129,7 +128,13 @@ class Bicycle_Kinematic(Fmi2Slave):
         end = current_time + step_size
         t_span = (current_time, end)
 
-        res = solve_ivp(fun, t_span, h0, max_step=0.1, t_eval=[end])
+        res = solve_ivp(
+            fun,
+            t_span,
+            h0,
+            # max_step=0.1,
+            t_eval=[end],
+        )
 
         x, y, psi, v = tuple(res.y)
         self.x = x[0]
@@ -141,7 +146,13 @@ class Bicycle_Kinematic(Fmi2Slave):
 
 
 if __name__ == "__main__":
-    m = Bicycle_Kinematic()
 
+    from pyfmu.fmi2.logging import FMI2SlaveLogger
+
+    logger = FMI2SlaveLogger("a", 0, None)
+    kwargs = {"logger": logger}
+
+    m = Bicycle_Kinematic(**kwargs)
+    m.log_ok("johnny")
     for i in range(10):
-        m.do_step(0, 1, False)
+        m.do_step(i, i + 1, False)

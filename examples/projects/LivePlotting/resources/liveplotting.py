@@ -56,6 +56,8 @@ class LivePlotting(Fmi2Slave):
 
     def __del__(self):
 
+        self.log_ok("Terminating GUI process")
+
         if not self.plot_process.is_alive():
             return
 
@@ -68,6 +70,8 @@ class LivePlotting(Fmi2Slave):
             pass
 
     def exit_initialization_mode(self):
+
+        self.log_ok("Starting GUI process")
         self._running = True
         self.plot_process.start()
         return Fmi2Status.ok
@@ -133,3 +137,19 @@ class LivePlotting(Fmi2Slave):
             p1.setTitle(fps_str)
 
             app.processEvents()
+
+
+if __name__ == "__main__":
+    c = LivePlotting()
+
+    c.setup_experiment(start_time=0, stop_time=10)
+    c.enter_initialization_mode()
+    c.exit_initialization_mode()
+
+    for i in range(0, 1000):
+        c.x0 = i
+        c.y0 = i
+        c.do_step(i, i + 1, False)
+
+    c.terminate()
+    c.reset()

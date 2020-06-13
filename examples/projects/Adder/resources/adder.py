@@ -15,15 +15,23 @@ class Adder(Fmi2Slave):
             **kwargs,
         )
 
-        self.a = 0.0
-        self.b = 0.0
+        self.reset()
         self.register_input("a", "real", "continuous")
         self.register_input("b", "real", "continuous")
         self.register_output("s", "real", "continuous", "calculated")
 
+    def reset(self):
+        self.a = 0.0
+        self.b = 0.0
+        return Fmi2Status.ok
+
     @property
     def s(self):
         return self.a + self.b
+
+    def do_step(self, a, b, c):
+        self.log_ok(f"sum of {self.a} and {self.b} is {self.a+self.b}")
+        print("STEPPPPPPP")
 
 
 if __name__ == "__main__":

@@ -2,14 +2,11 @@ use anyhow;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
-use num_enum::TryFromPrimitiveError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::types::PyTuple;
-use pyo3::PyClass;
 use std::boxed::Box;
 use std::convert::TryFrom;
-use std::convert::TryInto;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::os::raw::c_char;
@@ -20,7 +17,6 @@ use std::os::raw::c_ulonglong;
 use std::os::raw::c_void;
 use std::panic::catch_unwind;
 use std::ptr::null_mut;
-use std::sync::Mutex;
 use std::vec::Vec;
 
 #[macro_use]
@@ -43,6 +39,43 @@ pub type SlaveHandle = i32;
 // pub type i32 = c_int;
 // pub type c_int = c_int;
 //pub type usize = c_intulonglong;
+
+// static SLAVE_MANAGER_ONCE: Once = Once::new();
+// static mut SLAVE_MANAGER_UNSAFE_CACHE: *const PyObject = null();
+
+// #[derive(Debug)]
+// pub struct SLAVE_MANAGER_API {
+//     __private_field: (),
+// }
+
+// pub static SLAVE_MANAGER: SLAVE_MANAGER_API = SLAVE_MANAGER_API {
+//     __private_field: (),
+// };
+
+// impl Deref for SLAVE_MANAGER_API {
+//     type Target = PyObject;
+
+//     fn deref(&self) -> &'static PyObject {
+//         if !unsafe { SLAVE_MANAGER_UNSAFE_CACHE.is_null() } {
+//             unsafe { &(*SLAVE_MANAGER_UNSAFE_CACHE) }
+//         } else {
+//             let gil = Python::acquire_gil();
+//             let py = gil.python();
+//             let ctx: pyo3::PyObject = py
+//                 .import("pyfmu.fmi2.slaveContext")
+//                 .expect("Unable to import module declaring slave manager. Ensure that PyFMU is installed inside your current envrioment.")
+//                 .get("Fmi2SlaveContext").unwrap()
+//                 .call0().unwrap()
+//                 .extract().unwrap();
+
+//             SLAVE_MANAGER_ONCE.call_once(move || {
+//                 SLAVE_MANAGER_UNSAFE_CACHE = *(&ctx);
+//             });
+
+//             &(*SLAVE_MANAGER)
+//         }
+//     }
+// }
 
 /// Capture Rust panics and return Fmi2Error instead
 macro_rules! ffi_panic_boundary {($($tt:tt)*) => (
@@ -68,6 +101,7 @@ pub type Fmi2CallbackFreeMemory = extern "C" fn(obj: *const c_void);
 pub type Fmi2StepFinished = extern "C" fn(component_environment: *mut c_void, status: Fmi2Status);
 
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct Fmi2CallbackFunctions {
     logger: Option<Fmi2CallbackLogger>,
     allocate_memory: Option<Fmi2CallbackAllocateMemory>,
@@ -83,18 +117,13 @@ pub struct Fmi2CallbackFunctions {
 /// https://pyo3.rs/master/function.html
 #[pyclass]
 struct CallbacksWrapper {
-    logger_callback: Option<Box<Fmi2CallbackLogger>>,
+    logger_callback: Box<Fmi2CallbackLogger>,
 }
 
 impl CallbacksWrapper {
-    pub fn new(logger_callback: Option<Fmi2CallbackLogger>) -> Self {
-        match logger_callback {
-            Some(callback) => CallbacksWrapper {
-                logger_callback: Some(Box::new(callback)),
-            },
-            _ => CallbacksWrapper {
-                logger_callback: None,
-            },
+    pub fn new(logger_callback: Fmi2CallbackLogger) -> Self {
+        Self {
+            logger_callback: Box::new(logger_callback),
         }
     }
 }
@@ -119,7 +148,7 @@ impl CallbacksWrapper {
         let message = CString::new(message).unwrap();
 
         match &self.logger_callback {
-            Some(callback) => callback(
+            callback => callback(
                 std::ptr::null_mut(),
                 instance_name.as_ptr(),
                 status,
@@ -156,10 +185,6 @@ pub enum Fmi2StatusKind {
 pub enum Fmi2Type {
     Fmi2ModelExchange = 0,
     Fmi2CoSimulation = 1,
-}
-
-lazy_static! {
-    static ref SLAVE_HANDLES_LOCK: Mutex<i32> = Mutex::new(0);
 }
 
 lazy_static! {
@@ -257,6 +282,7 @@ pub extern "C" fn fmi2SetDebugLogging(
             let h = unsafe { *c };
             let gil = Python::acquire_gil();
             let py = gil.python();
+
             let status: i32 = SLAVE_MANAGER
                 .call_method1(
                     py,
@@ -298,11 +324,11 @@ pub extern "C" fn fmi2SetDebugLogging(
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2SetupExperiment(
     c: *const i32,
-    tolerance_defined: i32,
-    tolerance: f32,
-    start_time: f32,
-    stop_time_defined: i32,
-    stop_time: f32,
+    tolerance_defined: c_int,
+    tolerance: c_double,
+    start_time: c_double,
+    stop_time_defined: c_int,
+    stop_time: c_double,
 ) -> i32 {
     let setup_experiment = || -> Result<i32, Error> {
         let gil = Python::acquire_gil();
@@ -577,11 +603,6 @@ pub extern "C" fn fmi2SetReal(
     nvr: usize,
     values: *const c_double,
 ) -> i32 {
-    let test = unsafe { std::slice::from_raw_parts(values, nvr) };
-    println!("wrapper:set_xxx: as slice values are {:?}", unsafe {
-        *values
-    });
-
     set_xxx(c, vr, nvr, values)
 }
 
@@ -678,15 +699,7 @@ pub extern "C" fn fmi2Instantiate(
         kwargs
             .set_item("logging_on", logging_on != 0)
             .map_pyerr(py)?;
-        // kwargs.set_item("logging_callback", ()).unwrap();
-
-        let wrapper = PyCell::new(
-            py,
-            CallbacksWrapper {
-                logger_callback: Some(Box::new(logger)),
-            },
-        )
-        .map_pyerr(py)?;
+        let wrapper = PyCell::new(py, CallbacksWrapper::new(logger)).map_pyerr(py)?;
         kwargs.set_item("logging_callback", wrapper).map_pyerr(py)?;
 
         let handle: i32 = SLAVE_MANAGER
@@ -705,10 +718,7 @@ pub extern "C" fn fmi2Instantiate(
         }
 
         Ok(res) => match res {
-            Ok(h) => {
-                println!("Returning handle {}", h);
-                Box::into_raw(Box::new(h))
-            }
+            Ok(h) => Box::into_raw(Box::new(h)),
             Err(e) => {
                 println!(
                     "An error has ocurred during instantiation of the FMU: {}",
@@ -740,7 +750,11 @@ pub extern "C" fn fmi2CancelStep(c: *const i32) -> i32 {
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
-pub extern "C" fn fmi2GetRealStatus(c: *const i32, status_kind: c_int, value: *mut f32) -> i32 {
+pub extern "C" fn fmi2GetRealStatus(
+    c: *const i32,
+    status_kind: c_int,
+    value: *mut c_double,
+) -> i32 {
     Fmi2Status::Fmi2Fatal.into()
 }
 
@@ -784,8 +798,8 @@ pub extern "C" fn fmi2GetStringStatus(
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2DoStep(
     c: *const i32,
-    current_communication_point: f32,
-    communication_step_size: f32,
+    current_communication_point: c_double,
+    communication_step_size: c_double,
     no_set_fmu_state_prior_to_current_point: i32,
 ) -> c_int {
     let do_step = || -> Result<c_int, Error> {
@@ -814,7 +828,7 @@ pub extern "C" fn fmi2DoStep(
     match do_step() {
         Ok(s) => s,
         Err(e) => {
-            println!("Do step failed");
+            println!("Do step failed due to error: {}", e);
             Fmi2Status::Fmi2Error.into()
         }
     }
@@ -832,22 +846,44 @@ pub extern "C" fn fmi2DoStep(
 /// **(2.1.5 p.21)**
 #[no_mangle]
 pub extern "C" fn fmi2FreeInstance(c: *mut i32) {
-    let gil = Python::acquire_gil();
-    let py = gil.python();
+    let free_instance = || -> Result<(), Error> {
+        if c.is_null() {
+            Ok(())
+        } else {
+            let gil = Python::acquire_gil();
+            let py = gil.python();
 
-    if c.is_null() {
-        ()
-    }
-    match SLAVE_MANAGER.call_method1(py, "free_instance", (unsafe { *c },)) {
-        Err(e) => {
-            e.print_and_set_sys_last_vars(py);
+            SLAVE_MANAGER
+                .call_method1(py, "free_instance", (unsafe { *c },))
+                .map_pyerr(py)?;
+
+            unsafe { Box::from_raw(c) };
+
+            Ok(())
         }
-        _ => (),
     };
 
-    let _ = unsafe {
-        Box::from_raw(c);
-    };
+    match free_instance() {
+        Ok(_) => (),
+        Err(e) => eprintln!("An error ocurred when freeing instance: {}", e), // TODO
+    }
+}
+
+#[allow(unused_variables, dead_code)] // linter does not detect tests use of this code
+extern "C" fn logger(
+    component_environment: *mut c_void,
+    instance_name: *const c_char,
+    status: c_int,
+    category: *const c_char,
+    message: *const c_char,
+) {
+    let instance_name = cstr_to_string(instance_name);
+    let category = cstr_to_string(category);
+    let message = cstr_to_string(message);
+    println!(
+        "Callback:{}:{}:{}:{}",
+        instance_name, category, status, message
+    )
 }
 
 #[cfg(test)]
@@ -856,7 +892,7 @@ mod tests {
     use super::*;
     use std::ptr::null_mut;
     #[test]
-    fn instantiate_works() {
+    fn test_adder() {
         // see documentation of Cstring.as_ptr
         let instance_name = CString::new("a").unwrap();
         let instance_name_ptr = instance_name.as_ptr();
@@ -869,18 +905,6 @@ mod tests {
             CString::new("file:///C:/Users/clega/Desktop/pyfmu/examples/exported/Adder/resources")
                 .unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
-
-        #[allow(unused_variables)]
-        extern "C" fn logger(
-            component_environment: *mut c_void,
-            instance_name: *const c_char,
-            status: c_int,
-            category: *const c_char,
-            message: *const c_char,
-        ) {
-            //println!("test:{}:{}:{}", category, instance_name, status)
-            println!("C callback invoked")
-        }
 
         let functions = Fmi2CallbackFunctions {
             logger: Some(logger),
@@ -929,13 +953,14 @@ mod tests {
         );
 
         assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
-
-        // assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
 
         assert_eq!(
             fmi2SetReal(h1, references_ptr, 2, values_ptr),
             Fmi2Status::Fmi2OK.into()
         );
+
+        assert_eq!(fmi2DoStep(h1, 0.0, 1.0, 0), Fmi2Status::Fmi2OK.into());
 
         assert_eq!(
             fmi2GetReal(h1, references_ptr, 2, values_ptr),
@@ -956,5 +981,142 @@ mod tests {
         fmi2FreeInstance(h1);
 
         assert_eq!(status, Fmi2Status::Fmi2OK.into())
+    }
+
+    #[test]
+    fn test_bicycle_kinematic() {
+        // see documentation of Cstring.as_ptr
+        let instance_name = CString::new("a").unwrap();
+        let instance_name_ptr = instance_name.as_ptr();
+
+        let fmu_type = 1;
+        let guid = CString::new("1234").unwrap();
+        let guid_ptr = guid.as_ptr();
+
+        let fmu_resources_path = CString::new(
+            "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/BicycleKinematic/resources",
+        )
+        .unwrap();
+        let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
+
+        let functions = Fmi2CallbackFunctions {
+            logger: Some(logger),
+            allocate_memory: None,
+            free_memory: None,
+            step_finished: None,
+            component_environment: None,
+        };
+        let visible: i32 = 0;
+        let logging_on: i32 = 0;
+
+        println!("{:?}", instance_name);
+
+        let h1 = fmi2Instantiate(
+            instance_name_ptr,
+            fmu_type,
+            guid_ptr,
+            fmu_resources_path_ptr,
+            functions,
+            visible,
+            logging_on,
+        );
+
+        assert_ne!(h1, null_mut());
+
+        let vr_accel = 0;
+        let val_accel: f64 = 1.0;
+        let references = &[vr_accel];
+        let mut values = [val_accel];
+
+        let references_ptr = references.as_ptr();
+        let values_ptr = values.as_mut_ptr();
+
+        assert_eq!(
+            fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+
+        assert_eq!(
+            fmi2SetReal(h1, references_ptr, values.len(), values_ptr),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(
+            fmi2GetReal(h1, references_ptr, values.len(), values_ptr),
+            Fmi2Status::Fmi2OK.into()
+        );
+        assert_eq!(values, [val_accel]);
+
+        assert_eq!(fmi2DoStep(h1, 0.0, 10.0, 0), Fmi2Status::Fmi2OK.into());
+
+        let vr_pos_x = 2;
+        let references = &[vr_pos_x];
+
+        assert_eq!(
+            fmi2GetReal(h1, references.as_ptr(), references.len(), values_ptr),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert!(values[0] > 1.0); // should have moved more than 1 meter in 10 seconds with accel of 1
+
+        fmi2FreeInstance(h1);
+    }
+
+    #[test]
+    fn test_multiple_instantiations() {
+        const N: usize = 10;
+
+        let fmu_type = 1; // cosim
+
+        let guid = CString::new("1234").unwrap();
+        let guid_ptr = guid.as_ptr();
+
+        let fmu_resources_path =
+            CString::new("file:///C:/Users/clega/Desktop/pyfmu/examples/exported/Adder/resources")
+                .unwrap();
+        let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
+
+        let functions = Fmi2CallbackFunctions {
+            logger: Some(logger),
+            allocate_memory: None,
+            free_memory: None,
+            step_finished: None,
+            component_environment: None,
+        };
+        let visible: i32 = 0;
+        let logging_on: i32 = 0;
+
+        let mut handles: Vec<*mut i32> = vec![];
+        for i in 0..N {
+            let instance_name = CString::new(i.to_string()).unwrap();
+            let instance_name_ptr = instance_name.as_ptr();
+
+            let h = fmi2Instantiate(
+                instance_name_ptr,
+                fmu_type,
+                guid_ptr,
+                fmu_resources_path_ptr,
+                functions,
+                visible,
+                logging_on,
+            );
+
+            assert_eq!(
+                fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0),
+                Fmi2Status::Fmi2OK.into()
+            );
+            assert_eq!(fmi2EnterInitializationMode(h), Fmi2Status::Fmi2OK.into());
+            assert_eq!(fmi2ExitInitializationMode(h), Fmi2Status::Fmi2OK.into());
+
+            handles.push(h);
+        }
+
+        for h in handles {
+            assert_eq!(fmi2Terminate(h), Fmi2Status::Fmi2OK.into());
+            fmi2FreeInstance(h)
+        }
     }
 }

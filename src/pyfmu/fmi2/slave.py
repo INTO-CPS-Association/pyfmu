@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Tuple, Optional, Literal
 from uuid import uuid4
 from pyfmu.fmi2.exception import SlaveAttributeError
+from pyfmu.fmi2.logging import FMI2SlaveLogger
 
 from pyfmu.fmi2.types import (
     Fmi2Status,
@@ -24,6 +25,7 @@ class Fmi2Slave:
         copyright: str = None,
         version: str = None,
         description: str = None,
+        logger: FMI2SlaveLogger = None,
     ):
         """Constructs a FMI2
 
@@ -51,6 +53,11 @@ class Fmi2Slave:
         self._version = version
         self._value_reference_counter = 0
         self._used_value_references = {}
+        self._logger = logger
+
+        if logger is not None:
+            logger.ok("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+            self.log_ok("AAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
     def register_input(
         self,
@@ -169,9 +176,26 @@ class Fmi2Slave:
         return Fmi2Status.ok
 
     def reset(self) -> Fmi2Status_T:
+        """Inform the FMU to set its internal state to that match that of a freshly instantiated FMU.
+
+        Resources such as file handles and GUI windows may be reused, as long
+        as the state that influences the simulation is reset.
+
+        Returns:
+            Fmi2Status_T: status code indicating the success of the operation
+        """
         return Fmi2Status.ok
 
     def terminate(self) -> Fmi2Status_T:
+        r"""Informs the FMU that the simulation has terminated and allows the
+        environment read the final values of variables.
+        
+        For cleanup of managed resources it is recommended to use the regular Python pattern
+        of defining function \_\_del\_\_ referred to as a finalizer.
+
+        Returns:
+            Fmi2Status_T: status code indicating the success of the operation
+        """
         return Fmi2Status.ok
 
     def _acquire_unused_value_reference(self) -> int:
@@ -183,6 +207,119 @@ class Fmi2Slave:
 
             if vr not in self._used_value_references:
                 return vr
+
+    def log_ok(
+        self, msg: str, category: str = None, exc_info=False, stack_info=False,
+    ):
+        self._log(
+            status=Fmi2Status.ok,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def log_warning(
+        self,
+        msg: str,
+        category: str = None,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.warning,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def log_discard(
+        self,
+        msg: str,
+        category: str = None,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.discard,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def log_error(
+        self,
+        msg: str,
+        category: str = None,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.error,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def log_fatal(
+        self,
+        msg: str,
+        category: str = None,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.fatal,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def log_pending(
+        self,
+        msg: str,
+        category: str = None,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+        self._log(
+            status=Fmi2Status.pending,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+        )
+
+    def _log(
+        self,
+        status: Fmi2Status_T,
+        msg: str,
+        category: str = None,
+        exc_info=False,
+        stack_info=False,
+        stack_level: float = None,
+    ):
+
+        if self._logger is None:
+            return
+
+        self._logger._log(
+            status=status,
+            msg=msg,
+            category=category,
+            exc_info=exc_info,
+            stack_info=stack_info,
+            stack_level=stack_level,
+        )
 
     @property
     def log_categories(self) -> List[str]:

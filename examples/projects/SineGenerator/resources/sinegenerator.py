@@ -14,7 +14,7 @@ class SineGenerator(Fmi2Slave):
             author="Chrisitian Møldrup Legaard",
             description="Single output sinewave generator",
             *args,
-            **kwargs
+            **kwargs,
         )
 
         self.amplitude = 1.0
@@ -41,8 +41,6 @@ class SineGenerator(Fmi2Slave):
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
     ):
+        print(f"step {current_time} size {step_size} ")
         self.t = current_time + step_size
         return Fmi2Status.ok
-
-
-s = SineGenerator()

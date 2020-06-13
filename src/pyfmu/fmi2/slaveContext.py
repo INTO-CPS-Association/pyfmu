@@ -124,7 +124,10 @@ class Fmi2SlaveContext:
         handle = get_free_handle()
 
         logger = FMI2SlaveLogger(
-            instance_name=instance_name, slave_handle=handle, callback=logging_callback,
+            instance_name=instance_name,
+            slave_handle=handle,
+            callback=logging_callback,
+            log_stdout=False,
         )
 
         if fmu_type is not Fmi2Type.co_simulation:
@@ -150,8 +153,11 @@ class Fmi2SlaveContext:
                 msg=f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}"
             )
 
-            # instantiate object
-            instance = getattr(importlib.import_module(slave_module), slave_class)()
+            # instantiate object¨
+            kwargs = {"logger": logger}
+            instance = getattr(importlib.import_module(slave_module), slave_class)(
+                **kwargs
+            )
 
             logger.ok(
                 msg="Extracting mapping between value references and attribute names from modelDescription.xml"
@@ -314,6 +320,11 @@ class Fmi2SlaveContext:
         try:
             attributes = [self._slave_to_ids_to_attr[handle][i] for i in references]
             values = [getattr(self._slaves[handle], a) for a in attributes]
+
+            self._loggers[handle].ok(
+                f"references {references} with names {attributes} has values {values}"
+            )
+
             return (values, Fmi2Status.ok)
         except Exception:
             self._loggers[handle].error(
