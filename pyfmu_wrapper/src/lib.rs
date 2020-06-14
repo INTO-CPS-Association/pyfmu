@@ -6,6 +6,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::types::PyTuple;
 use std::boxed::Box;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::CString;
@@ -24,58 +25,6 @@ extern crate lazy_static;
 extern crate num_enum;
 
 pub type SlaveHandle = i32;
-
-//pub type *const i32 = *mut c_void;
-// pub type *const i32 = *mut i32;
-// pub type *const i32Environment = *mut c_void;
-// pub type Fmi2FMUstate = *mut c_void;
-// pub type c_uint = c_uint;
-// pub type f32 = c_double;
-// pub type c_int = c_int;
-// pub type i32 = c_int;
-// pub type Fmi2Char = c_char;
-// pub type Fmi2String = *mut Fmi2Char;
-// pub type Fmi2Byte = c_char;
-// pub type i32 = c_int;
-// pub type c_int = c_int;
-//pub type usize = c_intulonglong;
-
-// static SLAVE_MANAGER_ONCE: Once = Once::new();
-// static mut SLAVE_MANAGER_UNSAFE_CACHE: *const PyObject = null();
-
-// #[derive(Debug)]
-// pub struct SLAVE_MANAGER_API {
-//     __private_field: (),
-// }
-
-// pub static SLAVE_MANAGER: SLAVE_MANAGER_API = SLAVE_MANAGER_API {
-//     __private_field: (),
-// };
-
-// impl Deref for SLAVE_MANAGER_API {
-//     type Target = PyObject;
-
-//     fn deref(&self) -> &'static PyObject {
-//         if !unsafe { SLAVE_MANAGER_UNSAFE_CACHE.is_null() } {
-//             unsafe { &(*SLAVE_MANAGER_UNSAFE_CACHE) }
-//         } else {
-//             let gil = Python::acquire_gil();
-//             let py = gil.python();
-//             let ctx: pyo3::PyObject = py
-//                 .import("pyfmu.fmi2.slaveContext")
-//                 .expect("Unable to import module declaring slave manager. Ensure that PyFMU is installed inside your current envrioment.")
-//                 .get("Fmi2SlaveContext").unwrap()
-//                 .call0().unwrap()
-//                 .extract().unwrap();
-
-//             SLAVE_MANAGER_ONCE.call_once(move || {
-//                 SLAVE_MANAGER_UNSAFE_CACHE = *(&ctx);
-//             });
-
-//             &(*SLAVE_MANAGER)
-//         }
-//     }
-// }
 
 /// Capture Rust panics and return Fmi2Error instead
 macro_rules! ffi_panic_boundary {($($tt:tt)*) => (
@@ -212,6 +161,13 @@ lazy_static! {
         }
     };
 }
+
+// lazy_static! {
+//     /// Store the strings retured by Fmi2GetString until the environment can copy the strings.
+//     ///
+//     /// Note that each slave has such buffer.
+//     static ref SLAVE_TO_GETSTRING_BUFFER: HashMap<i32, *const *const c_char> = HashMap::new();
+// }
 
 fn cstr_to_string(cstr: *const c_char) -> String {
     unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() }
@@ -408,7 +364,7 @@ pub extern "C" fn fmi2Terminate(c: *const i32) -> i32 {
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2Reset(c: *const i32) -> i32 {
-    call_parameterless_method(c, "terminate")
+    call_parameterless_method(c, "reset")
 }
 
 /// Call generic
@@ -522,8 +478,8 @@ pub extern "C" fn fmi2GetString(
     c: *const i32,
     vr: *const c_uint,
     nvr: usize,
-    values: *const *mut c_char,
-) -> i32 {
+    values: *mut *mut c_char,
+) -> c_int {
     let get_string = || -> Result<i32, Error> {
         let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize) }.to_vec();
         let h = unsafe { *c };
@@ -543,7 +499,8 @@ pub extern "C" fn fmi2GetString(
                 let test = *values.offset(0);
 
                 let s = CString::new(values_vec[i].as_str())?;
-                std::ptr::copy(s.as_ptr(), *values.offset(i as isize), nvr as usize);
+
+                // std::ptr::copy(s.as_ptr(), *values.offset(i as isize), nvr as usize);
             }
         }
 
@@ -613,7 +570,7 @@ pub extern "C" fn fmi2SetInteger(
     vr: *const c_uint,
     nvr: usize,
     values: *const c_int,
-) -> i32 {
+) -> c_int {
     set_xxx(c, vr, nvr, values)
 }
 
@@ -624,8 +581,8 @@ pub extern "C" fn fmi2SetBoolean(
     vr: *const c_uint,
     nvr: usize,
     values: *const i32,
-) -> i32 {
-    set_xxx(c, vr, nvr, values)
+) -> c_int {
+    set_xxx(c, vr, nvr, values as *mut bool)
 }
 
 /// Set string variables of an FMU
@@ -641,9 +598,40 @@ pub extern "C" fn fmi2SetString(
     c: *const i32,
     vr: *const c_uint,
     nvr: usize,
-    value: *const c_char,
-) -> i32 {
-    Fmi2Status::Fmi2Fatal.into() // TODO
+    values: *const *const c_char,
+) -> c_int {
+    let set_xxx = || -> Result<i32, Error> {
+        let references = unsafe { std::slice::from_raw_parts(vr, nvr).to_vec() };
+        let h = unsafe { *c };
+
+        let mut vec: Vec<String> = Vec::with_capacity(nvr);
+
+        for i in 0..nvr {
+            unsafe { vec.insert(i, cstr_to_string(*values.offset(i as isize))) };
+        }
+
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+
+        // TODO replace with ?
+        let status: i32 = SLAVE_MANAGER
+            .call_method1(py, "set_xxx", (h, references, vec))
+            .map_pyerr(py)?
+            .extract(py)
+            .map_pyerr(py)?;
+
+        Fmi2Status::try_from(status)?;
+
+        Ok(status)
+    };
+
+    match set_xxx() {
+        Ok(s) => s,
+        Err(e) => {
+            println!("{}", e);
+            Fmi2Status::Fmi2Error.into()
+        }
+    }
 }
 
 trait PyErrToErr<T> {
@@ -984,6 +972,183 @@ mod tests {
     }
 
     #[test]
+    fn test_types() {
+        // see documentation of Cstring.as_ptr
+        let instance_name = CString::new("a").unwrap();
+        let instance_name_ptr = instance_name.as_ptr();
+
+        let fmu_type = 1;
+        let guid = CString::new("1234").unwrap();
+        let guid_ptr = guid.as_ptr();
+
+        let fmu_resources_path = CString::new(
+            "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/FmiTypes/resources",
+        )
+        .unwrap();
+        let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
+
+        let functions = Fmi2CallbackFunctions {
+            logger: Some(logger),
+            allocate_memory: None,
+            free_memory: None,
+            step_finished: None,
+            component_environment: None,
+        };
+        let visible: c_int = 0;
+        let logging_on: c_int = 0;
+
+        println!("{:?}", instance_name);
+
+        let h1 = fmi2Instantiate(
+            instance_name_ptr,
+            fmu_type,
+            guid_ptr,
+            fmu_resources_path_ptr,
+            functions,
+            visible,
+            logging_on,
+        );
+
+        assert_ne!(h1, null_mut());
+
+        let ref_real_in = &[0, 1];
+        let ref_real_out = &[2, 3];
+        let ref_integer_in = &[4, 5];
+        let ref_integer_out = &[6, 7];
+        let ref_boolean_in = &[8, 9];
+        let ref_boolean_out = &[10, 11];
+        let ref_string_in = &[12, 13];
+        let ref_string_out = &[14, 15];
+
+        let val_real_in: [c_double; 2] = [1.0, 2.0];
+        let mut val_real_out: [c_double; 2] = [0.0, 0.0];
+
+        let val_integer_in: [c_int; 2] = [1, 2];
+        let mut val_integer_out: [c_int; 2] = [0, 0];
+
+        let val_boolean_in: [c_int; 2] = [1, 0];
+        let mut val_boolean_out: [c_int; 2] = [0, 1];
+
+        let val_str_in_str_a = CString::new("a").unwrap();
+        let val_str_in_str_b = CString::new("b").unwrap();
+        let val_str_out_cstr: *mut *mut c_char = null_mut();
+        let val_string_in: [*const c_char; 2] =
+            [val_str_in_str_a.as_ptr(), val_str_in_str_b.as_ptr()];
+
+        assert_eq!(
+            fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+
+        // Real
+
+        assert_eq!(
+            fmi2SetReal(
+                h1,
+                ref_real_in.as_ptr(),
+                val_real_in.len(),
+                val_real_in.as_ptr()
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(fmi2DoStep(h1, 0.0, 1.0, 0), Fmi2Status::Fmi2OK.into());
+
+        assert_eq!(
+            fmi2GetReal(
+                h1,
+                ref_real_out.as_ptr(),
+                val_real_out.len(),
+                val_real_out.as_mut_ptr()
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+        assert_eq!(val_real_out, val_real_in);
+
+        // Integer
+
+        assert_eq!(
+            fmi2SetInteger(
+                h1,
+                ref_integer_in.as_ptr(),
+                val_integer_in.len(),
+                val_integer_in.as_ptr()
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(fmi2DoStep(h1, 1.0, 2.0, 0), Fmi2Status::Fmi2OK.into());
+
+        assert_eq!(
+            fmi2GetInteger(
+                h1,
+                ref_integer_out.as_ptr(),
+                val_integer_out.len(),
+                val_integer_out.as_mut_ptr()
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+        assert_eq!(val_integer_out, val_integer_in);
+
+        // boolean
+
+        assert_eq!(
+            fmi2SetBoolean(
+                h1,
+                ref_boolean_in.as_ptr(),
+                val_boolean_in.len(),
+                val_boolean_in.as_ptr()
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(fmi2DoStep(h1, 2.0, 3.0, 0), Fmi2Status::Fmi2OK.into());
+
+        assert_eq!(
+            fmi2GetBoolean(
+                h1,
+                ref_boolean_out.as_ptr(),
+                val_boolean_out.len(),
+                val_boolean_out.as_mut_ptr()
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+        assert_eq!(val_integer_out, val_integer_out);
+
+        // string
+
+        assert_eq!(
+            fmi2SetString(
+                h1,
+                ref_string_in.as_ptr(),
+                val_string_in.len(),
+                val_string_in.as_ptr()
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(fmi2DoStep(h1, 2.0, 3.0, 0), Fmi2Status::Fmi2OK.into());
+
+        assert_eq!(
+            fmi2GetString(
+                h1,
+                ref_string_out.as_ptr(),
+                val_string_in.len(),
+                val_str_out_cstr
+            ),
+            Fmi2Status::Fmi2OK.into()
+        );
+        assert_eq!(val_integer_out, val_integer_out);
+
+        assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2Reset(h1), Fmi2Status::Fmi2OK.into());
+        fmi2FreeInstance(h1);
+    }
+
+    #[test]
     fn test_bicycle_kinematic() {
         // see documentation of Cstring.as_ptr
         let instance_name = CString::new("a").unwrap();
@@ -1118,5 +1283,61 @@ mod tests {
             assert_eq!(fmi2Terminate(h), Fmi2Status::Fmi2OK.into());
             fmi2FreeInstance(h)
         }
+    }
+
+    #[test]
+    fn test_live_logging() {
+        let instance_name = CString::new("live_logger").unwrap();
+        let instance_name_ptr = instance_name.as_ptr();
+
+        let fmu_type = 1;
+        let guid = CString::new("1234").unwrap();
+        let guid_ptr = guid.as_ptr();
+
+        let fmu_resources_path = CString::new(
+            "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/LivePlotting/resources",
+        )
+        .unwrap();
+        let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
+
+        let functions = Fmi2CallbackFunctions {
+            logger: Some(logger),
+            allocate_memory: None,
+            free_memory: None,
+            step_finished: None,
+            component_environment: None,
+        };
+        let visible: i32 = 0;
+        let logging_on: i32 = 0;
+
+        println!("{:?}", instance_name);
+
+        let h1 = fmi2Instantiate(
+            instance_name_ptr,
+            fmu_type,
+            guid_ptr,
+            fmu_resources_path_ptr,
+            functions,
+            visible,
+            logging_on,
+        );
+
+        assert_eq!(
+            fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
+            Fmi2Status::Fmi2OK.into()
+        );
+
+        assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+
+        for i in 0..100 {
+            assert_eq!(
+                fmi2DoStep(h1, i as f64, i as f64 + 1.0, 0),
+                Fmi2Status::Fmi2OK.into()
+            );
+        }
+
+        assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());
+        fmi2FreeInstance(h1);
     }
 }

@@ -27,11 +27,8 @@ class Adder(Fmi2Slave):
 
     @property
     def s(self):
-        return self.a + self.b
-
-    def do_step(self, a, b, c):
         self.log_ok(f"sum of {self.a} and {self.b} is {self.a+self.b}")
-        print("STEPPPPPPP")
+        return self.a + self.b
 
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ class Fmi2Slave:
         version: str = None,
         description: str = None,
         logger: FMI2SlaveLogger = None,
+        log_stdout=False,
     ):
         """Constructs a FMI2
 
@@ -55,10 +56,6 @@ class Fmi2Slave:
         self._used_value_references = {}
         self._logger = logger
 
-        if logger is not None:
-            logger.ok("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
-            self.log_ok("AAAAAAAAAAAAAAAAAAAAAAAAAAA")
-
     def register_input(
         self,
         attr_name: str,
@@ -66,6 +63,16 @@ class Fmi2Slave:
         variability: Literal["continuous", "discrete"] = "continuous",
         description: str = None,
     ) -> None:
+        """Declares a new input of the model.
+
+        This is added to the model description as a scalar variable with causality=input.
+
+        Args:
+            attr_name: name of the variable.
+            data_type: the underlying type of the variable. Defaults to "real".
+            variability: defines when the variable may change value with respect to time. Defaults to "continuous".
+            description: text added to model description, often displayed by simulation environment. Defaults to None.
+        """
         self._register_variable(
             attr_name, data_type, "input", variability, None, description
         )
@@ -127,7 +134,7 @@ class Fmi2Slave:
                 start = getattr(self, attr_name)
             except Exception as e:
                 raise SlaveAttributeError(
-                    f"""Failed determining a start value for the variable {attr_name}."""
+                    f"""Failed determining a start value for the variable {attr_name}. Ensure that an attribute matching the name of the registered variable has been declared."""
                 ) from e
         else:
             start = None
