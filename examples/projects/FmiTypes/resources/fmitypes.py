@@ -22,8 +22,8 @@ class FmiTypes(Fmi2Slave):
         self.integer_in_b = 0
         self.boolean_in_a = False
         self.boolean_in_b = False
-        self.string_in_a = ""
-        self.string_in_b = ""
+        self.string_in_a = "default a"
+        self.string_in_b = "default b"
 
         # Inputs, outputs and parameters may be defined using the 'register_variable' function
         self.register_input("real_in_a", "real", "continuous")

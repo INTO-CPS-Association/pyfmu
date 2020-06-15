@@ -2,6 +2,7 @@ from math import cos, sin, atan, tan
 
 from scipy.integrate import solve_ivp
 
+
 from pyfmu.fmi2 import (
     Fmi2Slave,
     Fmi2Causality,
@@ -137,10 +138,10 @@ class Bicycle_Kinematic(Fmi2Slave):
         )
 
         x, y, psi, v = tuple(res.y)
-        self.x = x[0]
-        self.y = y[0]
-        self.psi = psi[0]
-        self.v = v[0]
+        self.x = x[0].item()
+        self.y = y[0].item()
+        self.psi = psi[0].item()
+        self.v = v[0].item()
 
         return Fmi2Status.ok
 

@@ -134,11 +134,7 @@ class Fmi2SlaveContext:
             values = [getattr(self._slaves[handle], a) for a in attributes]
 
             invalid_type_variables = [
-                (
-                    self._get_attr_for_vref(handle, vref),
-                    self._get_type_for_vref(handle, vref).__name__,
-                    values[idx],
-                )
+                f"attribute {self._get_attr_for_vref(handle, vref)} has value: {values[idx]}, expected type: {self._get_type_for_vref(handle, vref).__name__}, actual: {type(values[idx])}"
                 for idx, vref in enumerate(references)
                 if type(values[idx]) != self._get_type_for_vref(handle, vref)
             ]

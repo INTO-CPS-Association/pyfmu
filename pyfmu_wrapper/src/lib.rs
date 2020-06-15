@@ -10,6 +10,8 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::mem;
+use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
@@ -464,6 +466,44 @@ pub extern "C" fn fmi2GetBoolean(
     get_xxx(c, vr, nvr, values)
 }
 
+#[no_mangle]
+unsafe extern "C" fn free_string_array(ptr: *mut *mut c_char, len: c_int) {
+    let len = len as usize;
+
+    // Get back our vector.
+    // Previously we shrank to fit, so capacity == length.
+    let v = Vec::from_raw_parts(ptr, len, len);
+
+    // Now drop one string at a time.
+    for elem in v {
+        let s = CString::from_raw(elem);
+        mem::drop(s);
+    }
+
+    // Afterwards the vector will be dropped and thus freed.
+}
+
+/// Convert vector of strings to a array of c strings
+/// This function does not drop automatically drop the memory
+unsafe fn vector_to_string_array(v: Vec<String>) -> *mut *mut c_char {
+    // Let's fill a vector with null-terminated strings
+
+    let mut out = v
+        .into_iter()
+        .map(|s| CString::new(s).unwrap().into_raw())
+        .collect::<Vec<_>>();
+
+    out.shrink_to_fit();
+    assert!(out.len() == out.capacity());
+
+    let ptr = out.as_mut_ptr();
+    mem::forget(out);
+
+    println!("I am leaking memory fix me :(");
+
+    ptr
+}
+
 /// Read string variables from an FMU
 ///
 /// ## Notes
@@ -473,13 +513,16 @@ pub extern "C" fn fmi2GetBoolean(
 /// call to any of the fmi2 interface functions or it might be an internal string buffer that is reused." (2.1.7 p.23)
 #[no_mangle]
 #[allow(non_snake_case)]
-#[allow(unused_variables)]
 pub extern "C" fn fmi2GetString(
     c: *const i32,
     vr: *const c_uint,
     nvr: usize,
-    values: *mut *mut c_char,
+    values: *mut *mut *mut c_char,
 ) -> c_int {
+    let a = 20;
+    unsafe { std::ptr::write(values, null_mut()) };
+    let b = 30;
+
     let get_string = || -> Result<i32, Error> {
         let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize) }.to_vec();
         let h = unsafe { *c };
@@ -494,15 +537,10 @@ pub extern "C" fn fmi2GetString(
             .extract(py)
             .map_pyerr(py)?;
 
-        for i in 0..nvr {
-            unsafe {
-                let test = *values.offset(0);
-
-                let s = CString::new(values_vec[i].as_str())?;
-
-                // std::ptr::copy(s.as_ptr(), *values.offset(i as isize), nvr as usize);
-            }
-        }
+        // values = unsafe { & }; // returns *mut *mut c_char
+        let a = values;
+        let a = unsafe { vector_to_string_array(values_vec) };
+        unsafe { std::ptr::write(values, null_mut()) };
 
         Fmi2Status::try_from(status)?;
 
@@ -970,7 +1008,6 @@ mod tests {
 
         assert_eq!(status, Fmi2Status::Fmi2OK.into())
     }
-
     #[test]
     fn test_types() {
         // see documentation of Cstring.as_ptr
@@ -1031,7 +1068,9 @@ mod tests {
 
         let val_str_in_str_a = CString::new("a").unwrap();
         let val_str_in_str_b = CString::new("b").unwrap();
-        let val_str_out_cstr: *mut *mut c_char = null_mut();
+
+        let val_str_out_cstr: *mut *mut *mut c_char = MaybeUninit::uninit().as_mut_ptr();
+
         let val_string_in: [*const c_char; 2] =
             [val_str_in_str_a.as_ptr(), val_str_in_str_b.as_ptr()];
 
