@@ -689,6 +689,13 @@ impl<T> PyErrToErr<T> for PyResult<T> {
 }
 
 #[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2FreeFMUstate(c: *const i32) -> c_int {
+    println!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2OK.into()
+}
+
+#[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2Instantiate(
     instance_name: *const c_char,
@@ -754,6 +761,66 @@ pub extern "C" fn fmi2Instantiate(
             }
         },
     }
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2SetFMUstate(c: *const i32, state: *const c_void) -> c_int {
+    println!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetDirectionalDerivative(
+    c: *const i32,
+    unknown_refs : *const c_int,
+    nvr_unknown : usize,
+    known_refs : *const c_int,
+    nvr_known : usize,
+    values_known : *const c_double,
+    values_unkown: *mut c_double,
+) -> c_int {
+    println!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetFMUstate(c: *const i32, state: *mut *mut c_void) -> c_int {
+    println!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2SerializeFMUstate(
+    c: *const i32,
+    state: *mut c_void,
+    data: *const c_char,
+    size: usize,
+) -> c_int {
+    println!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2DeSerializeFMUstate(
+    c: *const i32,
+    serialized_state: *const c_char,
+    size: usize,
+    state: *mut c_void,
+) -> c_int {
+    println!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2SerializedFMUstateSize(c: *const i32, state: *mut *mut c_void) -> c_int {
+    println!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]

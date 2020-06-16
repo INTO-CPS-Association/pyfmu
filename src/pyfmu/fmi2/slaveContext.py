@@ -100,10 +100,14 @@ class Fmi2SlaveContext:
     def exit_initialization_mode(self, handle: SlaveHandle,) -> Fmi2Status_T:
         return self._call_slave_method(handle, "exit_initialization_mode")
 
-    def free_instance(self, handle: SlaveHandle) -> Fmi2Value_T:
+    def free_instance(self, handle: SlaveHandle):
+
+        assert handle in self._slaves
+        assert handle in self._loggers
 
         self._loggers[handle].ok(
-            f"Removing slave with handle {handle}, current number of slaves is {len(self._slaves)}"
+            f"Removing slave with handle {handle}, current number of slaves is {len(self._slaves)}",
+            category="slave_manager",
         )
 
         logger = self._loggers[handle]
@@ -113,15 +117,18 @@ class Fmi2SlaveContext:
             del self._loggers[handle]
         except Exception:
             self._loggers[handle].error(
-                "Unable to free slave instance, an exception was raised", exc_info=True
+                "Unable to free slave instance, an exception was raised",
+                category="slave_manager",
+                exc_info=True,
             )
-            return Fmi2Status.fatal
+            return
 
         assert handle not in self._slaves
         assert handle not in self._loggers
 
         logger.ok(
-            f"Slave succesfully removed, number of slaves after is {len(self._slaves)}"
+            f"Slave succesfully removed, number of slaves after is {len(self._slaves)}",
+            category="slave_manager",
         )
 
     def get_xxx(
@@ -144,16 +151,19 @@ class Fmi2SlaveContext:
                     f"One or more of the variables read from the slave has an incorrect type: {invalid_type_variables}",
                     category="slave_manager",
                 )
-                return Fmi2Status.error
+                return ([], Fmi2Status.error)
 
-            self._loggers[handle].ok(
-                f"references {references} with names {attributes} has values {values}"
-            )
+            # self._loggers[handle].ok(
+            #     f"references {references} with names {attributes} has values {values}",
+            #     category="slave_manager",
+            # )
 
             return (values, Fmi2Status.ok)
         except Exception:
             self._loggers[handle].error(
-                msg=f"writing a variable of the slave failed", exc_info=True,
+                msg=f"writing a variable of the slave failed",
+                category="slave_manager",
+                exc_info=True,
             )
             return ([], Fmi2Status.error)
 
@@ -200,10 +210,6 @@ class Fmi2SlaveContext:
             SlaveHandle: [description]
         """
 
-        print(
-            f"instance_name {instance_name}, fmu_type: {fmu_type}, guid: {guid}, resources_uri {resources_uri}, logging_callback: {logging_callback}, visible: {visible}, logging_on: {logging_on}"
-        )
-
         def get_free_handle() -> SlaveHandle:
             i = 0
             while i in self._slaves:
@@ -221,6 +227,11 @@ class Fmi2SlaveContext:
             log_stdout=False,
         )
 
+        logger.ok(
+            f"Creating instance of FMU with name {instance_name}, fmu_type: {fmu_type}, guid: {guid}, resources_uri {resources_uri}, logging_callback: {logging_callback}, visible: {visible}, logging_on: {logging_on}",
+            category="slave_manager",
+        )
+
         if fmu_type is not Fmi2Type.co_simulation:
             raise NotImplementedError("Currently, only co-simulation is supported.")
 
@@ -232,7 +243,7 @@ class Fmi2SlaveContext:
 
             # read configuration
             config_path = url_path / "slave_configuration.json"
-            logger.ok(f"Reading configuration {config_path}")
+            logger.ok(f"Reading configuration {config_path}", category="slave_manager")
             config = None
             with open(config_path, "r") as f:
                 config = json.load(f)
@@ -241,7 +252,8 @@ class Fmi2SlaveContext:
             slave_class = config["slave_class"]
 
             logger.ok(
-                msg=f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}"
+                msg=f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}",
+                category="slave_manager",
             )
 
             # instantiate object
@@ -269,15 +281,25 @@ class Fmi2SlaveContext:
                 for v in instance.variables
             }
 
+            assert handle not in self._slaves
+            assert handle not in self._loggers
+
             self._slaves[handle] = instance
             self._loggers[handle] = logger
 
-            logger.ok("Instance succesfully instantiated")
+            logger.ok(
+                f"An slave object has been instantiated successfully and assigned the handle: {handle}",
+                category="slave_manager",
+            )
 
             return handle
 
         except Exception:
-            logger.error(f"Instantiation failed an exception was raised", exc_info=True)
+            logger.error(
+                f"Instantiation failed an exception was raised",
+                category="slave_manager",
+                exc_info=True,
+            )
             return None
 
     def reset(self, handle: SlaveHandle) -> Fmi2Status_T:
@@ -316,9 +338,10 @@ class Fmi2SlaveContext:
         try:
             attributes = [self._slave_to_refs_to_attr[handle][i] for i in references]
 
-            self._loggers[handle].ok(
-                f"Setting references {references} with names {attributes} to values {values}"
-            )
+            # self._loggers[handle].ok(
+            #     f"Setting references {references} with names {attributes} to values {values}",
+            #     category="slave_manager",
+            # )
 
             for a, v in zip(attributes, values):
                 setattr(self._slaves[handle], a, v)

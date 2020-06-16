@@ -27,7 +27,6 @@ class Adder(Fmi2Slave):
 
     @property
     def s(self):
-        self.log_ok(f"sum of {self.a} and {self.b} is {self.a+self.b}")
         return self.a + self.b
 
 

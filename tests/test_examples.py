@@ -24,7 +24,8 @@ def fmi_logger(m):
 
 # validate every example with
 _validate_with = ["fmpy", "fmucheck", "vdmcheck", "maestro_v1"]
-_validate_with = ["fmpy"]
+# _validate_with = ["fmpy", "fmucheck", "maestro_v1"]
+_validate_with = ["fmucheck", "vdmcheck", "maestro_v1"]
 
 
 def test_Adder():
@@ -32,8 +33,6 @@ def test_Adder():
         res = validate_fmu(a.root, _validate_with)
         print(res.get_report())
         assert res.valid
-
-    
 
 
 def test_BicycleKinematic():

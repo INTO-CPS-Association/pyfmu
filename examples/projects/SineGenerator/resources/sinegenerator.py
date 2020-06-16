@@ -17,9 +17,7 @@ class SineGenerator(Fmi2Slave):
             **kwargs,
         )
 
-        self.amplitude = 1.0
-        self.frequency = 1.0
-        self.phase = 0.0
+        self.reset()
 
         self.register_parameter("amplitude", description="amplitude of the sine wave")
         self.register_parameter(
@@ -30,17 +28,18 @@ class SineGenerator(Fmi2Slave):
         )
         self.register_output("y", description="output of the generator")
 
-    @property
-    def y(self):
-        return self.amplitude * sin(self.t * self.frequency + self.phase)
+    def reset(self):
+        self.amplitude = 1.0
+        self.frequency = 1.0
+        self.phase = 0.0
+        return Fmi2Status.ok
 
     def setup_experiment(self, start_time, stop_time, tolerance):
-        self.t = start_time
+        self.y = self.amplitude * sin(start_time * self.frequency + self.phase)
         return Fmi2Status.ok
 
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
     ):
-        print(f"step {current_time} size {step_size} ")
-        self.t = current_time + step_size
+        self.y = self.amplitude * sin(current_time * self.frequency + self.phase)
         return Fmi2Status.ok
