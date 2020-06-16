@@ -231,7 +231,7 @@ dependencies = [
 [[package]]
 name = "pyo3"
 version = "0.10.1"
-source = "git+https://github.com/PyO3/pyo3.git#7a7271319cacec8979649ae4d3bbb1604969a3c5"
+source = "git+https://github.com/davidhewitt/pyo3.git?branch=once-cell#885b428ec48f0c8b3a19f842e112d5d11074cd1a"
 dependencies = [
  "indoc",
  "inventory",
@@ -246,7 +246,7 @@ dependencies = [
 [[package]]
 name = "pyo3-derive-backend"
 version = "0.10.1"
-source = "git+https://github.com/PyO3/pyo3.git#7a7271319cacec8979649ae4d3bbb1604969a3c5"
+source = "git+https://github.com/davidhewitt/pyo3.git?branch=once-cell#885b428ec48f0c8b3a19f842e112d5d11074cd1a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -256,7 +256,7 @@ dependencies = [
 [[package]]
 name = "pyo3cls"
 version = "0.10.1"
-source = "git+https://github.com/PyO3/pyo3.git#7a7271319cacec8979649ae4d3bbb1604969a3c5"
+source = "git+https://github.com/davidhewitt/pyo3.git?branch=once-cell#885b428ec48f0c8b3a19f842e112d5d11074cd1a"
 dependencies = [
  "pyo3-derive-backend",
  "quote",

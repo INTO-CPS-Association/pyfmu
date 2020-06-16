@@ -2,6 +2,7 @@ use anyhow;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
+use pyo3::once_cell::OnceCell;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::types::PyTuple;
@@ -12,6 +13,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem;
 use std::mem::MaybeUninit;
+use std::ops::Deref;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
@@ -138,31 +140,74 @@ pub enum Fmi2Type {
     Fmi2CoSimulation = 1,
 }
 
-lazy_static! {
-    static ref SLAVE_MANAGER: pyo3::PyObject = {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
+static SLAVE_MANAGER_ONCE_CELL: OnceCell<PyObject> = OnceCell::new();
 
-        let cls = || -> PyResult<PyObject> {
-            let ctx: pyo3::PyObject = py
-                .import("pyfmu.fmi2.slaveContext")
-                .expect("Unable to import module declaring slave manager. Ensure that PyFMU is installed inside your current envrioment.")
-                .get("Fmi2SlaveContext")?
-                .call0()?
-                .extract()?;
-            println!("{:?}", ctx);
-            Ok(ctx)
-        };
-
-        match cls() {
-            Err(e) => {
-                e.print_and_set_sys_last_vars(py);
-                panic!("Unable to instantiate slave manager");
-            }
-            Ok(o) => o,
-        }
-    };
+struct SlaveManagerApi {
 }
+
+static SLAVE_MANAGER : SlaveManagerApi = SlaveManagerApi {
+
+};
+
+impl Deref for SlaveManagerApi {
+
+    type Target = PyObject;
+
+    fn deref(&self) -> &'static PyObject {
+
+        let py = unsafe {Python::assume_gil_acquired()};
+        
+
+        SLAVE_MANAGER_ONCE_CELL.get_or_init(py, || {
+            let cls = || -> PyResult<PyObject> {
+                let ctx: pyo3::PyObject = py
+                    .import("pyfmu.fmi2.slaveContext")
+                    .expect("Unable to import module declaring slave manager. Ensure that PyFMU is installed inside your current envrioment.")
+                    .get("Fmi2SlaveContext")?
+                    .call0()?
+                    .extract()?;
+                println!("{:?}", ctx);
+                Ok(ctx)
+            };
+    
+            match cls() {
+                Err(e) => {
+                    e.print_and_set_sys_last_vars(py);
+                    panic!("Unable to instantiate slave manager");
+                }
+                Ok(o) => o,
+            }
+        })
+
+        
+    }
+}
+
+// lazy_static! {
+//     static ref SLAVE_MANAGER: pyo3::PyObject = {
+//         let gil = Python::acquire_gil();
+//         let py = gil.python();
+
+//         let cls = || -> PyResult<PyObject> {
+//             let ctx: pyo3::PyObject = py
+//                 .import("pyfmu.fmi2.slaveContext")
+//                 .expect("Unable to import module declaring slave manager. Ensure that PyFMU is installed inside your current envrioment.")
+//                 .get("Fmi2SlaveContext")?
+//                 .call0()?
+//                 .extract()?;
+//             println!("{:?}", ctx);
+//             Ok(ctx)
+//         };
+
+//         match cls() {
+//             Err(e) => {
+//                 e.print_and_set_sys_last_vars(py);
+//                 panic!("Unable to instantiate slave manager");
+//             }
+//             Ok(o) => o,
+//         }
+//     };
+// }
 
 // lazy_static! {
 //     /// Store the strings retured by Fmi2GetString until the environment can copy the strings.
@@ -774,11 +819,11 @@ pub extern "C" fn fmi2SetFMUstate(c: *const i32, state: *const c_void) -> c_int 
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2GetDirectionalDerivative(
     c: *const i32,
-    unknown_refs : *const c_int,
-    nvr_unknown : usize,
-    known_refs : *const c_int,
-    nvr_known : usize,
-    values_known : *const c_double,
+    unknown_refs: *const c_int,
+    nvr_unknown: usize,
+    known_refs: *const c_int,
+    nvr_known: usize,
+    values_known: *const c_double,
     values_unkown: *mut c_double,
 ) -> c_int {
     println!("NOT IMPLEMENTED");
