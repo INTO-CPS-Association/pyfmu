@@ -307,6 +307,9 @@ class FMI2SlaveLogger:
         if log_stdout:
             self._logger = logging.getLogger(f"{instance_name}.{slave_handle}")
 
+    def set_log_stdout(self, enabled: bool):
+        self._log_stdout = enabled
+
     def ok(
         self, msg: str, category: str = None, exc_info=False, stack_info=False,
     ):
@@ -417,7 +420,7 @@ class FMI2SlaveLogger:
         if category is None:
             category = "info"
 
-        if hasattr(self,"_logger"):
+        if hasattr(self, "_logger"):
             self._logger.log(
                 level=FMI2SlaveLogger._fmi_to_log_categories[status], msg=msg
             )

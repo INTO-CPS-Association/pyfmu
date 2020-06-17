@@ -266,6 +266,18 @@ class Fmi2LoggingCallback(Protocol):
         ...
 
 
+class SlaveOptions:
+    def __init__(
+        self,
+        log_stdout: bool,
+        supports_serialization: bool,
+        supports_multi_threading: bool,
+    ):
+        self.log_stdout = log_stdout
+        self.supports_serialization = supports_serialization
+        self.supports_multi_threading = supports_multi_threading
+
+
 class Fmi2SlaveLike(Protocol):
     """Interface implemented by classes adhering to the FMI2 interface.
 
@@ -338,4 +350,9 @@ class Fmi2SlaveLike(Protocol):
     @property
     @abstractmethod
     def guid(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def slave_options(self) -> SlaveOptions:
         ...

@@ -1419,7 +1419,7 @@ mod tests {
         assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
         assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
 
-        for i in 0..100 {
+        for i in 0..10 {
             assert_eq!(
                 fmi2DoStep(h1, i as f64, i as f64 + 1.0, 0),
                 Fmi2Status::Fmi2OK.into()

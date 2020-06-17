@@ -26,7 +26,6 @@ class Fmi2Slave:
         version: str = None,
         description: str = None,
         logger: FMI2SlaveLogger = None,
-        log_stdout=False,
     ):
         """Constructs a FMI2
 

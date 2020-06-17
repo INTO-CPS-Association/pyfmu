@@ -5,6 +5,8 @@ import logging
 from pathlib import Path
 import json
 import sys
+import multiprocessing as mp
+import os
 
 from pyfmu.fmi2.types import (
     Fmi2Status_T,
@@ -179,6 +181,9 @@ class Fmi2SlaveContext:
         self._log_calls_to_slave = True
         self._awaiting_instantiation_handles = set()
         logging.basicConfig(level=logging.DEBUG)
+
+        if "win" in sys.platform:
+            mp.set_executable(os.path.join(sys.exec_prefix, "pythonw.exe"))
 
     def instantiate(
         self,

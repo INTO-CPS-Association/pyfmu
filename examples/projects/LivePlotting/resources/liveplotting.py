@@ -30,9 +30,13 @@ class LivePlotting(Fmi2Slave):
         # We start a new process to ensure this.
         # Samples are shared through a buffer
         ctx = mp.get_context("spawn")
+
         self.q = ctx.Queue()
         self.plot_process = ctx.Process(
-            target=LivePlotting._draw_process_func, args=(self.q,)
+            target=LivePlotting._draw_func_alt,
+            args=(self.q,),
+            name="pyfmu_livelogging",
+            daemon=True,
         )
 
         self._reset_variables()
@@ -50,14 +54,8 @@ class LivePlotting(Fmi2Slave):
 
     def reset(self) -> Fmi2Status_T:
 
-        if self._running and self.plot_process.is_alive():
-            self.log_ok(
-                "Drawing process is still running, reset is waiting for it to terminate"
-            )
-            self.plot_process.join()
-
+        self.terminate()
         self._reset_variables()
-
         return Fmi2Status.ok
 
     def _reset_variables(self):
@@ -69,22 +67,22 @@ class LivePlotting(Fmi2Slave):
         self._lastSimTime = 0.0
         self._running = False
 
-    def __del__(self):
+    # def __del__(self):
 
-        self.log_ok("Terminating GUI process")
-
-        # put sentinel object to indicate end of data
-        self._terminated = True
-        self.q.put(None)
-
-        if self.plot_process.is_alive():
-            self.plot_process.join()
+    #     if not self._terminated:
+    #         self.terminate()
 
     def exit_initialization_mode(self):
 
+        assert self._running is False
+
         self.log_ok("Starting GUI process")
         self._running = True
+
         self.plot_process.start()
+
+        assert self.plot_process.is_alive()
+
         return Fmi2Status.ok
 
     def do_step(self, current_time: float, step_size: float, no_prior_step: bool):
@@ -95,6 +93,8 @@ class LivePlotting(Fmi2Slave):
             if diff < self.ts:
                 return
 
+        assert self.plot_process.is_alive()
+
         self.log_ok(f"Addding coordinate {(self.x0,self.y0)} to rendering queue")
 
         self._lastSimTime = current_time
@@ -104,9 +104,22 @@ class LivePlotting(Fmi2Slave):
         return Fmi2Status.ok
 
     @staticmethod
-    def _draw_process_func(q: multiprocessing.Queue):
-        print("inside draw process")
+    def _draw_func_alt(q: multiprocessing.Queue):
         try:
+            while True:
+
+                new_sample = q.get()
+                print(new_sample)
+                if new_sample is None:  # sentinel object read
+                    return 0
+
+        except Exception as e:
+            print(f"whoops process failed due to: {e}")
+
+    @staticmethod
+    def _draw_process_func(q: multiprocessing.Queue):
+        try:
+
             app = QtGui.QApplication(["Robot live plotting"])
 
             win = pg.GraphicsWindow(title="Basic plotting examples")
@@ -158,18 +171,25 @@ class LivePlotting(Fmi2Slave):
             print(f"An exception was raised in the drawing thread: {e}")
 
     def terminate(self):
-        self.q.put(None)
+
+        self.log_ok("Terminating GUI process")
+
+        if self.plot_process.is_alive():
+            self.log_ok("Waiting for GUI process to finish")
+            self.q.put(None)
+            self.plot_process.join()
+            self.log_ok("Process has successfully terminated")
         return Fmi2Status.ok
 
 
 if __name__ == "__main__":
-    c = LivePlotting(log_stdout=True)
+    c = LivePlotting()
 
     assert c.setup_experiment(start_time=0, stop_time=10) == Fmi2Status.ok
     assert c.enter_initialization_mode() == Fmi2Status.ok
     assert c.exit_initialization_mode() == Fmi2Status.ok
 
-    for i in range(0, 10000):
+    for i in range(0, 100):
         c.x0 = i
         c.y0 = i
         assert c.do_step(i, i + 1, False) == Fmi2Status.ok
