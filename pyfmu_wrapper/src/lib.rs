@@ -91,11 +91,6 @@ impl CallbacksWrapper {
         category: String,
         message: String,
     ) {
-        // println!(
-        //     "Wrapper going to invoke the C callback with: {}:{}:{}",
-        //     category, instance_name, message
-        // );
-
         let instance_name = CString::new(instance_name).unwrap();
         let category = CString::new(category).unwrap();
         let message = CString::new(message).unwrap();
@@ -108,7 +103,6 @@ impl CallbacksWrapper {
                 category.as_ptr(),
                 message.as_ptr(),
             ),
-            _ => (),
         }
     }
 }
@@ -140,25 +134,11 @@ pub enum Fmi2Type {
     Fmi2CoSimulation = 1,
 }
 
-static SLAVE_MANAGER_ONCE_CELL: OnceCell<PyObject> = OnceCell::new();
+static SLAVE_MANAGER: OnceCell<PyObject> = OnceCell::new();
 
-struct SlaveManagerApi {
-}
-
-static SLAVE_MANAGER : SlaveManagerApi = SlaveManagerApi {
-
-};
-
-impl Deref for SlaveManagerApi {
-
-    type Target = PyObject;
-
-    fn deref(&self) -> &'static PyObject {
-
-        let py = unsafe {Python::assume_gil_acquired()};
-        
-
-        SLAVE_MANAGER_ONCE_CELL.get_or_init(py, || {
+pub fn get_slave_manager(py: Python) -> &PyAny {
+    SLAVE_MANAGER
+        .get_or_init(py, || {
             let cls = || -> PyResult<PyObject> {
                 let ctx: pyo3::PyObject = py
                     .import("pyfmu.fmi2.slaveContext")
@@ -166,55 +146,16 @@ impl Deref for SlaveManagerApi {
                     .get("Fmi2SlaveContext")?
                     .call0()?
                     .extract()?;
-                println!("{:?}", ctx);
                 Ok(ctx)
             };
-    
-            match cls() {
-                Err(e) => {
-                    e.print_and_set_sys_last_vars(py);
-                    panic!("Unable to instantiate slave manager");
-                }
-                Ok(o) => o,
-            }
+
+            cls().unwrap_or_else(|e| {
+                e.print_and_set_sys_last_vars(py);
+                panic!("Unable to instantiate slave manager");
+            })
         })
-
-        
-    }
+        .as_ref(py)
 }
-
-// lazy_static! {
-//     static ref SLAVE_MANAGER: pyo3::PyObject = {
-//         let gil = Python::acquire_gil();
-//         let py = gil.python();
-
-//         let cls = || -> PyResult<PyObject> {
-//             let ctx: pyo3::PyObject = py
-//                 .import("pyfmu.fmi2.slaveContext")
-//                 .expect("Unable to import module declaring slave manager. Ensure that PyFMU is installed inside your current envrioment.")
-//                 .get("Fmi2SlaveContext")?
-//                 .call0()?
-//                 .extract()?;
-//             println!("{:?}", ctx);
-//             Ok(ctx)
-//         };
-
-//         match cls() {
-//             Err(e) => {
-//                 e.print_and_set_sys_last_vars(py);
-//                 panic!("Unable to instantiate slave manager");
-//             }
-//             Ok(o) => o,
-//         }
-//     };
-// }
-
-// lazy_static! {
-//     /// Store the strings retured by Fmi2GetString until the environment can copy the strings.
-//     ///
-//     /// Note that each slave has such buffer.
-//     static ref SLAVE_TO_GETSTRING_BUFFER: HashMap<i32, *const *const c_char> = HashMap::new();
-// }
 
 fn cstr_to_string(cstr: *const c_char) -> String {
     unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() }
@@ -286,14 +227,13 @@ pub extern "C" fn fmi2SetDebugLogging(
             let gil = Python::acquire_gil();
             let py = gil.python();
 
-            let status: i32 = SLAVE_MANAGER
+            let status: i32 = get_slave_manager(py)
                 .call_method1(
-                    py,
                     "set_debug_logging",
                     (h, categories_vec, logging_on != 0),
                 )
                 .expect("Call to set_debug_logging failed")
-                .extract(py)
+                .extract()
                 .expect("Failed extracting the status code returned form set_debug_logging");
                 Fmi2Status::try_from(status)?;
                 Ok(status)
@@ -352,10 +292,10 @@ pub extern "C" fn fmi2SetupExperiment(
             kwargs.set_item("stop_time", stop_time).unwrap()
         };
 
-        let status: i32 = SLAVE_MANAGER
-            .call_method(py, "setup_experiment", (), Some(kwargs))
+        let status: i32 = get_slave_manager(py)
+            .call_method("setup_experiment", (), Some(kwargs))
             .map_pyerr(py)?
-            .extract(py)
+            .extract()
             .map_pyerr(py)?;
 
         Fmi2Status::try_from(status)?;
@@ -422,10 +362,10 @@ fn call_parameterless_method(c: *const i32, function: &str) -> i32 {
         let gil = Python::acquire_gil();
         let py = gil.python();
 
-        let status: i32 = SLAVE_MANAGER
-            .call_method1(py, function, (h,))
+        let status: i32 = get_slave_manager(py)
+            .call_method1(function, (h,))
             .map_pyerr(py)?
-            .extract(py)
+            .extract()
             .map_pyerr(py)?;
 
         Fmi2Status::try_from(status)?;
@@ -454,10 +394,10 @@ where
         let py = gil.python();
 
         // TODO replace with "map_error"
-        let (values_vec, status): (Vec<T>, i32) = SLAVE_MANAGER
-            .call_method1(py, "get_xxx", (h, references))
+        let (values_vec, status): (Vec<T>, i32) = get_slave_manager(py)
+            .call_method1("get_xxx", (h, references))
             .map_pyerr(py)?
-            .extract(py)
+            .extract()
             .map_pyerr(py)?;
 
         unsafe {
@@ -564,9 +504,7 @@ pub extern "C" fn fmi2GetString(
     nvr: usize,
     values: *mut *mut *mut c_char,
 ) -> c_int {
-    let a = 20;
     unsafe { std::ptr::write(values, null_mut()) };
-    let b = 30;
 
     let get_string = || -> Result<i32, Error> {
         let references = unsafe { std::slice::from_raw_parts(vr, nvr as usize) }.to_vec();
@@ -576,16 +514,13 @@ pub extern "C" fn fmi2GetString(
         let py = gil.python();
 
         // TODO replace with "map_error"
-        let (values_vec, status): (Vec<String>, i32) = SLAVE_MANAGER
-            .call_method1(py, "get_xxx", (h, references))
+        let (values_vec, status): (Vec<String>, i32) = get_slave_manager(py)
+            .call_method1("get_xxx", (h, references))
             .map_pyerr(py)?
-            .extract(py)
+            .extract()
             .map_pyerr(py)?;
 
-        // values = unsafe { & }; // returns *mut *mut c_char
-        let a = values;
-        let a = unsafe { vector_to_string_array(values_vec) };
-        unsafe { std::ptr::write(values, null_mut()) };
+        unsafe { std::ptr::write(values, vector_to_string_array(values_vec)) };
 
         Fmi2Status::try_from(status)?;
 
@@ -615,10 +550,10 @@ where
         let py = gil.python();
 
         // TODO replace with ?
-        let status: i32 = SLAVE_MANAGER
-            .call_method1(py, "set_xxx", (h, references, values))
+        let status: i32 = get_slave_manager(py)
+            .call_method1("set_xxx", (h, references, values))
             .map_pyerr(py)?
-            .extract(py)
+            .extract()
             .map_pyerr(py)?;
 
         Fmi2Status::try_from(status)?;
@@ -697,10 +632,10 @@ pub extern "C" fn fmi2SetString(
         let py = gil.python();
 
         // TODO replace with ?
-        let status: i32 = SLAVE_MANAGER
-            .call_method1(py, "set_xxx", (h, references, vec))
+        let status: i32 = get_slave_manager(py)
+            .call_method1("set_xxx", (h, references, vec))
             .map_pyerr(py)?
-            .extract(py)
+            .extract()
             .map_pyerr(py)?;
 
         Fmi2Status::try_from(status)?;
@@ -766,7 +701,7 @@ pub extern "C" fn fmi2Instantiate(
             .set_item("instance_name", cstr_to_string(instance_name))
             .map_pyerr(py)?;
 
-        kwargs.set_item("fmu_type", fmu_type as i32).map_pyerr(py)?;
+        kwargs.set_item("fmu_type", fmu_type).map_pyerr(py)?;
         kwargs
             .set_item("guid", cstr_to_string(fmu_guid))
             .map_pyerr(py)?;
@@ -780,13 +715,16 @@ pub extern "C" fn fmi2Instantiate(
         let wrapper = PyCell::new(py, CallbacksWrapper::new(logger)).map_pyerr(py)?;
         kwargs.set_item("logging_callback", wrapper).map_pyerr(py)?;
 
-        let handle: i32 = SLAVE_MANAGER
-            .call_method(py, "instantiate", (), Some(kwargs))
-            .map_pyerr(py)?
-            .extract(py)
+        let handle_or_none: &PyAny = get_slave_manager(py)
+            .call_method("instantiate", (), Some(kwargs))
             .map_pyerr(py)?;
 
-        Ok(handle)
+        if handle_or_none.is_none() {
+            Err(anyhow::anyhow!("Unable to instantiate slave"))
+        } else {
+            let handle: i32 = handle_or_none.extract().map_pyerr(py)?;
+            Ok(handle)
+        }
     };
 
     match catch_unwind(|| get_instance()) {
@@ -943,9 +881,8 @@ pub extern "C" fn fmi2DoStep(
     let do_step = || -> Result<c_int, Error> {
         let gil = Python::acquire_gil();
         let py = gil.python();
-        let status: i32 = SLAVE_MANAGER
+        let status: i32 = get_slave_manager(py)
             .call_method1(
-                py,
                 "do_step",
                 (
                     unsafe { *c },
@@ -955,7 +892,7 @@ pub extern "C" fn fmi2DoStep(
                 ),
             )
             .map_pyerr(py)?
-            .extract(py)
+            .extract()
             .map_pyerr(py)?;
 
         let status: i32 = Fmi2Status::try_from(status).unwrap().into();
@@ -991,8 +928,8 @@ pub extern "C" fn fmi2FreeInstance(c: *mut i32) {
             let gil = Python::acquire_gil();
             let py = gil.python();
 
-            SLAVE_MANAGER
-                .call_method1(py, "free_instance", (unsafe { *c },))
+            get_slave_manager(py)
+                .call_method1("free_instance", (unsafe { *c },))
                 .map_pyerr(py)?;
 
             unsafe { Box::from_raw(c) };
@@ -1292,6 +1229,7 @@ mod tests {
             ),
             Fmi2Status::Fmi2OK.into()
         );
+        panic!("TODO check string return is correct");
         assert_eq!(val_integer_out, val_integer_out);
 
         assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());

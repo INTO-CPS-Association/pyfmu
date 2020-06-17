@@ -135,8 +135,9 @@ class Fmi2SlaveContext:
         self, handle: SlaveHandle, references: List[int]
     ) -> Tuple[List[Fmi2Value], Fmi2Status_T]:
         """Read variables of the slave specified by the handle.
-            """
+        """
         try:
+
             attributes = [self._slave_to_refs_to_attr[handle][i] for i in references]
             values = [getattr(self._slaves[handle], a) for a in attributes]
 
@@ -176,7 +177,7 @@ class Fmi2SlaveContext:
         ] = {}
         self._loggers: Dict[SlaveHandle, FMI2SlaveLogger] = {}
         self._log_calls_to_slave = True
-
+        self._awaiting_instantiation_handles = set()
         logging.basicConfig(level=logging.DEBUG)
 
     def instantiate(
@@ -210,13 +211,17 @@ class Fmi2SlaveContext:
             SlaveHandle: [description]
         """
 
+        # get a unused handle which is not currently in use
+        # Note that some operation in CPython such imports will release the GIL
         def get_free_handle() -> SlaveHandle:
             i = 0
-            while i in self._slaves:
+            while i in self._slaves or i in self._awaiting_instantiation_handles:
                 i += 1
             return i
 
         handle = get_free_handle()
+
+        self._awaiting_instantiation_handles.add(handle)
 
         assert handle not in self._slaves
 
@@ -286,6 +291,7 @@ class Fmi2SlaveContext:
 
             self._slaves[handle] = instance
             self._loggers[handle] = logger
+            self._awaiting_instantiation_handles.remove(handle)
 
             logger.ok(
                 f"An slave object has been instantiated successfully and assigned the handle: {handle}",
