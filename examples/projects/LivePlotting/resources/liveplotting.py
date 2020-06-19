@@ -33,7 +33,7 @@ class LivePlotting(Fmi2Slave):
 
         self.q = ctx.Queue()
         self.plot_process = ctx.Process(
-            target=LivePlotting._draw_func_alt,
+            target=LivePlotting._draw_process_func,
             args=(self.q,),
             name="pyfmu_livelogging",
             daemon=True,
@@ -94,27 +94,11 @@ class LivePlotting(Fmi2Slave):
                 return
 
         assert self.plot_process.is_alive()
-
-        self.log_ok(f"Addding coordinate {(self.x0,self.y0)} to rendering queue")
-
         self._lastSimTime = current_time
 
         self.q.put(np.array([self.x0, self.y0]))
 
         return Fmi2Status.ok
-
-    @staticmethod
-    def _draw_func_alt(q: multiprocessing.Queue):
-        try:
-            while True:
-
-                new_sample = q.get()
-                print(new_sample)
-                if new_sample is None:  # sentinel object read
-                    return 0
-
-        except Exception as e:
-            print(f"whoops process failed due to: {e}")
 
     @staticmethod
     def _draw_process_func(q: multiprocessing.Queue):

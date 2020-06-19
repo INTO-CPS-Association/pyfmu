@@ -4,6 +4,7 @@ import subprocess
 from enum import Enum
 from pathlib import Path
 from typing import List
+from traceback import format_exc
 
 from fmpy import simulate_fmu
 
@@ -40,12 +41,11 @@ class ValidationResult:
 
     def get_report(self) -> str:
         report = """
-        Results of validation:\n
-        """
-        for t, res in self.validation_tools.items():
-            report += "=" * 10
-            report += f"{t}:\n {res['message']}\n"
-            report += "=" * 10 + "\n"
+Results of validation:\n
+"""
+        for tool_name, res in self.validation_tools.items():
+            report += f"=============== {tool_name} ==============="
+            report += "\n" + res["message"] + "\n"
 
         return report
 
@@ -125,7 +125,9 @@ def validate_fmu(path_to_fmu: AnyPath, tools: List[str]) -> ValidationResult:
             f(path_to_fmu, val_results)
         except Exception as e:
             val_results.set_result_for(
-                t, False, f"Validation failed an exception was thrown in Python: {e}"
+                t,
+                False,
+                f"Validation failed an exception was thrown in Python:\n{format_exc()}",
             )
 
     return val_results
@@ -213,7 +215,7 @@ def _validate_vdmcheck(
 
     # convert output
     isValid = _vdmcheck_no_errors(result)
-    validation_results.set_result_for("vdmcheck", isValid, result.stdout)
+    validation_results.set_result_for("vdmcheck", isValid, str(result.stdout))
 
 
 def _validate_maestro_v1(
@@ -246,12 +248,11 @@ def _validate_maestro_v1(
             ["java", "-jar", jar_path, "-l", str(p)], capture_output=True
         )
 
-    message = f"""Maestro v1:
-    ============= stdout ===============
-    {results.stdout.decode()}
-    ============= stderr ===============
-    {results.stderr.decode()}
-    """
+    message = f"""
+============= stdout ===============
+{results.stdout.decode()}
+============= stderr ===============
+{results.stderr.decode()}"""
 
     validation_results.set_result_for("maestro_v1", results.returncode == 0, message)
 
@@ -292,9 +293,9 @@ def _validate_fmiComplianceChecker(
 
         message = f""" FMI Compliance Checker:
         ============= stdout ===============
-        {results.stdout.decode()}
+        {results.stdout}
         ============= stderr ===============
-        {results.stderr.decode()}
+        {results.stderr}
         """
 
         validation_results.set_result_for("fmucheck", results.returncode == 0, message)

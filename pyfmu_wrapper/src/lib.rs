@@ -1,5 +1,6 @@
 use anyhow;
 use anyhow::Error;
+use core::slice::from_raw_parts;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
 use pyo3::once_cell::OnceCell;
@@ -22,6 +23,7 @@ use std::os::raw::c_ulonglong;
 use std::os::raw::c_void;
 use std::panic::catch_unwind;
 use std::ptr::null_mut;
+use std::str::Utf8Error;
 use std::vec::Vec;
 
 #[macro_use]
@@ -160,6 +162,16 @@ pub fn get_slave_manager(py: Python) -> &PyAny {
 fn cstr_to_string(cstr: *const c_char) -> String {
     unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() }
 }
+
+// pub unsafe fn convert_double_pointer_to_vec<'a>(
+//     data: *const *const c_char,
+//     len: usize,
+// ) -> Result<Vec<String>, Utf8Error> {
+//     from_raw_parts(data, len)
+//         .iter()
+//         .map(|arg| CStr::from_ptr(*arg).to_str().map(ToString::to_string))
+//         .collect()
+// }
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -1120,6 +1132,7 @@ mod tests {
 
         let val_str_out_cstr: *mut *mut *mut c_char = MaybeUninit::uninit().as_mut_ptr();
 
+        let val_string_in_vec: Vec<String> = vec!["a", "b"].iter().map(|e| e.to_string()).collect(); // TODO convert this to val_string_in
         let val_string_in: [*const c_char; 2] =
             [val_str_in_str_a.as_ptr(), val_str_in_str_b.as_ptr()];
 
@@ -1229,9 +1242,24 @@ mod tests {
             ),
             Fmi2Status::Fmi2OK.into()
         );
-        panic!("TODO check string return is correct");
-        assert_eq!(val_integer_out, val_integer_out);
+        // panic!("TODO check string return is correct");
 
+        pub unsafe fn convert_double_pointer_to_vec<'a>(
+            data: *const *const c_char,
+            len: usize,
+        ) -> Result<Vec<String>, Utf8Error> {
+            from_raw_parts(data, len)
+                .iter()
+                .map(|arg| CStr::from_ptr(*arg).to_str().map(ToString::to_string))
+                .collect()
+        }
+
+        let val_string_out_vec = unsafe {
+            convert_double_pointer_to_vec(*val_str_out_cstr as *const _, val_string_in.len())
+        }
+        .unwrap();
+
+        assert_eq!(val_string_in_vec, val_string_out_vec);
         assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());
         assert_eq!(fmi2Reset(h1), Fmi2Status::Fmi2OK.into());
         fmi2FreeInstance(h1);
@@ -1419,7 +1447,7 @@ mod tests {
         assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
         assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
 
-        for i in 0..10 {
+        for i in 0..1000 {
             assert_eq!(
                 fmi2DoStep(h1, i as f64, i as f64 + 1.0, 0),
                 Fmi2Status::Fmi2OK.into()

@@ -349,10 +349,18 @@ class Fmi2SlaveContext:
         try:
             attributes = [self._slave_to_refs_to_attr[handle][i] for i in references]
 
-            # self._loggers[handle].ok(
-            #     f"Setting references {references} with names {attributes} to values {values}",
-            #     category="slave_manager",
-            # )
+            invalid_type_variables = [
+                f"attribute {self._get_attr_for_vref(handle, vref)} has value: {values[idx]}, expected type: {self._get_type_for_vref(handle, vref).__name__}, actual: {type(values[idx])}"
+                for idx, vref in enumerate(references)
+                if type(values[idx]) != self._get_type_for_vref(handle, vref)
+            ]
+
+            if invalid_type_variables != []:
+                self._loggers[handle].error(
+                    f"One or more of the variables received from the envrionment has an incorrect type: {invalid_type_variables}",
+                    category="slave_manager",
+                )
+                return Fmi2Status.error
 
             for a, v in zip(attributes, values):
                 setattr(self._slaves[handle], a, v)
