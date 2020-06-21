@@ -1,5 +1,6 @@
 use anyhow;
 use anyhow::Error;
+use byte_strings::as_bytes;
 use core::slice::from_raw_parts;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
@@ -24,6 +25,7 @@ use std::os::raw::c_void;
 use std::panic::catch_unwind;
 use std::ptr::null_mut;
 use std::str::Utf8Error;
+use std::sync::Mutex;
 use std::vec::Vec;
 
 #[macro_use]
@@ -1291,8 +1293,6 @@ mod tests {
         let visible: i32 = 0;
         let logging_on: i32 = 0;
 
-        println!("{:?}", instance_name);
-
         let h1 = fmi2Instantiate(
             instance_name_ptr,
             fmu_type,
@@ -1403,7 +1403,7 @@ mod tests {
     }
 
     #[test]
-    fn test_live_logging() {
+    fn test_live_plotting() {
         let instance_name = CString::new("live_logger").unwrap();
         let instance_name_ptr = instance_name.as_ptr();
 

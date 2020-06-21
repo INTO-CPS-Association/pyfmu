@@ -2,7 +2,7 @@ import argparse
 import sys
 from os.path import join, dirname, realpath, normpath
 
-from pyfmu.builder.generate import create_project
+from pyfmu.builder.generate import generate_project
 from pyfmu.builder.export import export_project
 from pyfmu.builder.validate import validate_fmu
 
@@ -105,7 +105,7 @@ def handle_generate(args):
         args.name if args.name is not None else basename(normpath(project_path))
     )
 
-    create_project(project_path, main_class_name)
+    generate_project(project_path, main_class_name)
 
 
 def handle_export(args):
@@ -114,12 +114,13 @@ def handle_export(args):
 
     archive_path = args.output
 
-    export_project(project_path, archive_path)
+    export_project(project_path, archive_path, compress=False)
 
 
 def handle_validate(args):
 
     fmu = args.fmu
+    raise NotImplementedError("TODO Parse arguments related to validation tools")
     validate_fmu(fmu)
 
 

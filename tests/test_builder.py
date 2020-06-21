@@ -1,17 +1,13 @@
-import json
-import os
-from os.path import exists, isdir, isfile, join
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from importlib.util import module_from_spec, spec_from_file_location
 
-import lxml.etree as ET
+
 import pytest
 
-from pyfmu.builder import validate_fmu
 from pyfmu.builder.export import export_project
 from pyfmu.builder.generate import generate_project
 
-from .utils import ExampleArchive, get_all_examples, get_example_project
+from .utils import get_example_project
 
 
 class TestGenerate:
@@ -19,11 +15,23 @@ class TestGenerate:
 
         tmpdir = Path(tmpdir)
 
-        outdir = tmpdir / "Adder"
-        p = generate_project(outdir, "Adder")
+        slave_class = "Adder"
+        outdir = tmpdir / "slave_class"
+        generate_project(output_path=outdir, slave_class=slave_class)
+
+        resources_dir = outdir / "resources"
+        slave_script = resources_dir / "adder.py"
 
         assert (outdir / "project.json").is_file()
-        assert (outdir / "resources" / "adder.py").is_file()
+        assert slave_script.is_file()
+
+        spec = spec_from_file_location(name="Adder", location=slave_script)
+        module = module_from_spec(spec)
+        spec.loader.exec_module(module)
+        slave = getattr(module, "Adder")()
+
+        slave.a = 10
+        slave.b = 20
 
 
 class TestExport:

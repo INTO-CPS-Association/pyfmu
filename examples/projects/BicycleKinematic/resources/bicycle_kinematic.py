@@ -5,39 +5,21 @@ from scipy.integrate import solve_ivp
 
 from pyfmu.fmi2 import (
     Fmi2Slave,
-    Fmi2Causality,
-    Fmi2Variability,
-    Fmi2DataTypes,
-    Fmi2Initial,
     Fmi2Status,
+    Fmi2Status_T,
 )
 
 
 class Bicycle_Kinematic(Fmi2Slave):
     def __init__(self, *args, **kwargs):
 
-        author = ""
-        model_name = "BicycleKinematic"
-        description = ""
-
         super().__init__(
-            model_name=model_name,
-            author=author,
-            description=description,
-            *args,
-            **kwargs
+            model_name="BicycleKinematic", author="", description="", *args, **kwargs
         )
 
         # silience incorrect warnings about undeclared variables
-        self.a = 0.0
-        self.df = 0.0
-        self.x = 0.0
-        self.y = 0.0
-        self.v = 0.0
-        self.psi = 0.0
-        self.beta = 0.0
-        self.lf = 1.0
-        self.lr = 1.0
+
+        self.reset()
 
         # model
         self.register_input("a", "real", "continuous", description="acceleration")
@@ -75,25 +57,39 @@ class Bicycle_Kinematic(Fmi2Slave):
             "lr", "real", "fixed", description="distance from CM to rear wheel",
         )
 
+        self.register_parameter("x0", "real", "fixed")
+        self.register_parameter("y0", "real", "fixed")
+        self.register_parameter("psi0", "real", "fixed")
+        self.register_parameter("v0", "real", "fixed")
+
+        self.register_input("x_r", "real", "continuous")
+        self.register_input("y_r", "real", "continuous")
+        self.register_input("psi_r", "real", "continuous")
+        self.register_input("v_r", "real", "continuous")
+
+    def reset(self) -> Fmi2Status_T:
+        self.a = 0.0
+        self.df = 0.0
+        self.x = 0.0
+        self.y = 0.0
+        self.v = 0.0
+        self.psi = 0.0
+        self.beta = 0.0
+        self.lf = 1.0
+        self.lr = 1.0
+
         # Initial values
         self.x0 = 0.0
         self.y0 = 0.0
         self.psi0 = 0.0
         self.v0 = 0.0
-        self.register_parameter("x0", "real", "fixed")
-        self.register_parameter("y0", "real", "fixed")
-        self.register_parameter("psi0", "real", "fixed")
-        self.register_parameter("v0", "real", "fixed")
 
         # reference model
         self.x_r = 0.0
         self.y_r = 0.0
         self.psi_r = 0.0
         self.v_r = 0.0
-        self.register_input("x_r", "real", "continuous")
-        self.register_input("y_r", "real", "continuous")
-        self.register_input("psi_r", "real", "continuous")
-        self.register_input("v_r", "real", "continuous")
+        return Fmi2Status.ok
 
     @staticmethod
     def _derivatives(t, state, params):
@@ -148,12 +144,6 @@ class Bicycle_Kinematic(Fmi2Slave):
 
 if __name__ == "__main__":
 
-    from pyfmu.fmi2.logging import FMI2SlaveLogger
-
-    logger = FMI2SlaveLogger("a", 0, None)
-    kwargs = {"logger": logger}
-
-    m = Bicycle_Kinematic(**kwargs)
-    m.log_ok("johnny")
-    for i in range(10):
+    m = Bicycle_Kinematic()
+    for i in range(1000):
         m.do_step(i, i + 1, False)

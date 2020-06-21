@@ -132,6 +132,7 @@ def generate_project(output_path: AnyPath, slave_class: str) -> PyfmuProject:
         An object representing the exported project. 
         This may be used to access the paths of the various project artifacts.
     """
+
     logger.debug(
         f"Creating a new project to {output_path} with slave class {slave_class}"
     )
