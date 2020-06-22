@@ -81,7 +81,7 @@ def extract_model_description(slave: Fmi2SlaveLike) -> bytes:
     fmd.set("guid", slave.guid)
     fmd.set("author", slave.author)
     fmd.set("generationDateAndTime", date_str_xsd)
-    fmd.set("variableNamingConvention", "structured")
+    fmd.set("variableNamingConvention", "flat")
     fmd.set("generationTool", "pyfmu")
 
     #
