@@ -26,6 +26,8 @@ class LivePlotting(Fmi2Slave):
             **kwargs,
         )
 
+        self.log_ok(f"My file attribute is: {__file__}")
+
         # Qt application must run on main thread.
         # We start a new process to ensure this.
         # Samples are shared through a buffer
@@ -36,7 +38,7 @@ class LivePlotting(Fmi2Slave):
             target=LivePlotting._draw_process_func,
             args=(self.q,),
             name="pyfmu_livelogging",
-            daemon=True,
+            daemon=False,
         )
 
         self._reset_variables()
@@ -122,8 +124,6 @@ class LivePlotting(Fmi2Slave):
             lastTime = time()
             samples = None
 
-            samples = q.get()
-
             while True:
 
                 new_sample = q.get()
@@ -132,7 +132,10 @@ class LivePlotting(Fmi2Slave):
                     win.close()
                     return 0
 
-                samples = np.vstack([samples, new_sample])
+                if samples is None:
+                    samples = np.array(new_sample)
+                else:
+                    samples = np.vstack([samples, new_sample])
 
                 curve.setData(samples, pen="w")
 
@@ -162,6 +165,7 @@ class LivePlotting(Fmi2Slave):
             self.log_ok("Waiting for GUI process to finish")
             self.q.put(None)
             self.plot_process.join()
+            assert not self.plot_process.is_alive()
             self.log_ok("Process has successfully terminated")
         return Fmi2Status.ok
 
