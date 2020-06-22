@@ -77,9 +77,10 @@ if __name__ == "__main__":
         identifier = (sys_fmi + arch).lower()
 
         # TODO
-        binary_name = "pyfmu.dll" if sys == "Windows" else "pyfmu.so"
-        input_dir = root_dir / "pyfmu_wrapper" / "target" / "debug" / binary_name
-        output_dir = Resources.get().binaries_dir / identifier / binary_name
+        binary_in_name = "pyfmu.dll" if sys == "Windows" else "libpyfmu.so"
+        binary_name_out = binary_in_name if sys == "Windows" else "pyfmu.so"
+        input_dir = root_dir / "pyfmu_wrapper" / "target" / "debug" / binary_in_name
+        output_dir = Resources.get().binaries_dir / identifier / binary_name_out
         logger.info(
             f"wrapper sucessfully build, copying binaries form {input_dir} into resources {output_dir}"
         )
