@@ -975,7 +975,7 @@ mod tests {
     use std::thread;
 
     #[test]
-    fn test_adder() {
+    fn adder_fmu() {
         // see documentation of Cstring.as_ptr
         let instance_name = CString::new("a").unwrap();
         let instance_name_ptr = instance_name.as_ptr();
@@ -1066,7 +1066,7 @@ mod tests {
         assert_eq!(status, Fmi2Status::Fmi2OK.into())
     }
     #[test]
-    fn test_types() {
+    fn types_fmu() {
         // see documentation of Cstring.as_ptr
         let instance_name = CString::new("a").unwrap();
         let instance_name_ptr = instance_name.as_ptr();
@@ -1262,7 +1262,7 @@ mod tests {
     }
 
     #[test]
-    fn test_bicycle_kinematic() {
+    fn bicycle_fmu() {
         // see documentation of Cstring.as_ptr
         let instance_name = CString::new("a").unwrap();
         let instance_name_ptr = instance_name.as_ptr();
@@ -1380,6 +1380,8 @@ mod tests {
                 logging_on,
             );
 
+            assert_ne!(h, null_mut());
+
             assert_eq!(
                 fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0),
                 Fmi2Status::Fmi2OK.into()
@@ -1431,6 +1433,8 @@ mod tests {
                     logging_on,
                 );
 
+                assert_ne!(h, null_mut());
+
                 assert_eq!(
                     fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0),
                     Fmi2Status::Fmi2OK.into()
@@ -1477,7 +1481,7 @@ mod tests {
     }
 
     #[test]
-    fn test_live_plotting() {
+    fn liveplotting_fmu() {
         let instance_name = CString::new("live_logger").unwrap();
         let instance_name_ptr = instance_name.as_ptr();
 
@@ -1512,6 +1516,8 @@ mod tests {
             visible,
             logging_on,
         );
+
+        assert_ne!(h1, null_mut());
 
         assert_eq!(
             fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
