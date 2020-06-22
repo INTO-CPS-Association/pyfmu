@@ -2,7 +2,7 @@ use anyhow;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
-use pyo3::once_cell::OnceCell;
+use pyo3::once_cell::GILOnceCell;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::types::PyTuple;
@@ -129,23 +129,26 @@ pub enum Fmi2Type {
     Fmi2CoSimulation = 1,
 }
 
-static SLAVE_MANAGER: OnceCell<PyObject> = OnceCell::new();
+static SLAVE_MANAGER: GILOnceCell<PyObject> = GILOnceCell::new();
 
 pub fn get_slave_manager(py: Python) -> &PyAny {
     SLAVE_MANAGER
         .get_or_init(py, || {
-            let cls = || -> PyResult<PyObject> {
+            let cls = || -> Result<PyObject, Error> {
                 let ctx: pyo3::PyObject = py
                     .import("pyfmu.fmi2.slaveContext")
-                    .expect("Unable to import module declaring slave manager. Ensure that PyFMU is installed inside your current envrioment.")
-                    .get("Fmi2SlaveContext")?
-                    .call0()?
-                    .extract()?;
+                    .map_pyerr(py)?
+                    .get("Fmi2SlaveContext")
+                    .map_pyerr(py)?
+                    .call0()
+                    .map_pyerr(py)?
+                    .extract()
+                    .map_pyerr(py)?;
                 Ok(ctx)
             };
 
             cls().unwrap_or_else(|e| {
-                e.print_and_set_sys_last_vars(py);
+                println!("An error ocurred when instantiating slave manager: {:?}", e);
                 panic!("Unable to instantiate slave manager");
             })
         })

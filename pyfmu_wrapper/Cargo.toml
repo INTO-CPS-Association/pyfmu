@@ -11,9 +11,7 @@ crate-type = ["dylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# pyo3 = {git = "https://github.com/PyO3/pyo3.git"}
-pyo3 = {git = "https://github.com/davidhewitt/pyo3.git", branch="once-cell"}
-
+pyo3 = {git = "https://github.com/PyO3/pyo3.git"}
 lazy_static = "*"
 num_enum = "*"
 anyhow = "*"
