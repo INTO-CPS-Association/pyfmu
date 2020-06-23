@@ -46,4 +46,4 @@ class TestExport:
         assert (output_path / "modelDescription.xml").is_file()
         assert (output_path / "binaries" / "win64" / "pyfmu.dll").is_file()
         assert (output_path / "binaries" / "linux64" / "pyfmu.so").is_file()
-        assert (output_path / "resources" / "Adder.py").is_file()
+        assert (output_path / "resources" / "adder.py").is_file()

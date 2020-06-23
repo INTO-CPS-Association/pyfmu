@@ -2,9 +2,7 @@
 import os
 
 import pytest
-import pytorch_lightning as pl
 
-pl.LightningModule
 
 from pyfmu.fmi2 import Fmi2SlaveContext
 from pyfmu.fmi2.types import Fmi2Status, Fmi2Type
