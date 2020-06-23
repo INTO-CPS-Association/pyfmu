@@ -150,7 +150,7 @@ def has_java() -> bool:
         [bool] -- true if java is available, otherwise false.
     """
     try:
-        subprocess.run(["java", "-v"])
+        subprocess.run(["java"], capture_output=True)
     except Exception:
         return False
 

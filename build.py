@@ -45,7 +45,17 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--run_rust_tests", action="store_true", help="Run rust tests using cargo"
+        "--rust-tests",
+        action="store_true",
+        dest="rust_tests",
+        help="Run rust tests using cargo",
+    )
+
+    parser.add_argument(
+        "--python-tests",
+        action="store_true",
+        dest="python_tests",
+        help="Run integration tests in Python",
     )
 
     args = parser.parse_args()
@@ -56,14 +66,9 @@ if __name__ == "__main__":
     logger.info(f"Building wrapper using cargo, changing directory to {wrapper_dir}.")
     os.chdir(wrapper_dir)
     logger.info("Invoking cargo build")
-
     res = subprocess.run(["cargo", "build"]).check_returncode()
-
-    if args.run_rust_tests:
-        logger.info("Running rust tests")
-        subprocess.run(
-            ["cargo", "test", "--", "--nocapture", "--test-threads=1"]
-        ).check_returncode()
+    logger.info(f"Changing directory back to {root_dir}")
+    os.chdir(root_dir)
 
     if args.update_wrapper:
 
@@ -97,3 +102,14 @@ if __name__ == "__main__":
                 compress=False,
                 overwrite=True,
             )
+
+    if args.rust_tests:
+        logger.info("Running rust tests")
+        subprocess.run(
+            ["cargo", "test", "--", "--nocapture", "--test-threads=1"]
+        ).check_returncode()
+
+    if args.python_tests:
+        logger.info("Executing python integration test suite")
+        subprocess.run(["pytest"]).check_returncode()
+

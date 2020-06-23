@@ -12,23 +12,20 @@ https://into-cps-application.readthedocs.io
 """
 
 _extras_require = {
-    "build": ["conan"],
     "docs": ["Sphinx", "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi"],
     "tests": [
         "numpy",
         "pandas",
         "pytest",
         "tox",
-        "fmpy==0.2.17",
+        "fmpy",
         "pyqtgraph",
         "scipy",
         "PyQt5",
     ],
     "gui": [],
 }
-_extras_require["dev"] = (
-    _extras_require["build"] + _extras_require["docs"] + _extras_require["tests"]
-)
+_extras_require["dev"] = _extras_require["docs"] + _extras_require["tests"]
 
 setup(
     name="pyfmu",

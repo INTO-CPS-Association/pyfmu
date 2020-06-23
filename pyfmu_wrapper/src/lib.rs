@@ -21,9 +21,6 @@ use std::panic::catch_unwind;
 use std::ptr::null_mut;
 use std::vec::Vec;
 
-mod utils;
-use utils::get_example_resources_uri;
-
 extern crate lazy_static;
 
 pub type SlaveHandle = c_int;
@@ -484,9 +481,6 @@ unsafe fn vector_to_string_array(v: Vec<String>) -> *mut *mut c_char {
 
     let ptr = out.as_mut_ptr();
     mem::forget(out);
-
-    println!("I am leaking memory fix me :(");
-
     ptr
 }
 
@@ -967,6 +961,7 @@ extern "C" fn logger(
 }
 
 #[cfg(test)]
+mod utils;
 
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -987,7 +982,7 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let fmu_resources_path = CString::new(get_example_resources_uri("Adder")).unwrap();
+        let fmu_resources_path = CString::new(utils::get_example_resources_uri("Adder")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1076,7 +1071,8 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let fmu_resources_path = CString::new(get_example_resources_uri("FmiTypes")).unwrap();
+        let fmu_resources_path =
+            CString::new(utils::get_example_resources_uri("FmiTypes")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1270,7 +1266,7 @@ mod tests {
         let guid_ptr = guid.as_ptr();
 
         let fmu_resources_path =
-            CString::new(get_example_resources_uri("BicycleKinematic")).unwrap();
+            CString::new(utils::get_example_resources_uri("BicycleKinematic")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1346,7 +1342,7 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let adder_resources_path = CString::new(get_example_resources_uri("Adder")).unwrap();
+        let adder_resources_path = CString::new(utils::get_example_resources_uri("Adder")).unwrap();
         let adder_resources_path_ptr = adder_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1445,15 +1441,17 @@ mod tests {
             }
         };
 
-        let add_thread = thread::spawn(|| instantiate_fmu(&get_example_resources_uri("Adder")));
+        let add_thread =
+            thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("Adder")));
 
         let sine_thread =
-            thread::spawn(|| instantiate_fmu(&get_example_resources_uri("SineGenerator")));
-        let bicycle_thread =
-            thread::spawn(|| instantiate_fmu(&get_example_resources_uri("BicycleKinematic")));
+            thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("SineGenerator")));
+        let bicycle_thread = thread::spawn(|| {
+            instantiate_fmu(&utils::get_example_resources_uri("BicycleKinematic"))
+        });
 
         let plotting_thread =
-            thread::spawn(|| instantiate_fmu(&get_example_resources_uri("LivePlotting")));
+            thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("LivePlotting")));
 
         add_thread.join().unwrap();
         sine_thread.join().unwrap();
@@ -1470,7 +1468,8 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let fmu_resources_path = CString::new(get_example_resources_uri("LivePlotting")).unwrap();
+        let fmu_resources_path =
+            CString::new(utils::get_example_resources_uri("LivePlotting")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {

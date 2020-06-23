@@ -60,6 +60,17 @@ Results of validation:\n
         return False not in ss
 
 
+def _try_decode_output(output) -> str:
+
+    try:
+        if type(output) == bytes:
+            return output.decode()
+        else:
+            return str(output)
+    except Exception:
+        return "unable to decode output from program"
+
+
 def validate_fmu(path_to_fmu: AnyPath, tools: List[str]) -> ValidationResult:
     """Validate an FMU using the specified tools. The FMU may either be an achive or a folder.
 
@@ -250,9 +261,12 @@ def _validate_maestro_v1(
 
     message = f"""
 ============= stdout ===============
-{results.stdout.decode()}
+{_try_decode_output(results.stdout)}
 ============= stderr ===============
-{results.stderr.decode()}"""
+{_try_decode_output(results.stderr)}
+=========== status code ============
+{results.returncode}
+"""
 
     validation_results.set_result_for("maestro_v1", results.returncode == 0, message)
 
@@ -291,12 +305,14 @@ def _validate_fmiComplianceChecker(
     with TemporaryFMUArchive(path_to_fmu) as archive:
         results = subprocess.run([executable, str(archive)], capture_output=True)
 
-        message = f""" FMI Compliance Checker:
-        ============= stdout ===============
-        {results.stdout}
-        ============= stderr ===============
-        {results.stderr}
-        """
+        message = f"""
+============= stdout ===============
+{_try_decode_output(results.stdout)}
+============= stderr ===============
+{_try_decode_output(results.stderr)}
+=========== status code ============
+{results.returncode}
+"""
 
         validation_results.set_result_for("fmucheck", results.returncode == 0, message)
 

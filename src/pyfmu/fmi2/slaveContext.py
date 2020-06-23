@@ -178,7 +178,7 @@ class Fmi2SlaveContext:
             SlaveHandle, Dict[int, Union[float, int, bool, str]]
         ] = {}
         self._loggers: Dict[SlaveHandle, FMI2SlaveLogger] = {}
-        self._log_calls_to_slave = True
+        self._log_calls_to_slave = False
         self._awaiting_instantiation_handles = set()
         logging.basicConfig(level=logging.DEBUG)
 
