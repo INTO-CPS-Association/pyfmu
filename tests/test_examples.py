@@ -23,7 +23,8 @@ def fmi_logger(m):
 
 
 # validate every example with
-_validate_with = ["fmpy", "fmucheck", "vdmcheck", "maestro_v1"]
+#_validate_with = ["fmpy", "fmucheck", "vdmcheck", "maestro_v1"]
+_validate_with = ["fmpy", "vdmcheck", "maestro_v1"]
 
 
 def test_Adder():
@@ -65,6 +66,12 @@ def test_LivePlotting():
 
 def test_SineGenerator():
     with ExampleArchive("SineGenerator") as a:
+        res = validate_fmu(a.root, _validate_with)
+        print(res.get_report())
+        assert res.valid
+
+def test_BicycleDynamic():
+    with ExampleArchive("BicycleDynamic") as a:
         res = validate_fmu(a.root, _validate_with)
         print(res.get_report())
         assert res.valid

@@ -63,14 +63,15 @@ if __name__ == "__main__":
     root_dir = Path(__file__).parent.absolute()
     wrapper_dir = root_dir / "pyfmu_wrapper"
 
-    logger.info(f"Building wrapper using cargo, changing directory to {wrapper_dir}.")
-    os.chdir(wrapper_dir)
-    logger.info("Invoking cargo build")
-    res = subprocess.run(["cargo", "build"]).check_returncode()
-    logger.info(f"Changing directory back to {root_dir}")
-    os.chdir(root_dir)
-
     if args.update_wrapper:
+
+
+        logger.info(f"Building wrapper using cargo, changing directory to {wrapper_dir}.")
+        os.chdir(wrapper_dir)
+        logger.info("Invoking cargo build")
+        res = subprocess.run(["cargo", "build"]).check_returncode()
+        logger.info(f"Changing directory back to {root_dir}")
+        os.chdir(root_dir)
 
         sys = platform.system()
         sys_fmi = {"Windows": "win", "Linux": "linux", "Darwin": "darwin"}[sys]
