@@ -21,6 +21,9 @@ use std::panic::catch_unwind;
 use std::ptr::null_mut;
 use std::vec::Vec;
 
+mod utils;
+use utils::get_example_resources_uri;
+
 extern crate lazy_static;
 
 pub type SlaveHandle = c_int;
@@ -984,9 +987,7 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let fmu_resources_path =
-            CString::new("file:///C:/Users/clega/Desktop/pyfmu/examples/exported/Adder/resources")
-                .unwrap();
+        let fmu_resources_path = CString::new(get_example_resources_uri("Adder")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1075,10 +1076,7 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let fmu_resources_path = CString::new(
-            "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/FmiTypes/resources",
-        )
-        .unwrap();
+        let fmu_resources_path = CString::new(get_example_resources_uri("FmiTypes")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1271,10 +1269,8 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let fmu_resources_path = CString::new(
-            "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/BicycleKinematic/resources",
-        )
-        .unwrap();
+        let fmu_resources_path =
+            CString::new(get_example_resources_uri("BicycleKinematic")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1350,9 +1346,7 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let adder_resources_path =
-            CString::new("file:///C:/Users/clega/Desktop/pyfmu/examples/exported/Adder/resources")
-                .unwrap();
+        let adder_resources_path = CString::new(get_example_resources_uri("Adder")).unwrap();
         let adder_resources_path_ptr = adder_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
@@ -1451,28 +1445,15 @@ mod tests {
             }
         };
 
-        let add_thread = thread::spawn(|| {
-            instantiate_fmu(
-                "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/Adder/resources",
-            )
-        });
+        let add_thread = thread::spawn(|| instantiate_fmu(&get_example_resources_uri("Adder")));
 
-        let sine_thread = thread::spawn(|| {
-            instantiate_fmu(
-                "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/SineGenerator/resources",
-            )
-        });
-        let bicycle_thread = thread::spawn(|| {
-            instantiate_fmu(
-                "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/BicycleKinematic/resources",
-            )
-        });
+        let sine_thread =
+            thread::spawn(|| instantiate_fmu(&get_example_resources_uri("SineGenerator")));
+        let bicycle_thread =
+            thread::spawn(|| instantiate_fmu(&get_example_resources_uri("BicycleKinematic")));
 
-        let plotting_thread = thread::spawn(|| {
-            instantiate_fmu(
-                "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/LivePlotting/resources",
-            )
-        });
+        let plotting_thread =
+            thread::spawn(|| instantiate_fmu(&get_example_resources_uri("LivePlotting")));
 
         add_thread.join().unwrap();
         sine_thread.join().unwrap();
@@ -1489,10 +1470,7 @@ mod tests {
         let guid = CString::new("1234").unwrap();
         let guid_ptr = guid.as_ptr();
 
-        let fmu_resources_path = CString::new(
-            "file:///C:/Users/clega/Desktop/pyfmu/examples/exported/LivePlotting/resources",
-        )
-        .unwrap();
+        let fmu_resources_path = CString::new(get_example_resources_uri("LivePlotting")).unwrap();
         let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
 
         let functions = Fmi2CallbackFunctions {
