@@ -88,6 +88,8 @@ def extract_model_description(slave: Fmi2SlaveLike) -> bytes:
     cs = ET.SubElement(fmd, "CoSimulation")
     cs.set("modelIdentifier", "pyfmu")
     cs.set("needsExecutionTool", "true")
+    cs.set("canNotUseMemoryManagementFunctions", "false")
+    cs.set("canHandleVariableCommunicationStepSize", "true")
 
     # 2.2.4 p.42) Log categories:
     # cs = ET.SubElement(fmd, "LogCategories")
