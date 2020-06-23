@@ -104,10 +104,12 @@ if __name__ == "__main__":
             )
 
     if args.rust_tests:
+        os.chdir(wrapper_dir)
         logger.info("Running rust tests")
         subprocess.run(
             ["cargo", "test", "--", "--nocapture", "--test-threads=1"]
         ).check_returncode()
+        os.chdir(root_dir)
 
     if args.python_tests:
         logger.info("Executing python integration test suite")

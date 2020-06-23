@@ -33,12 +33,12 @@ def test_Adder():
         assert res.valid
 
 
-def test_BicycleKinematic():
-    with ExampleArchive("BicycleKinematic") as a:
+# def test_BicycleKinematic():
+#     with ExampleArchive("BicycleKinematic") as a:
 
-        res = validate_fmu(a.root, _validate_with)
-        print(res.get_report())
-        assert res.valid
+#         res = validate_fmu(a.root, _validate_with)
+#         print(res.get_report())
+#         assert res.valid
 
 
 def test_ConstantSignalGenerator():

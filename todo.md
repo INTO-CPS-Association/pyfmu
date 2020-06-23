@@ -6,3 +6,5 @@
 
 **Investigate Why Bicycle Kinematic is causing access voialation errors**
 thread '<unnamed>' panicked at 'cannot access a Thread Local Storage value during or after destruction: AccessError', C:\Users\clega\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib/rustlib/src/rust\src\libstd\thread\local.rs:239:9
+
+**Fix memory leak of fmi2getstring**
