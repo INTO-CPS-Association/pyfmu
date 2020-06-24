@@ -2,14 +2,11 @@ from pyfmu.fmi2 import Fmi2Slave, Fmi2Status, Fmi2Status_T
 import numpy as np
 
 
-class SourceTwo(Fmi2Slave):
+class BicycleDriver(Fmi2Slave):
 
     def __init__(self, *args, **kwargs):
-        
-  
-        
         super().__init__(
-            model_name="SourceTwo",
+            model_name="BicycleDriver",
             author="",
             description="",
             *args,
@@ -20,17 +17,24 @@ class SourceTwo(Fmi2Slave):
 
         # Inputs, outputs and parameters may be defined using the 'register_{input,output,parameter}' functions
         # By default these are bound to attributes of the instance.
-        # self.register_input("a", "real", "continuous", description="first input")
-        # self.register_input("b", "real", "continuous", description="second input")
-        self.register_output("s1", "real", "continuous", description="s1")
-        self.register_output("s2", "real", "continuous", description="s2")
+        self.register_output("deltaf", "real", "continuous", "calculated",
+                             description="steering angle at the front wheel")
+        self.register_output("Caf", "real", "continuous", "calculated",
+                             description="Slippery")
 
     def do_step(self, current_time: float, step_size: float, no_prior_step : bool) -> Fmi2Status_T:
+        if current_time > 2.0:
+            self.deltaf = 0.2
+        elif current_time > 4.0:
+            self.deltaf = 0.0
+        else:
+            self.deltaf = 0.0
+
         return Fmi2Status.ok
 
     def reset(self) -> Fmi2Status_T:
-        self.s1 = 1.0
-        self.s2 = 2.0
+        self.deltaf = 0.0
+        self.Caf = 800.0
         return Fmi2Status.ok
 
     def enter_initialization_mode(self) -> Fmi2Status_T:
@@ -49,7 +53,7 @@ class SourceTwo(Fmi2Slave):
 # Proper unit testing frameworks may be used as well.
 if __name__ == "__main__":
 
-    fmu = SourceTwo()
+    fmu = BicycleDriver()
 
     t_start = 0
     t_end = 1
@@ -63,8 +67,7 @@ if __name__ == "__main__":
 
     for t in ts:
         assert fmu.do_step(t, t + t_step, False) == Fmi2Status.ok
-        assert fmu.s1 == 1.0
-        assert fmu.s2 == 2.0
+        assert fmu.Caf == 800.0
 
     assert fmu.terminate() == Fmi2Status.ok
     assert fmu.reset() == Fmi2Status.ok

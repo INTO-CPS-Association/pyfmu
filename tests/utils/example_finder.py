@@ -16,7 +16,8 @@ _correct_example = {
     "BicycleKinematic",
     "LivePlotting",
     "FmiTypes",
-    "BicycleDynamic"
+    "BicycleDynamic",
+    "BicycleDriver"
 }
 
 _incorrect_examples = set()

@@ -75,3 +75,9 @@ def test_BicycleDynamic():
         res = validate_fmu(a.root, _validate_with)
         print(res.get_report())
         assert res.valid
+
+def test_BicycleDriver():
+    with ExampleArchive("BicycleDriver") as a:
+        res = validate_fmu(a.root, _validate_with)
+        print(res.get_report())
+        assert res.valid
