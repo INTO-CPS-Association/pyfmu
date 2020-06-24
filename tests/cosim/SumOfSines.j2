@@ -1,0 +1,25 @@
+{
+    "fmus": {
+        "{s}": "{{sine_path}}",
+        "{a}": "{{adder_path}}"
+    },
+    "connections": {
+        "{s}.s1.y": [
+            "{a}.a1.a"
+        ],
+        "{s}.s2.y": [
+            "{a}.a1.b"
+        ]
+    },
+    "logVariables": {
+        "{a}.a1": [
+            "X",
+            "Y"
+        ]
+    },
+    "parameters": {},
+    "algorithm": {
+        "type": "fixed-step",
+        "size": 0.1
+    }
+}

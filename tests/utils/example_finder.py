@@ -27,37 +27,6 @@ _correct_example = {
 _incorrect_examples = set()
 
 
-def get_coe_configuration(coe_example_name: str) -> Path:
-    """Get the coe
-
-    Args:
-        coe_example_name (str): [description]
-
-    Returns:
-        Path: [description]
-    """
-
-    def get_coe_config_path(coe_example_name: str):
-        return Path(__file__).parent.parent / "cosim" / f"{coe_example_name}.j2"
-
-    if coe_example_name == "BicycleDynamicAndDriver":
-
-        with open(get_coe_config_path(coe_example_name), "r") as f:
-            s = f.read()
-            template = Template(s)
-
-            r = template.render(
-                {
-                    "class_name": slave_class,
-                    "description": "",
-                    "model_name": slave_class,
-                    "author": "",
-                }
-            )
-
-    p = Path(__file__).parent.parent
-
-
 def get_example_directory() -> Path:
     """
     Returns the path to the example projects
@@ -277,29 +246,51 @@ class MaestroExample:
             export_project(
                 project_or_path=dynamic_in, output_path=dynamic_out, compress=False
             )
-
+            assert driver_out.exists()
+            assert dynamic_out.exists()
             fmu_paths = {
                 "driver_path": driver_out.as_uri(),
                 "dynamic_path": dynamic_out.as_uri(),
+            }
+
+        elif example_name == "SumOfSines":
+            adder_in = get_example_project("Adder")
+            sine_in = get_example_project("SineGenerator")
+            adder_out = self.tmpdir / adder_in.name
+            sine_out = self.tmpdir / sine_in.name
+            export_project(
+                project_or_path=adder_in, output_path=adder_out, compress=False
+            )
+            export_project(
+                project_or_path=sine_in, output_path=sine_out, compress=False
+            )
+            assert adder_out.exists()
+            assert sine_out.exists()
+            fmu_paths = {
+                "adder_path": adder_out.as_uri(),
+                "sine_path": sine_out.as_uri(),
             }
 
         else:
             raise ValueError(f"Unable to locate example: '{example_name}'")
 
         coe_template_in = Path(__file__).parent.parent / "cosim" / f"{example_name}.j2"
+        assert coe_template_in.is_file()
         coe_template_out = self.tmpdir / "coe.json"
 
         logger.info(f"copying template: {coe_template_in} to {coe_template_out}")
 
-        copy(coe_template_in, coe_template_out)
-
         logger.info(f"copy successfull, filling out template")
 
-        with open(coe_template_out, "r") as f:
-            s = f.read()
+        with open(coe_template_in, "r") as f_in:
+            s = f_in.read()
             template = Template(s)
 
             r = template.render(fmu_paths)
+
+            with open(coe_template_out, "w") as f_out:
+                f_out.write(r)
+                assert coe_template_out.is_file()
 
             logger.info(f"template rendered\n: {r}")
 

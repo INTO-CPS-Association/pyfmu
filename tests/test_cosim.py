@@ -1,15 +1,17 @@
 import subprocess
+import logging
+from pathlib import Path
 
 from pyfmu.resources import Resources
 
 from .utils import MaestroExample
 
 
-def test_BicycleDynamicAndDriver():
+def execute_cosimulation(example_name: str, start_time: float, stop_time: float) -> int:
 
     jar_path = Resources.get().VDMCheck2_jar
 
-    with MaestroExample("BicycleDynamicAndDriver") as config:
+    with MaestroExample(example_name) as config:
         results = subprocess.run(
             [
                 "java",
@@ -20,9 +22,21 @@ def test_BicycleDynamicAndDriver():
                 str(config),
                 "--onshot",
                 "--starttime",
-                "0.0",
+                str(start_time),
                 "--endtime",
-                "10.0",
+                str(stop_time),
             ]
         )
+
+    return results.returncode
+
+
+def test_BicycleDynamicAndDriver(caplog):
+    caplog.set_level(logging.INFO)
+    assert execute_cosimulation("BicycleDynamicAndDriver", 0.0, 10.0) == 0
+
+
+def test_SumOfSines(caplog):
+    caplog.set_level(logging.INFO)
+    assert execute_cosimulation("SumOfSines", 0.0, 10.0) == 0
 
