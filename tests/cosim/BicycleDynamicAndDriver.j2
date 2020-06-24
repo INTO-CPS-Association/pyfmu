@@ -1,0 +1,22 @@
+{
+	"fmus":{
+		"{src}":"{{driver_path}}",
+		"{bd}":"{{dynamical_path}}"
+	},
+	"connections": {
+		"{src}.srci.deltaf": [
+      "{bd}.bdi.deltaf"
+    ],
+		"{src}.srci.Caf": [
+      "{bd}.bdi.Caf"
+    ]
+	},
+	"logVariables":{
+		"{bd}.bdi":["X", "Y"]
+	},
+  "parameters": {},
+	"algorithm":{
+		"type":"fixed-step",
+		"size":0.1
+	}
+}

@@ -1,10 +1,15 @@
 from os.path import dirname, join
 from tempfile import mkdtemp
-from shutil import rmtree, copytree
+from shutil import rmtree, copytree, copy
 from pathlib import Path
+import logging
 
+logger = logging.getLogger(__file__)
+
+from jinja2 import Template
 
 from pyfmu.builder import export_project, PyfmuProject, PyfmuArchive, compress, rm
+from . import ExampleArchive
 
 
 _ssp_examples = ["SumOfSines"]
@@ -17,10 +22,41 @@ _correct_example = {
     "LivePlotting",
     "FmiTypes",
     "BicycleDynamic",
-    "BicycleDriver"
+    "BicycleDriver",
 }
 
 _incorrect_examples = set()
+
+
+def get_coe_configuration(coe_example_name: str) -> Path:
+    """Get the coe
+
+    Args:
+        coe_example_name (str): [description]
+
+    Returns:
+        Path: [description]
+    """
+
+    def get_coe_config_path(coe_example_name: str):
+        return Path(__file__).parent.parent / "cosim" / f"{coe_example_name}.j2"
+
+    if coe_example_name == "BicycleDynamicAndDriver":
+
+        with open(get_coe_config_path(coe_example_name), "r") as f:
+            s = f.read()
+            template = Template(s)
+
+            r = template.render(
+                {
+                    "class_name": slave_class,
+                    "description": "",
+                    "model_name": slave_class,
+                    "author": "",
+                }
+            )
+
+    p = Path(__file__).parent.parent
 
 
 def get_example_directory() -> Path:
@@ -206,3 +242,70 @@ class ExampleSystem:
 
     def __exit__(self, exception_type, exception_value, traceback):
         rm(self._system_path)
+
+
+class MaestroExample:
+    def __init__(self, example_name: str):
+        """Create an co-simulation scenario that can be executed by mastro.
+        
+        The following steps are performed:
+        1. the relevant FMUs are exported from the examples/projects folder to a temporary directory
+        2. a template of a coe.json file is filled out with the paths to these FMUs
+        3. the path to the generated coe.json file is returned
+
+        Args:
+            example_name (str): name of the example
+
+        Raises:
+            ValueError: raised if example does not exist
+        """
+
+        self.tmpdir = Path(mkdtemp())
+
+        logger.info(f"Created temporary directory {self.tmpdir}")
+
+        fmu_paths = {}
+
+        if example_name == "BicycleDynamicAndDriver":
+            dynamic_in = get_example_project("BicycleDynamic")
+            driver_in = get_example_project("BicycleDriver")
+            dynamic_out = self.tmpdir / dynamic_in.name
+            driver_out = self.tmpdir / driver_in.name
+
+            export_project(
+                project_or_path=driver_in, output_path=driver_out, compress=False
+            )
+            export_project(
+                project_or_path=dynamic_in, output_path=dynamic_out, compress=False
+            )
+
+            fmu_paths = {
+                "driver_path": driver_out.as_uri(),
+                "dynamic_path": dynamic_out.as_uri(),
+            }
+
+        else:
+            raise ValueError(f"Unable to locate example: '{example_name}'")
+
+        coe_template_in = Path(__file__).parent.parent / "cosim" / f"{example_name}.j2"
+        coe_template_out = self.tmpdir / "coe.json"
+
+        logger.info(f"copying template: {coe_template_in} to {coe_template_out}")
+
+        copy(coe_template_in, coe_template_out)
+
+        logger.info(f"copy successfull, filling out template")
+
+        with open(coe_template_out, "r") as f:
+            s = f.read()
+            template = Template(s)
+
+            r = template.render(fmu_paths)
+
+            logger.info(f"template rendered\n: {r}")
+
+    def __enter__(self) -> Path:
+        return self.tmpdir / "coe.json"
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        rm(self.tmpdir)
