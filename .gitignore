@@ -133,3 +133,4 @@ _deps
 *.vcxproj
 *.filters
 *.VC.db
+/.idea
