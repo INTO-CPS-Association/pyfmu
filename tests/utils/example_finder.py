@@ -9,7 +9,6 @@ logger = logging.getLogger(__file__)
 from jinja2 import Template
 
 from pyfmu.builder import export_project, PyfmuProject, PyfmuArchive, compress, rm
-from . import ExampleArchive
 
 
 _ssp_examples = ["SumOfSines"]
