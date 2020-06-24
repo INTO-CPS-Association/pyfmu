@@ -9,24 +9,27 @@ from .utils import MaestroExample
 
 def execute_cosimulation(example_name: str, start_time: float, stop_time: float) -> int:
 
-    jar_path = Resources.get().VDMCheck2_jar
+    jar_path = str(Resources.get().VDMCheck2_jar.absolute())
 
     with MaestroExample(example_name) as config:
-        results = subprocess.run(
-            [
-                "java",
-                "-jar",
-                jar_path,
-                "-v",
-                "--configuration",
-                str(config),
-                "--onshot",
-                "--starttime",
-                str(start_time),
-                "--endtime",
-                str(stop_time),
-            ]
-        )
+
+        args = [
+            "java",
+            "-jar",
+            jar_path,
+            "-v",
+            "--configuration",
+            str(config),
+            "--oneshot",
+            "--starttime",
+            str(start_time),
+            "--endtime",
+            str(stop_time),
+        ]
+
+        print(args)
+
+        results = subprocess.run(args)
 
     return results.returncode
 
