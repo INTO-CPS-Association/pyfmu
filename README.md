@@ -1,6 +1,7 @@
 ![Build and update wrappers](https://github.com/INTO-CPS-Association/pyfmu/workflows/Build%20and%20update%20wrappers/badge.svg?branch=master)
 [![PyPI version](https://badge.fury.io/py/pyfmu.svg)](https://badge.fury.io/py/pyfmu)
 [![Documentation Status](https://readthedocs.org/projects/pyfmu/badge/?version=latest)](https://pyfmu.readthedocs.io/en/latest/?badge=latest)
+[![Gitter](https://badges.gitter.im/INTO-CPS/PyFMU.svg)](https://gitter.im/INTO-CPS/PyFMU?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # PyFMU
 
