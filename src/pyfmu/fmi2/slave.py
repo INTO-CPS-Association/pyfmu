@@ -47,7 +47,7 @@ class Fmi2Slave:
         self.guid = str(uuid4())
 
         if logger is None:
-            logger = FMI2PrintLogger()
+            logger = FMI2PrintLogger(model_name=model_name)
 
         self._variables: List[Fmi2ScalarVariable] = []
         self._log_categories: List[str] = []
@@ -73,7 +73,7 @@ class Fmi2Slave:
             self.register_log_category(
                 "logStatusPending", lambda m, c, s: s == Fmi2Status.pending
             )
-            self.register_log_category("logAll", lambda m, c, s: c == True)
+            self.register_log_category("logAll", lambda m, c, s: True)
 
     def register_input(
         self,
@@ -208,6 +208,16 @@ class Fmi2Slave:
     def set_debug_logging(
         self, categories: list[str], logging_on: bool
     ) -> Fmi2Status_T:
+        """Set the active categories for which messages are passed to the evironment.          
+
+        Note the special case of categories == [] and logging_on = True, by the FMI spec
+        this is equivalent to logging all categories see 2.1.5 p.21
+
+        Args:
+            logging_on: flag used to indicate whether the specified categories should be enabled or not
+            categories: list of categories to enable/disable
+        """
+        self._logger.set_debug_logging(logging_on, categories)
         return Fmi2Status.ok
 
     def enter_initialization_mode(self) -> Fmi2Status_T:

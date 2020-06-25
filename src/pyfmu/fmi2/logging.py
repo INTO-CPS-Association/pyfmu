@@ -303,6 +303,7 @@ class Fmi2LoggerBase(ABC):
     def __init__(self,):
         self._category_to_predicates = {}
         self._active_categories = set()
+        self._log_all = False
 
     def ok(
         self, msg: str, category: str = None, exc_info=False, stack_info=False,
@@ -405,17 +406,18 @@ class Fmi2LoggerBase(ABC):
         stack_level: float = None,
     ):
 
-        possible_predicates = [
-            p
-            for c, p in self._category_to_predicates.items()
-            if c in self._active_categories
-        ]
+        if not self._log_all:
+            possible_predicates = [
+                p
+                for c, p in self._category_to_predicates.items()
+                if c in self._active_categories
+            ]
 
-        for p in possible_predicates:
-            if p(msg, category, status):
-                break
-        else:
-            return
+            for p in possible_predicates:
+                if p(msg, category, status):
+                    break
+            else:
+                return
 
         if exc_info:
             msg = f"{msg}\n{format_exc()}"
@@ -453,8 +455,6 @@ class Fmi2LoggerBase(ABC):
     def register_new_category(
         self, category: str, predicate: Callable[[str, str, Fmi2Status_T], bool]
     ):
-        if category in self._category_to_predicates:
-            i = 10
         assert category not in self._category_to_predicates
         self._category_to_predicates[category] = predicate
 
@@ -474,8 +474,9 @@ class FMI2CallbackLogger(Fmi2LoggerBase):
 
 
 class FMI2PrintLogger(Fmi2LoggerBase):
-    def __init__(self):
+    def __init__(self, model_name: str):
         super().__init__()
+        self._model_name = model_name
 
     def do_log(self, status, msg, category):
-        print(f"{status}{category}{msg}")
+        print(f"{status}:{self._model_name}:{category}:{msg}")
