@@ -9,7 +9,7 @@ from .utils import MaestroExample
 
 def execute_cosimulation(example_name: str, start_time: float, stop_time: float) -> int:
 
-    jar_path = str(Resources.get().VDMCheck2_jar.absolute())
+    jar_path = str(Resources.get().maestro_v1.absolute())
 
     with MaestroExample(example_name) as config:
 
