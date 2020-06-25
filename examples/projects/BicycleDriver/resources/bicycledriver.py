@@ -3,26 +3,29 @@ import numpy as np
 
 
 class BicycleDriver(Fmi2Slave):
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, visible=False, logging_on=False, *args, **kwargs):
         super().__init__(
-            model_name="BicycleDriver",
-            author="",
-            description="",
-            *args,
-            **kwargs
-            )
+            model_name="BicycleDriver", author="", description="", *args, **kwargs
+        )
 
         self.reset()
 
         # Inputs, outputs and parameters may be defined using the 'register_{input,output,parameter}' functions
         # By default these are bound to attributes of the instance.
-        self.register_output("deltaf", "real", "continuous", "calculated",
-                             description="steering angle at the front wheel")
-        self.register_output("Caf", "real", "continuous", "calculated",
-                             description="Slippery")
+        self.register_output(
+            "deltaf",
+            "real",
+            "continuous",
+            "calculated",
+            description="steering angle at the front wheel",
+        )
+        self.register_output(
+            "Caf", "real", "continuous", "calculated", description="Slippery"
+        )
 
-    def do_step(self, current_time: float, step_size: float, no_prior_step : bool) -> Fmi2Status_T:
+    def do_step(
+        self, current_time: float, step_size: float, no_prior_step: bool
+    ) -> Fmi2Status_T:
         if current_time > 2.0:
             self.deltaf = 0.2
         elif current_time > 4.0:
@@ -41,7 +44,7 @@ class BicycleDriver(Fmi2Slave):
         return Fmi2Status.ok
 
     def exit_initialization_mode(self) -> Fmi2Status_T:
-        return Fmi2Status.ok 
+        return Fmi2Status.ok
 
     def setup_experiment(
         self, start_time: float, stop_time: float = None, tolerance: float = None

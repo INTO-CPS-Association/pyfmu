@@ -2,7 +2,7 @@ from pyfmu.fmi2 import Fmi2Slave, Fmi2Status
 
 
 class FmiTypes(Fmi2Slave):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, visible=False, logging_on=False, *args, **kwargs):
 
         author = "Christian Møldrup Legaard"
         modelName = "FmiTypes"

@@ -8,6 +8,7 @@ import json
 import logging
 from tempfile import TemporaryDirectory
 from shutil import copytree
+import sys
 
 
 from jinja2 import Template

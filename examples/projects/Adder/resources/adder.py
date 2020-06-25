@@ -3,7 +3,7 @@ import numpy as np
 
 
 class Adder(Fmi2Slave):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, visible=False, logging_on=False, *args, **kwargs):
 
         super().__init__(
             model_name="Adder",

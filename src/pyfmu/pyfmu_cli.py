@@ -1,6 +1,9 @@
 import argparse
 import sys
 from os.path import join, dirname, realpath, normpath
+import logging
+
+logger = logging.getLogger(__file__)
 
 from pyfmu.builder.generate import generate_project
 from pyfmu.builder.export import export_project
@@ -8,44 +11,36 @@ from pyfmu.builder.validate import validate_fmu
 
 
 def config_generate_subprogram(subparsers: argparse.ArgumentParser) -> None:
-    parser_gen = subparsers.add_parser(
-        "generate",
-        help="Generate new Python projects from scratch or based on existing resources such as Model Descriptions and reference FMUs.",
-    )
-
-    file_project_group = parser_gen.add_mutually_exclusive_group(required=True)
-
-    file_project_group.add_argument(
-        "--path", "-p", type=str, help="Path to the project that will be generated"
-    )
-
-    file_project_group.add_argument(
-        "--file",
-        "-f",
-        type=str,
-        help="Path to either a model description file or a FMU archive",
-    )
+    parser_gen = subparsers.add_parser("generate", help="Generate a new project.",)
 
     parser_gen.add_argument(
         "--name",
         "-n",
         type=str,
         required=False,
-        help="Name of the project to be generated. If not specified this information will be extracted from either the path or a model description",
+        help="Name of the project to be generated.",
+    )
+
+    parser_gen.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        help="Path to which the generated project is written.",
     )
 
 
 def config_export_subprogram(subparsers: argparse.ArgumentParser) -> None:
-    parser_export = subparsers.add_parser(
-        "export", help="Export Python projects as FMUs",
-    )
+    parser_export = subparsers.add_parser("export", help="Export project as FMU.",)
 
     parser_export.add_argument(
         "--project", "-p", required=True, help="path to Python project"
     )
 
     parser_export.add_argument(
-        "--output", "-o", required=True, help="output path of the exported archive"
+        "--output",
+        "-o",
+        required=True,
+        help="Path to which the exported archive is written",
     )
 
     parser_export.add_argument(
@@ -55,30 +50,11 @@ def config_export_subprogram(subparsers: argparse.ArgumentParser) -> None:
         help="allow overwriting of existing files",
     )
 
-    group_bundle = parser_export.add_argument_group("bundle")
-
-    help_bundle_interpreter = """Bundle a Python Interpreter in the FMU. 
-    This will allow standalone execution on platforms where a suitable Python interpreter is not available, at the cost of an increase in archive size.
-    Note that a interpreter is bundled for each supported platform.
-    """
-    group_bundle.add_argument(
-        "-bi", type=bool, default=False, help=help_bundle_interpreter
-    )
-
-    help_bundle_libs = """Bundle current Python environment Libraries in the FMU. 
-    """
-    group_bundle.add_argument("-bl", type=bool, default=True, help=help_bundle_libs)
-
-    help_prune_libs = """ Decrease size of the included libraries by only including those used by the FMU.
-    Note that this relies on analyzing static analysis of the Python files and may fail to discover all dependencies.
-    """
-    group_bundle.add_argument("-bp", type=bool, default=False, help=help_prune_libs)
-
 
 def config_validate_subprogram(subparsers: argparse.ArgumentParser) -> None:
 
     parser_validate = subparsers.add_parser(
-        "validate", help="Static and functional verification of fmu archives"
+        "validate", help="Static and functional verification of FMU."
     )
     parser_validate.add_argument(
         "fmu",
@@ -94,7 +70,7 @@ def config_validate_subprogram(subparsers: argparse.ArgumentParser) -> None:
 
 def handle_generate(args):
 
-    from os.path import join, curdir, dirname, basename, normpath
+    from os.path import join, curdir, basename, normpath
 
     if args.file is not None:
         raise Exception("Currently generation from file is not supported")
@@ -126,50 +102,48 @@ def handle_validate(args):
 
 def main():
 
-    description_text = """Utility program to facility the development of Functional Mock-up Units (FMUs) using Python code.
-    """
+    try:
 
-    example_text = """examples:
+        description_text = """Create Python based Functional Mock-up Units (FMUs).
+The program provides several commands, each related to a specific part of the workflow.
+Use the '--help' argument to see the uses of each command.
+        """
 
-these are common commands for various situations:
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description=description_text,
+        )
 
-generating a new Python project from scratch
-    python py2fmu generate -n engine
+        # general arguments
+        parser.add_argument(
+            "--log-level",
+            dest="log_level",
+            default="info",
+            choices=["trace", "debug", "info", "warning", "error", "critical"],
+            help="defines the verbosity of the output",
+        )
 
-generating a new Python project based on a model description file or reference FMU.
-    python py2fmu generate -f modelDescription.xml
-    python py2fmu generate -f engine.fmu
+        # subcommands
+        subparsers = parser.add_subparsers(dest="subprogram", required=True)
 
-exporting a Python project as an FMU
-    python py2fmu export -p engine
-    python py2fmu export -p engine -c MyEngineClass
+        config_generate_subprogram(subparsers)
+        config_export_subprogram(subparsers)
+        config_validate_subprogram(subparsers)
 
-validating an fmu
-    python py2fmu validate engine.fmu --fmpy --vdmcheck --fmicheck
+        args = parser.parse_args()
 
-re-configuring an existing project
-    python py2fmu configure -p engine --bundle-interpreter
-    """
+        logging.basicConfig(level=args.log_level.upper())
 
-    parser = argparse.ArgumentParser(
-        epilog=example_text,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=description_text,
-    )
+        if args.subprogram == "generate":
+            handle_generate(args)
+        elif args.subprogram == "export":
+            handle_export(args)
+        elif args.subprogram == "validate":
+            handle_validate(args)
+        else:
+            raise Exception("Not implemented")
 
-    subparsers = parser.add_subparsers(dest="subprogram", required=True)
+    except Exception:
+        logger.critical("Program failed due to an unhandled exception", exc_info=True)
+        exit(1)
 
-    config_generate_subprogram(subparsers)
-    config_export_subprogram(subparsers)
-    config_validate_subprogram(subparsers)
-
-    args = parser.parse_args()
-
-    if args.subprogram == "generate":
-        handle_generate(args)
-    elif args.subprogram == "export":
-        handle_export(args)
-    elif args.subprogram == "validate":
-        handle_validate(args)
-    else:
-        raise Exception("Not implemented")

@@ -10,15 +10,10 @@ import numpy as np
 
 
 class BicycleDynamic(Fmi2Slave):
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, visible=False, logging_on=False, *args, **kwargs):
         super().__init__(
-            model_name="BicycleDynamic",
-            author="",
-            description="",
-            *args,
-            **kwargs
-            )
+            model_name="BicycleDynamic", author="", description="", *args, **kwargs
+        )
 
         self.log_ok("Instantiating bicycle model")
         self.bicycle_model = BicycleDynamicModel()
@@ -27,8 +22,15 @@ class BicycleDynamic(Fmi2Slave):
 
         # Inputs, outputs and parameters may be defined using the 'register_{input,output,parameter}' functions
         # By default these are bound to attributes of the instance.
-        self.register_input("Caf", "real", "continuous", description="Front Tire cornering stiffness")
-        self.register_input("deltaf", "real", "continuous", description="steering angle at the front wheel")
+        self.register_input(
+            "Caf", "real", "continuous", description="Front Tire cornering stiffness"
+        )
+        self.register_input(
+            "deltaf",
+            "real",
+            "continuous",
+            description="steering angle at the front wheel",
+        )
 
         self.register_output(
             "X",
@@ -44,10 +46,10 @@ class BicycleDynamic(Fmi2Slave):
             description="y coordinate in the reference frame",
         )
 
+    def do_step(
+        self, current_time: float, step_size: float, no_prior_step: bool
+    ) -> Fmi2Status_T:
 
-
-
-    def do_step(self, current_time: float, step_size: float, no_prior_step : bool) -> Fmi2Status_T:
         self.log_ok("Setting inputs.")
         self.bicycle_model.Caf = lambda: self.Caf
         self.bicycle_model.deltaf = lambda: self.deltaf
@@ -64,9 +66,14 @@ class BicycleDynamic(Fmi2Slave):
 
         self.log_ok("Invoking internal solver.")
         stop_time = current_time + step_size
-        sol = solve_ivp(f, (current_time, stop_time), x,
-                        method=RK45, max_step=step_size,
-                        t_eval=[stop_time])
+        sol = solve_ivp(
+            f,
+            (current_time, stop_time),
+            x,
+            method=RK45,
+            max_step=step_size,
+            t_eval=[stop_time],
+        )
         self.log_ok(f"Solution success: {sol.success}")
         assert sol.success
         assert sol.y.shape == (n_states, 1), (sol.y, sol.y.shape)
@@ -91,7 +98,7 @@ class BicycleDynamic(Fmi2Slave):
         return Fmi2Status.ok
 
     def exit_initialization_mode(self) -> Fmi2Status_T:
-        return Fmi2Status.ok 
+        return Fmi2Status.ok
 
     def setup_experiment(
         self, start_time: float, stop_time: float = None, tolerance: float = None
