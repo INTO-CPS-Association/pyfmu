@@ -6,6 +6,9 @@ from pyfmu.resources import Resources
 
 from .utils import MaestroExample
 
+# maestro status code for succesfull run seems to be 1
+_maestroV1_OK = 1
+
 
 def execute_cosimulation(example_name: str, start_time: float, stop_time: float) -> int:
 
@@ -36,10 +39,10 @@ def execute_cosimulation(example_name: str, start_time: float, stop_time: float)
 
 def test_BicycleDynamicAndDriver(caplog):
     caplog.set_level(logging.INFO)
-    assert execute_cosimulation("BicycleDynamicAndDriver", 0.0, 10.0) == 0
+    assert execute_cosimulation("BicycleDynamicAndDriver", 0.0, 10.0) == _maestroV1_OK
 
 
 def test_SumOfSines(caplog):
     caplog.set_level(logging.INFO)
-    assert execute_cosimulation("SumOfSines", 0.0, 10.0) == 0
+    assert execute_cosimulation("SumOfSines", 0.0, 10.0) == _maestroV1_OK
 
