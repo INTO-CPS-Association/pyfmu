@@ -180,7 +180,6 @@ class Fmi2SlaveContext:
         self._loggers: Dict[SlaveHandle, FMI2CallbackLogger] = {}
         self._log_calls_to_slave = False
         self._awaiting_instantiation_handles = set()
-        logging.basicConfig(level=logging.DEBUG)
 
         if "win" in sys.platform:
             mp.set_executable(os.path.join(sys.exec_prefix, "pythonw.exe"))
