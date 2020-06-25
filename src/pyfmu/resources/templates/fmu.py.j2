@@ -1,42 +1,73 @@
-from pyfmu.fmi2 import Fmi2Slave, Fmi2Causality, Fmi2Status, Fmi2Variability, Fmi2DataTypes, Fmi2Initial
+from pyfmu.fmi2 import Fmi2Slave, Fmi2Status, Fmi2Status_T
+import numpy as np
+
 
 class {{class_name}}(Fmi2Slave):
 
     def __init__(self, *args, **kwargs):
         
-        author = "{{author}}"
-        modelName = "{{model_name}}"
-        description = "{{description}}"    
+  
         
         super().__init__(
-            modelName=modelName,
-            author=author,
-            description=description,
+            model_name="{{model_name}}",
+            author="{{author}}",
+            description="{{description}}",
             *args,
             **kwargs
             )
 
-        # Inputs, outputs and parameters may be defined using the 'register_variable' function
-        self.register_variable('a','real','input',start=0.0, description='first addend')
-        self.register_variable('b','real','input',start=0.0, description='second addend')
-        self.register_variable('s','real','output',description='sum of the two numbers')
+        self.reset()
 
+        # Inputs, outputs and parameters may be defined using the 'register_{input,output,parameter}' functions
+        # By default these are bound to attributes of the instance.
+        self.register_input("a", "real", "continuous", description="first input")
+        self.register_input("b", "real", "continuous", description="second input")
+        self.register_output("s", "real", "continuous", "calculated", description="sum of the two inputs")
 
-    def do_step(self, current_time: float, step_size: float, no_prior_step : bool):
-        self.s = self.a + self.b
+    def do_step(self, current_time: float, step_size: float, no_prior_step : bool) -> Fmi2Status_T:
         return Fmi2Status.ok
 
-    def enter_initialization_mode(self):
-        self.s = self.a + self.b 
-        # No explicit return implies OK
+    def reset(self) -> Fmi2Status_T:
+        self.a = 0.0
+        self.b = 0.0
+        return Fmi2Status.ok
+
+    def enter_initialization_mode(self) -> Fmi2Status_T:
+        return Fmi2Status.ok
+
+    def exit_initialization_mode(self) -> Fmi2Status_T:
+        return Fmi2Status.ok 
+
+    def setup_experiment(
+        self, start_time: float, stop_time: float = None, tolerance: float = None
+    ) -> Fmi2Status_T:
+        return Fmi2Status.ok
+    
+    @property
+    def s(self) -> float:
+        return self.a + self.b
 
 # Writing a small test program to test slave saves a lot of time.
 # Proper unit testing frameworks may be used as well.
 if __name__ == "__main__":
+
     fmu = {{class_name}}()
-    fmu._setup_experiment(0.0)
-    fmu._enter_initialization()
-    fmu._exit_initialization()
-    fmu._do_step(0.0,1.0,False)
+
+    t_start = 0
+    t_end = 1
+    n_steps = 100
+
+    ts, t_step = np.linspace(start=t_start, stop=t_end, num=n_steps, retstep=True)
+
+    assert fmu.setup_experiment(t_start, t_end) == Fmi2Status.ok
+    assert fmu.enter_initialization_mode() == Fmi2Status.ok
+    assert fmu.exit_initialization_mode() == Fmi2Status.ok
+
+    for t in ts:
+        assert fmu.do_step(t, t + t_step, False) == Fmi2Status.ok
+        assert fmu.s == fmu.a + fmu.b
+
+    assert fmu.terminate() == Fmi2Status.ok
+    assert fmu.reset() == Fmi2Status.ok
 
 

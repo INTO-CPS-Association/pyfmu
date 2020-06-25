@@ -1,98 +1,132 @@
-from zipfile import ZipFile, ZIP_DEFLATED
-from shutil import make_archive, copytree, move, rmtree
-from tempfile import mkdtemp
-from pathlib import Path
+"""Contains utility functions used throughout the library"""
+
 import os
-from os.path import dirname, isdir, isfile, join, normpath
-import subprocess
 import platform
+import subprocess
+from typing import Optional
+from os.path import dirname, isdir, join
+from pathlib import Path
+from shutil import make_archive, unpack_archive, move, rmtree
+from tempfile import mkdtemp
+from zipfile import is_zipfile, ZipFile, ZIP_DEFLATED
+
+from pyfmu.types import AnyPath
 
 
 def zipdir(inDir: str, outDir: str):
 
-    if(not isdir(inDir)):
+    if not isdir(inDir):
         raise ValueError("Input path does not correspond to a directory!")
 
-    with ZipFile(outDir, 'w', ZIP_DEFLATED) as zf:
+    with ZipFile(outDir, "w", ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk(inDir):
             for file in files:
-                p = os.path.relpath(os.path.join(root, file),
-                                    os.path.join(inDir, '..'))
+                p = os.path.relpath(os.path.join(root, file), os.path.join(inDir, ".."))
                 zf.write(p)
 
 
-def rm(path):
+def rm(path: AnyPath):
     """Delete a file or a directory
 
     Arguments:
         p {Path} -- path to a directory or a file
     """
+    path = Path(path)
 
-    if(platform.system() == "Windows"):
-        print("TODO FIX RM ON WINDOWS!")
-        return
-
-    try:
-        path = Path(path)
-
-        if(path.is_dir()):
-            rmtree(path)
-        elif(path.is_file()):
-            path.unlink()
-        else:
-            raise ValueError('path neither specifies a file nor a directory.')
-
-    except Exception as e:
-        raise RuntimeError(
-            f'Unable to remove file/directory: {path} and error was raised: {e}')
+    if path.is_dir():
+        rmtree(path)
+        assert not path.is_dir()
+    elif path.is_file() or path.is_symlink():
+        path.unlink()
+        assert not path.is_file()
+    else:
+        raise ValueError("path neither specifies a file, symlink nor a directory.")
 
 
 def compress(
-        in_dir,
-        out_dir=None,
-        fmt='zip',
-        extension: str = None):
-    """Compresses
+    input_directory: AnyPath,
+    output_directory: AnyPath = None,
+    format="zip",
+    extension: str = None,
+) -> Path:
+    """Compress files within a directory to the specified output directory.
+
+    Examples:
+
+     >>> compress("mydir") # mydir.zip
+     >>> compress("mydir","archive") # archive.zip
+     >>> compress("mydir","archive.zip") # archive.zip.zip
+     >>> compress("mydir","myfmu",extension="fmu") # myfmu.fmu
 
     Arguments:
-        in_dir {[type]} -- the directory to compress
+        input_directory {AnyPath} -- directory containing files to compress
 
     Keyword Arguments:
-        out_dir {[type]} -- output archive (default: {None})
+        output_directory {AnyPath} -- output directory. (default: {None})
+        format {str} -- compression type used to create the archive (default: {"zip"})
+        extension {str} -- if specified replace the default extension (default: {None})
+
+    Returns:
+        Path -- path to the archive
     """
 
     try:
+        input_directory = Path(input_directory)
 
-        root_dir = in_dir
-        base_dir = in_dir.name
-        base_name = Path(mkdtemp()) / base_dir
+        if not input_directory.is_absolute():
+            input_directory = Path.cwd() / input_directory
 
-        name_of_archive = (base_name.parent).resolve() / f'{base_dir}.{fmt}'
+        if not input_directory.is_dir():
+            raise ValueError(
+                f"input directory: {input_directory} does not appear to be a directory"
+            )
 
-        assert(not name_of_archive.exists())
-        make_archive(
-            base_name=base_name,
-            format=fmt,
-            root_dir=root_dir
+        if output_directory is None:
+            output_directory = input_directory
+        else:
+            output_directory = Path(output_directory)
+
+        root_dir = str(input_directory)
+        base_name = str(output_directory)
+
+        archive_path = Path(
+            make_archive(base_name=base_name, format=format, root_dir=root_dir)
         )
-        assert(name_of_archive.exists())
+        assert archive_path.is_file()
 
-        if(extension is not None):
-            renamed_name = name_of_archive.name.split('.')[0] + '.' + extension
-            renamed_archive = name_of_archive.parent / renamed_name
+        if extension is not None:
+            renamed_name = f"{archive_path.stem}.{extension}"
+            renamed_archive = archive_path.parent / renamed_name
 
-            assert(not renamed_archive.exists())
-            assert(name_of_archive.exists())
-            move(name_of_archive, renamed_archive)
-            assert(not name_of_archive.exists())
-            assert(renamed_archive.exists())
+            assert not renamed_archive.exists()
+            move(str(archive_path), renamed_archive)
+            assert not archive_path.is_file()
+            assert renamed_archive.exists()
 
             return renamed_archive
 
+        return archive_path
+
     except Exception as e:
         raise Exception(
-            f'Unable to compress the archive, an exception was thrown : {e}')
+            f"Unable to compress the archive, an exception was thrown : {e}"
+        )
         raise e
+
+
+def decompress(
+    input_archive: AnyPath, output_directory: AnyPath, format: Optional[str] = None,
+) -> None:
+    """Extract archive to specified directory
+
+    Arguments:
+        input_archive {AnyPath} -- archive to extract
+        output_directory {AnyPath} -- directory into which the files are extracted
+
+    Keyword Arguments:
+        format {str} -- specifies the decompression format. If unspecified infer from archive extension (default: {None})
+    """
+    unpack_archive(str(input_archive), str(output_directory), format=format)
 
 
 class cd:
@@ -109,14 +143,14 @@ class cd:
         os.chdir(self.savedPath)
 
 
-def has_java():
+def has_java() -> bool:
     """Checks if java is available in the system's path.
 
     Returns:
         [bool] -- true if java is available, otherwise false.
     """
     try:
-        subprocess.run(['java', '-v'])
+        subprocess.run(["java"], capture_output=True)
     except Exception:
         return False
 
@@ -130,16 +164,228 @@ def has_fmpy() -> bool:
         bool -- true if FMPy is available, otherwise false.
     """
     try:
-        import fmpy
-    except:
+        import fmpy  # noqa: F401
+    except Exception:
         return False
 
     return True
 
 
-if __name__ == "__main__":
+def system_identifier() -> str:
+    """Returns an identifier consisting of the platform and it architecture.
 
-    from os.path import join, dirname
+    Possible values are: win32, win64, linux32, linux64, darwin32, darwin64
+
+    Returns:
+        str -- hostsystem identifier
+    """
+    sys = platform.system()
+
+    # convert to FMI2 system name scheme
+    pySys_to_FmiSys = {"Windows": "win", "Linux": "linux", "Darwin": "darwin"}
+    sys = pySys_to_FmiSys[sys]
+
+    # arch will be either "32bit" or "64bit"
+    arch, _ = platform.architecture()
+
+    # stip bit part away
+    arch = arch[:2]
+
+    # merge parts to form: windows64, linux64
+    identifier = (sys + arch).lower()
+    return identifier
+
+
+def is_fmu_archive(path_to_archive: AnyPath) -> bool:
+    """Check if path points to FMU archive.
+
+    For example::
+
+     >>> is_fmu_archive("myfmu.fmu")
+     True
+     >>> is_fmu_archive("myfmu")
+     False
+     >>> is_fmu_archive("test.txt")
+     False
+
+    Note that this function only does superficial checks of the FMU
+    and does not guarantee the correctness of the FMU.
+
+    Arguments:
+        path_to_archive {AnyPath} -- path to a FMU archive
+
+    Returns:
+        bool -- true if the path refers to a FMU archive, false otherwise
+    """
+    path_to_archive = Path(path_to_archive)
+
+    if not is_zipfile(path_to_archive):
+        return False
+
+    td = Path(mkdtemp())
+
+    decompress(path_to_archive, td, format="zip")
+    is_archive = is_fmu_directory(td)
+    rm(td)
+
+    return is_archive
+
+
+def is_fmu_directory(path_to_directory: AnyPath) -> bool:
+    """Check if path points to extracted FMU.
+
+    For example::
+
+     >>> is_fmu_archive("myfmu.fmu")
+     False
+     >>> is_fmu_arcive("myfmu")
+     True
+     >>> is_fmu_archive("test.txt")
+     False
+
+    Note that this function only does superficial checks of the FMU
+    and does not guarantee the correctness of the FMU.
+
+    Arguments:
+        path_to_archive {AnyPath} -- path to a extracted FMU
+
+    Returns:
+        bool -- true if the path refers to a extracted FMU, false otherwise
+    """
+    path_to_directory: Path = Path(path_to_directory)
+    model_description_path = path_to_directory / "modelDescription.xml"
+    return model_description_path.is_file()
+
+
+class TemporaryFMUArchive:
+    def __init__(self, path_to_fmu: AnyPath):
+        """Creates a temporary FMU archive if the path points to an extracted FMU, otherwise
+        do nothing.
+
+        In case an archive is created it is automatically removed.
+
+        For example:
+
+         >>> with TemporaryFMUArchive("myfmu.fmu") as p: # do nothing
+         ...    pass
+         >>> with TemporaryFMUArchive("myfmu") as p: # compress as {tmpname}.fmu
+         ...    pass
+
+
+        Arguments:
+            path_to_fmu {AnyPath} -- [description]
+
+        Raises:
+            ValueError: [description]
+        """
+        self.should_cleanup = False
+        path_to_fmu = Path(path_to_fmu)
+
+        if is_fmu_archive(path_to_fmu):
+            self.path_to_fmu = path_to_fmu
+        elif is_fmu_directory(path_to_fmu):
+
+            td = Path(mkdtemp())
+            self.path_to_fmu = compress(path_to_fmu, td, extension="fmu")
+            self.should_cleanup = True
+        else:
+            raise ValueError(
+                "The specified path does not appear to be a FMU archive or FMU directory."
+            )
+
+    def __enter__(self) -> Path:
+        return self.path_to_fmu
+
+    def __exit__(self, type, value, traceback):
+        if self.should_cleanup:
+            assert is_fmu_archive(self.path_to_fmu)
+            rm(self.path_to_fmu)
+            assert not self.path_to_fmu.is_file()
+
+
+class DisplayablePath(object):
+    """Credits: abstrus
+    https://stackoverflow.com/questions/9727673/list-directory-tree-structure-in-python
+    """
+
+    display_filename_prefix_middle = "├──"
+    display_filename_prefix_last = "└──"
+    display_parent_prefix_middle = "    "
+    display_parent_prefix_last = "│   "
+
+    def __init__(self, path, parent_path, is_last):
+        self.path = Path(str(path))
+        self.parent = parent_path
+        self.is_last = is_last
+        if self.parent:
+            self.depth = self.parent.depth + 1
+        else:
+            self.depth = 0
+
+    @property
+    def displayname(self):
+        if self.path.is_dir():
+            return self.path.name + "/"
+        return self.path.name
+
+    @classmethod
+    def make_tree(cls, root, parent=None, is_last=False, criteria=None):
+        root = Path(str(root))
+        criteria = criteria or cls._default_criteria
+
+        displayable_root = cls(root, parent, is_last)
+        yield displayable_root
+
+        children = sorted(
+            list(path for path in root.iterdir() if criteria(path)),
+            key=lambda s: str(s).lower(),
+        )
+        count = 1
+        for path in children:
+            is_last = count == len(children)
+            if path.is_dir():
+                yield from cls.make_tree(
+                    path, parent=displayable_root, is_last=is_last, criteria=criteria
+                )
+            else:
+                yield cls(path, displayable_root, is_last)
+            count += 1
+
+    @classmethod
+    def _default_criteria(cls, path):
+        return True
+
+    @property
+    def displayname(self):
+        if self.path.is_dir():
+            return self.path.name + "/"
+        return self.path.name
+
+    def displayable(self):
+        if self.parent is None:
+            return self.displayname
+
+        _filename_prefix = (
+            self.display_filename_prefix_last
+            if self.is_last
+            else self.display_filename_prefix_middle
+        )
+
+        parts = ["{!s} {!s}".format(_filename_prefix, self.displayname)]
+
+        parent = self.parent
+        while parent and parent.parent is not None:
+            parts.append(
+                self.display_parent_prefix_middle
+                if parent.is_last
+                else self.display_parent_prefix_last
+            )
+            parent = parent.parent
+
+        return "".join(reversed(parts))
+
+
+if __name__ == "__main__":
 
     inPath = join(dirname(__file__), "test")
     outpath = join(dirname(__file__), "out.zip")

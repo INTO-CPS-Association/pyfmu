@@ -1,5 +1,4 @@
 # documentation
-
 docs/_build
 docs/autoapi
 
@@ -11,6 +10,12 @@ __pycache__/
 # C extensions
 *.so
 !pyfmu.so
+
+# maestroV1
+**/coe.log
+**/output.csv
+**/outputs.csv
+**/failed
 
 # Distribution / packaging
 .Python
@@ -133,3 +138,4 @@ _deps
 *.vcxproj
 *.filters
 *.VC.db
+/.idea
