@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Optional, Literal
+from typing import List, Tuple, Optional, Literal, Callable
 from uuid import uuid4
 from pyfmu.fmi2.exception import SlaveAttributeError
-from pyfmu.fmi2.logging import FMI2SlaveLogger
+from pyfmu.fmi2.logging import Fmi2LoggerBase, FMI2PrintLogger
 
 from pyfmu.fmi2.types import (
     Fmi2Status,
@@ -25,20 +25,18 @@ class Fmi2Slave:
         copyright: str = None,
         version: str = None,
         description: str = None,
-        logger: FMI2SlaveLogger = None,
+        logger: Fmi2LoggerBase = None,
+        register_standard_log_categories=True,
     ):
-        """Constructs a FMI2
+        """Constructs a new FMI2 slave
 
-        Arguments:
-            modelName {str} -- [description]
-
-        Keyword Arguments:
-            author {str} -- [description] (default: {""})
-            copyright {str} -- [description] (default: {""})
-            version {str} -- [description] (default: {""})
-            description {str} -- [description] (default: {""})
-            logging_add_standard_categories {bool} -- registers standard logging categories defined by the FMI2 specification (default: {True})
-            add_logging_override_param {bool} -- if true, add a boolean parameter to the FMU which allows it to log all, useful for FMPy (default: {True}).
+        Args:
+            model_name (str): [description]
+            author (str, optional): [description]. Defaults to None.
+            copyright (str, optional): [description]. Defaults to None.
+            version (str, optional): [description]. Defaults to None.
+            description (str, optional): [description]. Defaults to None.
+            logger (FMI2SlaveLogger, optional): [description]. Defaults to None.
         """
 
         self.author = author
@@ -48,12 +46,34 @@ class Fmi2Slave:
         self.license = license
         self.guid = str(uuid4())
 
+        if logger is None:
+            logger = FMI2PrintLogger()
+
         self._variables: List[Fmi2ScalarVariable] = []
         self._log_categories: List[str] = []
         self._version = version
         self._value_reference_counter = 0
         self._used_value_references = {}
         self._logger = logger
+
+        if register_standard_log_categories:
+
+            self.register_log_category(
+                "logStatusWarning", lambda m, c, s: c == Fmi2Status.warning
+            )
+            self.register_log_category(
+                "logStatusDiscard", lambda m, c, s: c == Fmi2Status.discard
+            )
+            self.register_log_category(
+                "logStatusError", lambda m, c, s: s == Fmi2Status.error
+            )
+            self.register_log_category(
+                "logStatusFatal", lambda m, c, s: s == Fmi2Status.fatal
+            )
+            self.register_log_category(
+                "logStatusPending", lambda m, c, s: s == Fmi2Status.pending
+            )
+            self.register_log_category("logAll", lambda m, c, s: c == True)
 
     def register_input(
         self,
@@ -151,8 +171,23 @@ class Fmi2Slave:
         )
         self._variables.append(v)
 
-    def register_log_category(self, name: str):
-        raise NotImplementedError()
+    def register_log_category(
+        self, name: str, predicate: Callable[[str, str, Fmi2Status_T], bool]
+    ):
+        """Register a new log category which may be used by the envrionment to filter log messages.
+
+        A predicate function is used to determine which messages match the specified category.
+        
+        Args:
+            name: identifier added to the model descriptions log categories.
+            predicate: function used to determine whether message belongs to this log category.
+        
+        Examples:
+
+            Filter based on category:
+            >>> self.register_log_category("gui", lambda message, catergory, status: catergory == "gui")
+        """
+        self._logger.register_new_category(name, predicate)
 
     def do_step(
         self, current_time: float, step_size: float, no_set_fmu_state_prior: bool
@@ -315,10 +350,7 @@ class Fmi2Slave:
         stack_level: float = None,
     ):
 
-        if self._logger is None:
-            return
-
-        self._logger._log(
+        self._logger.log(
             status=status,
             msg=msg,
             category=category,

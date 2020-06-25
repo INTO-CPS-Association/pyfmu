@@ -18,7 +18,7 @@ from pyfmu.fmi2.types import (
     Fmi2Value_T,
     Fmi2DataType_T,
 )
-from pyfmu.fmi2.logging import FMI2SlaveLogger
+from pyfmu.fmi2.logging import FMI2CallbackLogger
 from pyfmu.utils import file_uri_to_path
 
 
@@ -177,7 +177,7 @@ class Fmi2SlaveContext:
         self._slave_to_refs_to_types: Dict[
             SlaveHandle, Dict[int, Union[float, int, bool, str]]
         ] = {}
-        self._loggers: Dict[SlaveHandle, FMI2SlaveLogger] = {}
+        self._loggers: Dict[SlaveHandle, FMI2CallbackLogger] = {}
         self._log_calls_to_slave = False
         self._awaiting_instantiation_handles = set()
         logging.basicConfig(level=logging.DEBUG)
@@ -191,7 +191,7 @@ class Fmi2SlaveContext:
         fmu_type: Fmi2Type_T,
         guid: str,
         resources_uri: str,
-        logging_callback: Optional[Fmi2LoggingCallback],
+        logging_callback: Fmi2LoggingCallback,
         visible: bool,
         logging_on: bool,
     ) -> Optional[SlaveHandle]:
@@ -229,12 +229,10 @@ class Fmi2SlaveContext:
         self._awaiting_instantiation_handles.add(handle)
 
         assert handle not in self._slaves
+        assert logging_callback is not None
 
-        logger = FMI2SlaveLogger(
-            instance_name=instance_name,
-            slave_handle=handle,
-            callback=logging_callback,
-            log_stdout=False,
+        logger = FMI2CallbackLogger(
+            instance_name=instance_name, slave_handle=handle, callback=logging_callback,
         )
 
         logger.ok(

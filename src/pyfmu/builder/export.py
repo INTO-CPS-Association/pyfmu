@@ -234,26 +234,24 @@ def export_project(
         Extract model description by creating an instance of the main class
         https://docs.python.org/3/library/importlib.html?highlight=import_module#importing-a-source-file-directly
         """
-        try:
-            module = project.slave_script_path.stem
-            logger.debug(
-                f"Importing module {module} defined by {project.slave_script} which defines slave class {project.slave_class}"
-            )
-            sys.path.append(project.slave_script_path.parent.__fspath__())
-            spec = spec_from_file_location(module, project.slave_script_path)
-            module = module_from_spec(spec)
-            spec.loader.exec_module(
-                module
-            )  # TODO consider supressing if false positive.
-            sys.path.pop()  # TODO may mess up in case of exception
+        # try:
+        module = project.slave_script_path.stem
+        logger.debug(
+            f"Importing module {module} defined by {project.slave_script} which defines slave class {project.slave_class}"
+        )
+        sys.path.append(project.slave_script_path.parent.__fspath__())
+        spec = spec_from_file_location(module, project.slave_script_path)
+        module = module_from_spec(spec)
+        spec.loader.exec_module(module)  # TODO consider supressing if false positive.
+        sys.path.pop()  # TODO may mess up in case of exception
 
-            logger.debug("Module loaded, creating instance of slave")
-            slave = getattr(module, project.slave_class)()
+        logger.debug("Module loaded, creating instance of slave")
+        slave = getattr(module, project.slave_class)()
 
-        except Exception as e:
-            raise RuntimeError(
-                "Extracting model description from slave failed, an exception was raised during loading and instantiation of the slave"
-            ) from e
+        # except Exception as e:
+        #     raise RuntimeError(
+        #         "Extracting model description from slave failed, an exception was raised during loading and instantiation of the slave"
+        #     ) from e
 
         # extract model description
         archive_md_path = tmpdir / "modelDescription.xml"
