@@ -24,7 +24,7 @@ def fmi_logger(m):
 
 # validate every example with
 #_validate_with = ["fmpy", "fmucheck", "vdmcheck", "maestro_v1"]
-_validate_with = ["fmpy", "vdmcheck", "maestro_v1"]
+_validate_with = ["maestro_v1", "fmpy", "fmucheck"]
 
 
 def test_Adder():
