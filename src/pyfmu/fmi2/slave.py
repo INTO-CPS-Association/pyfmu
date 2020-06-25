@@ -50,7 +50,6 @@ class Fmi2Slave:
             logger = FMI2PrintLogger(model_name=model_name)
 
         self._variables: List[Fmi2ScalarVariable] = []
-        self._log_categories: List[str] = []
         self._version = version
         self._value_reference_counter = 0
         self._used_value_references = {}
@@ -210,8 +209,8 @@ class Fmi2Slave:
     ) -> Fmi2Status_T:
         """Set the active categories for which messages are passed to the evironment.          
 
-        Note the special case of categories == [] and logging_on = True, by the FMI spec
-        this is equivalent to logging all categories see 2.1.5 p.21
+        Note that a special case of "categories == [] and logging_on = True" is defined to have special significance.
+        This is equivalent to logging all debug messages irregardless of category, see 2.1.5 p.21.
 
         Args:
             logging_on: flag used to indicate whether the specified categories should be enabled or not
@@ -371,7 +370,9 @@ class Fmi2Slave:
 
     @property
     def log_categories(self) -> List[str]:
-        return self._log_categories
+        """List of available log categories.
+        """
+        return self._logger._category_to_predicates.keys()
 
     @property
     def variables(self) -> List[Fmi2ScalarVariable]:

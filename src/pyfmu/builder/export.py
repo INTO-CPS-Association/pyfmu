@@ -92,10 +92,10 @@ def extract_model_description(slave: Fmi2SlaveLike) -> bytes:
     cs.set("canHandleVariableCommunicationStepSize", "true")
 
     # 2.2.4 p.42) Log categories:
-    # cs = ET.SubElement(fmd, "LogCategories")
-    # for ac in slave.log_categories:
-    #     c = ET.SubElement(cs, "Category")
-    #     c.set("name", ac)
+    cs = ET.SubElement(fmd, "LogCategories")
+    for ac in slave.log_categories:
+        c = ET.SubElement(cs, "Category")
+        c.set("name", ac)
 
     # 2.2.7 p.47) ModelVariables
     mvs = ET.SubElement(fmd, "ModelVariables")
