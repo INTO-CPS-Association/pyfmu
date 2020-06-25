@@ -262,8 +262,9 @@ dependencies = [
 [[package]]
 name = "pyo3"
 version = "0.10.1"
-source = "git+https://github.com/davidhewitt/pyo3.git?branch=once-cell#885b428ec48f0c8b3a19f842e112d5d11074cd1a"
+source = "git+https://github.com/PyO3/pyo3.git#f757c99dac59d9c497c241277c9152e7d9456b53"
 dependencies = [
+ "ctor",
  "indoc",
  "inventory",
  "libc",
@@ -271,13 +272,12 @@ dependencies = [
  "paste",
  "pyo3cls",
  "unindent",
- "version_check",
 ]
 
 [[package]]
 name = "pyo3-derive-backend"
 version = "0.10.1"
-source = "git+https://github.com/davidhewitt/pyo3.git?branch=once-cell#885b428ec48f0c8b3a19f842e112d5d11074cd1a"
+source = "git+https://github.com/PyO3/pyo3.git#f757c99dac59d9c497c241277c9152e7d9456b53"
 dependencies = [
  "proc-macro2 1.0.18",
  "quote 1.0.6",
@@ -287,7 +287,7 @@ dependencies = [
 [[package]]
 name = "pyo3cls"
 version = "0.10.1"
-source = "git+https://github.com/davidhewitt/pyo3.git?branch=once-cell#885b428ec48f0c8b3a19f842e112d5d11074cd1a"
+source = "git+https://github.com/PyO3/pyo3.git#f757c99dac59d9c497c241277c9152e7d9456b53"
 dependencies = [
  "pyo3-derive-backend",
  "quote 1.0.6",
@@ -384,12 +384,6 @@ name = "unindent"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63f18aa3b0e35fed5a0048f029558b1518095ffe2a0a31fb87c93dece93a4993"
-
-[[package]]
-name = "version_check"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5a972e5669d67ba988ce3dc826706fb0a8b01471c088cb0b6110b805cc36aed"
 
 [[package]]
 name = "winapi"
