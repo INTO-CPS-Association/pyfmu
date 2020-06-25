@@ -267,7 +267,7 @@ class Fmi2SlaveContext:
             )
 
             # instantiate object
-            kwargs = {"logger": logger}
+            kwargs = {"logger": logger, "visible": visible, "logging_on": logging_on}
             instance: Fmi2SlaveLike = getattr(
                 importlib.import_module(slave_module), slave_class
             )(**kwargs)
