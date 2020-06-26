@@ -7,7 +7,7 @@ from thirdparty.BikeTrackingWithInput import BikeTrackingWithInput
 
 class BicycleTracking(Fmi2Slave):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, visible=False, logging_on=False, *args, **kwargs):
 
         super().__init__(
             model_name="BicycleTracking",
@@ -32,8 +32,8 @@ class BicycleTracking(Fmi2Slave):
 
         # Inputs, outputs and parameters may be defined using the 'register_{input,output,parameter}' functions
         # By default these are bound to attributes of the instance.
-        self.register_input("to_track_X", "real", "continuous", description="Position X of obejct to track.")
-        self.register_input("to_track_Y", "real", "continuous", description="Position Y of obejct to track.")
+        self.register_input("to_track_X", "real", "continuous", description="Position X of object to track.")
+        self.register_input("to_track_Y", "real", "continuous", description="Position Y of object to track.")
         self.register_input("deltaf", "real", "continuous", description="steering angle at the front wheel")
 
         self.register_output(

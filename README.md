@@ -1,6 +1,7 @@
 ![Build and update wrappers](https://github.com/INTO-CPS-Association/pyfmu/workflows/Build%20and%20update%20wrappers/badge.svg?branch=master)
 [![PyPI version](https://badge.fury.io/py/pyfmu.svg)](https://badge.fury.io/py/pyfmu)
 [![Documentation Status](https://readthedocs.org/projects/pyfmu/badge/?version=latest)](https://pyfmu.readthedocs.io/en/latest/?badge=latest)
+[![Gitter](https://badges.gitter.im/INTO-CPS/PyFMU.svg)](https://gitter.im/INTO-CPS/PyFMU?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 # PyFMU
 
@@ -199,9 +200,15 @@ See the tests/examples/projects folder.
 1. Clone this repo
 2. Install rust and cargo (e.g., via rustup)
    1. Make sure to satisfy all requirements described by the installer (e.g., on windows, get the visual studio with MSVC, Windows 10 SDK, C++/CLI Support, etc...)
-3. Open a terminal on the root of the repo (and make sure cargo is in the PATH), and run: `python build.py -ue --rust-tests --python-tests`
+3. Open a terminal on the root of the repo (and make sure cargo is in the PATH), and run: 
+```
+python build.py -ue --rust-tests --python-tests
+```
    1. This command will build pyfmu, export all examples, run all rust tests, and all python tests.
-4. (Optional) Install pyfmu locally: `pip install -e .[dev]`
+4. (Optional) Install pyfmu locally:
+```
+pip install -e .[dev]
+```
 
 ## Acknowledgements
 

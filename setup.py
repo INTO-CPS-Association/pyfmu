@@ -16,6 +16,7 @@ _extras_require = {
     "tests": [
         "numpy",
         "pandas",
+        "OOModellingPython",
         "pytest",
         "tox",
         "fmpy",
