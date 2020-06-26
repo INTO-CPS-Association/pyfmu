@@ -84,3 +84,22 @@ def test_BicycleDriver():
         res = validate_fmu(a.root, _validate_with)
         print(res.get_report())
         assert res.valid
+
+
+def test_default_example(tmpdir):
+
+    from pyfmu.builder import generate_project, export_project
+    from pathlib import Path
+
+    project_path = Path(tmpdir) / "MyFMU"
+    export_path = Path(tmpdir) / "MyFMU_Exported"
+
+    generate_project(output_path=project_path, slave_class="MyFMU")
+    export_project(
+        project_or_path=project_path, output_path=export_path, compress=False
+    )
+
+    res = validate_fmu(export_path, _validate_with)
+    print(res.get_report())
+    assert res.valid
+

@@ -4,7 +4,7 @@ import numpy as np
 
 class {{class_name}}(Fmi2Slave):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, visible=False, logging_on = False, *args, **kwargs):
         
   
         
@@ -17,7 +17,7 @@ class {{class_name}}(Fmi2Slave):
             )
 
         self.reset()
-
+   
         # Inputs, outputs and parameters may be defined using the 'register_{input,output,parameter}' functions
         # By default these are bound to attributes of the instance.
         self.register_input("a", "real", "continuous", description="first input")
