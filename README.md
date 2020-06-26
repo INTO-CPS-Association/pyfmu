@@ -200,9 +200,15 @@ See the tests/examples/projects folder.
 1. Clone this repo
 2. Install rust and cargo (e.g., via rustup)
    1. Make sure to satisfy all requirements described by the installer (e.g., on windows, get the visual studio with MSVC, Windows 10 SDK, C++/CLI Support, etc...)
-3. Open a terminal on the root of the repo (and make sure cargo is in the PATH), and run: `python build.py -ue --rust-tests --python-tests`
+3. Open a terminal on the root of the repo (and make sure cargo is in the PATH), and run: 
+```
+python build.py -ue --rust-tests --python-tests
+```
    1. This command will build pyfmu, export all examples, run all rust tests, and all python tests.
-4. (Optional) Install pyfmu locally: `pip install -e .[dev]`
+4. (Optional) Install pyfmu locally:
+```
+pip install -e .[dev]
+```
 
 ## Acknowledgements
 
