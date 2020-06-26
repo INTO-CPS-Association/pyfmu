@@ -103,6 +103,10 @@ class Fmi2Slave:
         initial: Literal["approx", "calculated", "exact"] = "calculated",
         description: str = None,
     ) -> None:
+        """Declares a new output of the model
+
+        This is added to the model description as a scalar variable with causality=output.
+        """
 
         self._register_variable(
             attr_name, data_type, "output", variability, initial, description

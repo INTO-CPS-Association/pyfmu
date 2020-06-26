@@ -72,10 +72,7 @@ def handle_generate(args):
 
     from os.path import join, curdir, basename, normpath
 
-    if args.file is not None:
-        raise Exception("Currently generation from file is not supported")
-
-    project_path = join(curdir, args.path)
+    project_path = join(curdir, args.output)
 
     main_class_name = (
         args.name if args.name is not None else basename(normpath(project_path))
