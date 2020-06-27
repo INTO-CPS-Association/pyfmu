@@ -26,7 +26,7 @@ jobs:
 
       - name: Build and Test
         run: |
-          python build.py -u --rust-tests --python-tests
+          python build.py -ue --rust-tests --python-tests
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
@@ -39,10 +39,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+
+      # pyo3 requires development headers on ubuntu
+      - uses: deadsnakes/action@v1.0.0
         with:
-          python-version: 3.8
+          python-version: 3.8-dev
+      - run: python --version --version && which python
+
+      - name: Set up Python 3.8
+        run: |
+          sudo apt install python3.8-dev
 
       - name: Install package
         run: |
@@ -50,7 +56,7 @@ jobs:
 
       - name: Build and Test
         run: |
-          python build.py -u --rust-tests --python-tests
+          python build.py -ue --rust-tests --python-tests
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
