@@ -24,9 +24,17 @@ jobs:
         run: |
           pip install -e.[dev]
 
-      - name: Build and Test
+      - name: Build wrapper and export examples
         run: |
-          python build.py -ue --rust-tests --python-tests
+          python build.py -ue
+
+      - name: Rust tests
+        run: | 
+          python build.py --rust-tests
+
+      - name: python tests
+        run: | 
+          python build.py --python-tests
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
@@ -54,9 +62,23 @@ jobs:
         run: |
           pip install -e.[dev]
 
-      - name: Build and Test
+      # some dependencies are missing for Ubuntu
+      # see "known issues" in readme.md 
+      - name: Missing dependencies
         run: |
-          python build.py -ue --rust-tests --python-tests
+          sudo apt-get install --reinstall libxcb-xinerama0
+
+      - name: Build wrapper and export examples
+        run: |
+          python build.py -ue
+
+      - name: Rust tests
+        run: | 
+          python build.py --rust-tests
+
+      - name: python tests
+        run: | 
+          python build.py --python-tests
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1

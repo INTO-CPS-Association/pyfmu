@@ -210,6 +210,28 @@ python build.py -ue --rust-tests --python-tests
 pip install -e .[dev]
 ```
 
+## Known Issues
+
+### Ubuntu and PyQt5
+The LiveLogging example uses pyqtgraph for drawing plots.
+On Ubuntu an export is missing resulting in the error:
+
+``` bash
+qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
+This application failed to start because no Qt platform plugin could be initialized. Reinstalling the application may fix this problem.
+
+Available platform plugins are: eglfs, linuxfb, minimal, minimalegl, offscreen, vnc, wayland-egl, wayland, wayland-xcomposite-egl, wayland-xcomposite-glx, webgl, xcb.
+```
+To solve the problem the following package can be installed:
+``` bash
+sudo apt-get install --reinstall libxcb-xinerama0
+```
+References:
+* [Qt Forum](https://forum.qt.io/topic/93247/qt-qpa-plugin-could-not-load-the-qt-platform-plugin-xcb-in-even-though-it-was-found/18)
+
+
+
 ## Acknowledgements
 
 - Lars Ivar Hatledal: For his implementation of PythonFMU which was the initial starting point for PyFMU.
+
