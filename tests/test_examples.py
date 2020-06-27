@@ -7,8 +7,14 @@ To test for compatability the following tools are applied:
 4. maestroV1: loads the fmu into maestroV1, NOTE: that it does NOT perform a simulation
 """
 
-from pyfmu.builder import validate_fmu
+from pathlib import Path
+import sys
+
+from pyfmu.builder import export_project, generate_project, validate_fmu
+
 from .utils import ExampleArchive
+
+import pytest
 
 
 def log_callback(e, i, s, c, m):
@@ -35,6 +41,7 @@ def test_Adder():
         assert res.valid
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="see issue #49")
 def test_BicycleKinematic():
     with ExampleArchive("BicycleKinematic") as a:
 
@@ -72,6 +79,7 @@ def test_SineGenerator():
         assert res.valid
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="see issue #49")
 def test_BicycleDynamic():
     with ExampleArchive("BicycleDynamic") as a:
         res = validate_fmu(a.root, _validate_with)
@@ -88,9 +96,6 @@ def test_BicycleDriver():
 
 def test_default_example(tmpdir):
 
-    from pyfmu.builder import generate_project, export_project
-    from pathlib import Path
-
     project_path = Path(tmpdir) / "MyFMU"
     export_path = Path(tmpdir) / "MyFMU_Exported"
 
@@ -102,4 +107,3 @@ def test_default_example(tmpdir):
     res = validate_fmu(export_path, _validate_with)
     print(res.get_report())
     assert res.valid
-
