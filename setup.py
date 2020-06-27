@@ -23,6 +23,7 @@ _extras_require = {
         "pyqtgraph",
         "scipy",
         "PyQt5",
+        "OOModellingPython",
     ],
     "gui": [],
 }

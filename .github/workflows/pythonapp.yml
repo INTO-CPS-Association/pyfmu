@@ -5,9 +5,9 @@ name: Build and update wrappers
 
 on:
   push:
-    branches: "master"
+    branches: "fix-ci"
   pull_request:
-    branches: "master"
+    branches: "fix-ci"
 
 jobs:
   build-wrapper-windows:
@@ -15,66 +15,40 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: 3.8
 
-      - name: install conan
+      - name: Build and Test
         run: |
-          pip install conan
-
-      - name: Build using CMAKE
-        run: |
-          python build.py -u
-
-      - name: setup and test
-        run: |
-          pip install .[tests]
-          pytest
+          python build.py -u --rust-tests --python-tests
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
         with:
           name: windows-wrapper
-          path: build/pyfmu.dll
+          path: src/pyfmu/resources/wrapper/binaries/win64/pyfmu.dll
 
   build-wrapper-linux:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: 3.8
 
-      - name: install conan
+      - name: Build and Test
         run: |
-          pip install conan
-
-      - name: check compiler versions
-        run: |
-          cmake --version
-          g++ --version
-          g++-9 --version
-
-      - name: Build using CMAKE
-        run: |
-          export CXX=g++-9
-          export C=gcc-9
-          python build.py -u
-
-      - name: setup and test
-        run: |
-          pip install .[tests]
-          pytest
+          python build.py -u --rust-tests --python-tests
 
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
         with:
-          name: linux-wrapper
-          path: build/pyfmu.so
+          name: windows-wrapper
+          path: src/pyfmu/resources/wrapper/binaries/linux64/pyfmu.so
 
   update-wrappers:
     needs: [build-wrapper-windows, build-wrapper-linux]
