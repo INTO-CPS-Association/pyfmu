@@ -470,7 +470,7 @@ class FMI2CallbackLogger(Fmi2LoggerBase):
         self._instance_name = instance_name
 
     def do_log(self, status: Fmi2Status_T, msg: str, category: str):
-        self._callback(isinstance, status, category, msg)
+        self._callback(self._instance_name, status, category, msg)
 
 
 class FMI2PrintLogger(Fmi2LoggerBase):
