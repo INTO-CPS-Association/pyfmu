@@ -54,6 +54,6 @@ setup(
         ]
     },
     include_package_data=True,
-    python_requires=">=3",
+    python_requires=">=3.8",
     entry_points={"console_scripts": ["pyfmu=pyfmu.pyfmu_cli:main"]},
 )
