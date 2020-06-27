@@ -24,6 +24,8 @@ use std::vec::Vec;
 
 extern crate lazy_static;
 
+mod utils;
+
 pub type SlaveHandle = c_int;
 
 /// Capture Rust panics and return Fmi2Error instead
@@ -683,6 +685,10 @@ pub extern "C" fn fmi2Instantiate(
     logging_on: c_int,
 ) -> *mut c_int {
     let get_instance = || -> Result<SlaveHandle, Error> {
+
+
+        utils::init();
+
         let logger = functions.logger.ok_or_else(|| {
             anyhow::anyhow!(
                 "Logging callback function appears to be null, this is not permitted according to FMI2 specification."
@@ -733,7 +739,7 @@ pub extern "C" fn fmi2Instantiate(
             Ok(h) => Box::into_raw(Box::new(h)),
             Err(e) => {
                 println!(
-                    "An error has ocurred during instantiation of the FMU: {}",
+                    "An error has ocurred during instantiation of the FMU: {:?}",
                     e
                 );
                 null_mut()
@@ -962,7 +968,6 @@ extern "C" fn logger(
 }
 
 #[cfg(test)]
-mod utils;
 
 mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.

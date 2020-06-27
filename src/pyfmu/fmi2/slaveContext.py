@@ -171,6 +171,7 @@ class Fmi2SlaveContext:
             return ([], Fmi2Status.error)
 
     def __init__(self):
+            
 
         self._slaves: Dict[SlaveHandle, Fmi2SlaveLike] = {}
         self._slave_to_refs_to_attr: Dict[SlaveHandle, Dict[int, str]] = {}
@@ -193,7 +194,7 @@ class Fmi2SlaveContext:
         logging_callback: Fmi2LoggingCallback,
         visible: bool,
         logging_on: bool,
-    ) -> Optional[SlaveHandle]:
+    ) -> SlaveHandle:
         """Create a new instance of the specified FMU and return a handle to the caller.
 
         The process of doing this is:
@@ -242,73 +243,66 @@ class Fmi2SlaveContext:
         if fmu_type is not Fmi2Type.co_simulation:
             raise NotImplementedError("Currently, only co-simulation is supported.")
 
-        try:
-            url_path = file_uri_to_path(resources_uri)
+        
+        url_path = file_uri_to_path(resources_uri)
 
-            if not str(url_path) in sys.path:
-                sys.path.append(str(url_path))
+        if not str(url_path) in sys.path:
+            sys.path.append(str(url_path))
 
-            # read configuration
-            config_path = url_path / "slave_configuration.json"
-            logger.ok(f"Reading configuration {config_path}", category="slave_manager")
-            config = None
-            with open(config_path, "r") as f:
-                config = json.load(f)
+        # read configuration
+        config_path = url_path / "slave_configuration.json"
+        logger.ok(f"Reading configuration {config_path}", category="slave_manager")
+        config = None
+        with open(config_path, "r") as f:
+            config = json.load(f)
 
-            slave_module = Path(config["slave_script"]).stem
-            slave_class = config["slave_class"]
+        slave_module = Path(config["slave_script"]).stem
+        slave_class = config["slave_class"]
 
-            logger.ok(
-                msg=f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}",
-                category="slave_manager",
-            )
+        logger.ok(
+            msg=f"Configuration loaded, instantiating slave class {slave_class} defined in script {config['slave_script']}",
+            category="slave_manager",
+        )
 
-            # instantiate object
-            kwargs = {"logger": logger, "visible": visible, "logging_on": logging_on}
-            instance: Fmi2SlaveLike = getattr(
-                importlib.import_module(slave_module), slave_class
-            )(**kwargs)
+        # instantiate object
+        kwargs = {"logger": logger, "visible": visible, "logging_on": logging_on}
+        instance: Fmi2SlaveLike = getattr(
+            importlib.import_module(slave_module), slave_class
+        )(**kwargs)
 
-            logger.ok(
-                "creating mapping from value references to their names and data types",
-                category="slave_manager",
-            )
+        logger.ok(
+            "creating mapping from value references to their names and data types",
+            category="slave_manager",
+        )
 
-            self._slave_to_refs_to_attr[handle] = {
-                v.value_reference: v.name for v in instance.variables
-            }
+        self._slave_to_refs_to_attr[handle] = {
+            v.value_reference: v.name for v in instance.variables
+        }
 
-            self._slave_to_refs_to_types[handle] = {
-                v.value_reference: {
-                    "real": float,
-                    "integer": int,
-                    "boolean": bool,
-                    "string": str,
-                }[v.data_type]
-                for v in instance.variables
-            }
+        self._slave_to_refs_to_types[handle] = {
+            v.value_reference: {
+                "real": float,
+                "integer": int,
+                "boolean": bool,
+                "string": str,
+            }[v.data_type]
+            for v in instance.variables
+        }
 
-            assert handle not in self._slaves
-            assert handle not in self._loggers
+        assert handle not in self._slaves
+        assert handle not in self._loggers
 
-            self._slaves[handle] = instance
-            self._loggers[handle] = logger
-            self._awaiting_instantiation_handles.remove(handle)
+        self._slaves[handle] = instance
+        self._loggers[handle] = logger
+        self._awaiting_instantiation_handles.remove(handle)
 
-            logger.ok(
-                f"An slave object has been instantiated successfully and assigned the handle: {handle}",
-                category="slave_manager",
-            )
+        logger.ok(
+            f"An slave object has been instantiated successfully and assigned the handle: {handle}",
+            category="slave_manager",
+        )
 
-            return handle
+        return handle
 
-        except Exception:
-            logger.error(
-                f"Instantiation failed an exception was raised",
-                category="slave_manager",
-                exc_info=True,
-            )
-            return None
 
     def reset(self, handle: SlaveHandle) -> Fmi2Status_T:
         return self._call_slave_method(handle, "reset")

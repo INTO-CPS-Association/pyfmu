@@ -210,7 +210,15 @@ python build.py -ue --rust-tests --python-tests
 pip install -e .[dev]
 ```
 
-## Known Issues
+## Known Issues and Compatability Notes
+
+### pyo3 requirements
+On certain version of ubuntu pyo3 may require development headers.
+These can be installed using:
+```bash
+sudo apt install python3.8-dev
+```
+
 
 ### Ubuntu and PyQt5
 The LiveLogging example uses pyqtgraph for drawing plots.
