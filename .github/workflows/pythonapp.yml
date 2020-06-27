@@ -20,6 +20,10 @@ jobs:
         with:
           python-version: 3.8
 
+      - name: Install package
+        run: |
+          pip install -e.[dev]
+
       - name: Build and Test
         run: |
           python build.py -u --rust-tests --python-tests
@@ -39,6 +43,10 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.8
+
+      - name: Install package
+        run: |
+          pip install -e.[dev]
 
       - name: Build and Test
         run: |
