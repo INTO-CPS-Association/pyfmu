@@ -28,11 +28,11 @@ jobs:
         run: |
           python build.py -ue
 
-      - name: Rust tests
+      - name: Execute Rust tests
         run: | 
           python build.py --rust-tests
 
-      - name: python tests
+      - name: Execute Python tests
         run: | 
           python build.py --python-tests
 
@@ -54,9 +54,9 @@ jobs:
           python-version: 3.8-dev
       - run: python --version --version && which python
 
-      - name: Set up Python 3.8
-        run: |
-          sudo apt install python3.8-dev
+      # - name: Set up Python 3.8
+      #   run: |
+      #     sudo apt install python3.8-dev
 
       - name: Install package
         run: |
@@ -72,11 +72,11 @@ jobs:
         run: |
           python build.py -ue
 
-      - name: Rust tests
+      - name: Execute Rust tests
         run: | 
           python build.py --rust-tests
 
-      - name: python tests
+      - name: Execute Python tests
         run: | 
           python build.py --python-tests
 

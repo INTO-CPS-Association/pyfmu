@@ -1,3 +1,4 @@
+use ::byte_strings::c_str;
 use anyhow;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
@@ -162,15 +163,15 @@ fn cstr_to_string(cstr: *const c_char) -> String {
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2GetTypesPlatform() -> *const c_char {
-    static TYPES_PLATFORM: &str = "default";
+    static TYPES_PLATFORM: &std::ffi::CStr = c_str!("default");
     TYPES_PLATFORM.as_ptr() as *const i8
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2GetVersion() -> *const c_char {
-    static FMI_VERISON: &str = "2.0";
-    FMI_VERISON.as_ptr() as *const i8
+    static FMI_VERSION: &std::ffi::CStr = c_str!("2.0");
+    FMI_VERSION.as_ptr() as *const i8
 }
 
 /// Configures the logging behavior of an FMU
@@ -971,6 +972,12 @@ mod tests {
     use std::mem::MaybeUninit;
     use std::ptr::null_mut;
     use std::thread;
+
+    #[test]
+    fn static_information() {
+        assert_eq!(cstr_to_string(fmi2GetVersion()), "2.0");
+        assert_eq!(cstr_to_string(fmi2GetTypesPlatform()), "default");
+    }
 
     #[test]
     fn adder_fmu() {
