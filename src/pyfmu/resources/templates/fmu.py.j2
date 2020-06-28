@@ -64,7 +64,7 @@ if __name__ == "__main__":
     assert fmu.exit_initialization_mode() == Fmi2Status.ok
 
     for t in ts:
-        assert fmu.do_step(t, t + t_step, False) == Fmi2Status.ok
+        assert fmu.do_step(t, t_step, False) == Fmi2Status.ok
         assert fmu.s == fmu.a + fmu.b
 
     assert fmu.terminate() == Fmi2Status.ok
