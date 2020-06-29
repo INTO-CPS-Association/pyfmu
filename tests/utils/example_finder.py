@@ -22,6 +22,7 @@ _correct_example = {
     "FmiTypes",
     "BicycleDynamic",
     "BicycleDriver",
+    "BicycleTracking",
 }
 
 _incorrect_examples = set()
@@ -269,6 +270,32 @@ class MaestroExample:
             fmu_paths = {
                 "adder_path": adder_out.as_uri(),
                 "sine_path": sine_out.as_uri(),
+            }
+
+        elif example_name == "TrackingSimulator":
+            dynamic_in = get_example_project("BicycleDynamic")
+            driver_in = get_example_project("BicycleDriver")
+            tracking_in = get_example_project("BicycleTracking")
+
+            dynamic_out = self.tmpdir / dynamic_in.name
+            driver_out = self.tmpdir / driver_in.name
+            tracking_out = self.tmpdir / tracking_in.name
+            export_project(
+                project_or_path=dynamic_in, output_path=dynamic_out, compress=False
+            )
+            export_project(
+                project_or_path=driver_in, output_path=driver_out, compress=False
+            )
+            export_project(
+                project_or_path=tracking_in, output_path=tracking_out, compress=False
+            )
+            assert dynamic_out.exists()
+            assert driver_out.exists()
+            assert tracking_out.exists()
+            fmu_paths = {
+                "dynamic_path": dynamic_out.as_uri(),
+                "driver_path": driver_out.as_uri(),
+                "tracking_path": tracking_out.as_uri(),
             }
 
         else:
