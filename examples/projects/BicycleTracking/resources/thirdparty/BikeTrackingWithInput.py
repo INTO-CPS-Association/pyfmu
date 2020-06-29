@@ -31,6 +31,7 @@ class BikeTrackingWithInput(TrackingSimulator):
 
     def run_whatif_simulation(self, new_parameters, t0, tf, tracked_solutions, error_space, only_tracked_state=True):
         new_caf = new_parameters[0]
+        self.l.debug(f"Running whatif simulation from time {t0} to time {tf} with Caf {new_caf}.")
         m = BicycleDynamicModel()
         m.Caf = lambda: new_caf
         # Rewrite control input to mimic the past behavior.

@@ -1,9 +1,14 @@
+import logging
+
 from oomodelling.TrackingSimulator import TrackingSimulator
 
 from pyfmu.fmi2 import Fmi2Slave, Fmi2Status, Fmi2Status_T
 import numpy as np
 from scipy.integrate import solve_ivp, RK45
 from thirdparty.BikeTrackingWithInput import BikeTrackingWithInput
+
+from pyfmu.fmi2.logging import FMI2PrintLogger
+
 
 class BicycleTracking(Fmi2Slave):
 
@@ -50,6 +55,27 @@ class BicycleTracking(Fmi2Slave):
             description="y coordinate in the reference frame",
         )
 
+        self.register_output(
+            "tolerance",
+            "real",
+            "continuous",
+            description="tolerance",
+        )
+
+        self.register_output(
+            "error",
+            "real",
+            "continuous",
+            description="tolerance",
+        )
+
+        self.register_output(
+            "Caf",
+            "real",
+            "continuous",
+            description="tolerance",
+        )
+
         # Set the inputs
         self.log_ok("Wiring inputs.")
 
@@ -57,36 +83,50 @@ class BicycleTracking(Fmi2Slave):
         self.bicycle_tracking.to_track_Y = lambda: self.to_track_Y
         self.bicycle_tracking.to_track_delta = lambda: self.deltaf
 
+        if logging_on:
+            print("Enabling logging.")
+            self.set_debug_logging([], True)
+            logging.basicConfig(filename="tracking_with_input.log", filemode='w', level=logging.DEBUG)
+
 
     def do_step(self, current_time: float, step_size: float, no_prior_step : bool) -> Fmi2Status_T:
 
-        self.X = self.to_track_X
-        self.Y = self.to_track_Y
+        # self.X = self.to_track_X
+        # self.Y = self.to_track_Y
 
-        # self.log_ok("Compute model derivative function.")
-        # f = self.bicycle_tracking.derivatives()
-        # self.log_ok("Compute state vector at start of step.")
-        # x = self.bicycle_tracking.state_vector()
-        #
-        # n_states = self.bicycle_tracking.nstates()
-        #
-        # self.log_ok("Record current state in model history.")
-        # self.bicycle_tracking.record_state(x, current_time)
-        #
-        # self.log_ok("Invoking internal solver.")
-        # stop_time = current_time + step_size
-        # sol = solve_ivp(f, (current_time, stop_time), x,
-        #                 method=RK45, max_step=step_size,
-        #                 t_eval=[stop_time])
-        # self.log_ok(f"Solution success: {sol.success}")
-        # assert sol.success
-        # assert sol.y.shape == (n_states, 1), (sol.y, sol.y.shape)
-        #
-        # self.log_ok("Getting outputs from internal model.")
-        # # Important to convert to float64.
-        # # Otherwise COE will crash because the type of self.X is numpy.float64
-        # self.X = float(self.bicycle_tracking.tracking.X())
-        # self.Y = float(self.bicycle_tracking.tracking.Y())
+        print(f"DoStep at time {current_time}.")
+
+        self.log_ok("Compute model derivative function.")
+        f = self.bicycle_tracking.derivatives()
+        self.log_ok("Compute state vector at start of step.")
+        x = self.bicycle_tracking.state_vector()
+
+        n_states = self.bicycle_tracking.nstates()
+
+        self.log_ok("Record current state in model history.")
+        self.bicycle_tracking.record_state(x, current_time)
+
+        self.log_ok("Invoking internal solver.")
+        stop_time = current_time + step_size
+        sol = solve_ivp(f, (current_time, stop_time), x,
+                        method=RK45, max_step=step_size,
+                        t_eval=[stop_time])
+        self.log_ok(f"Solution success: {sol.success}")
+        assert sol.success
+        assert sol.y.shape == (n_states, 1), (sol.y, sol.y.shape)
+
+        self.log_ok(f"Performing discrete step computation.")
+        update_state = self.bicycle_tracking.discrete_step()
+
+        self.log_ok(f"State updated: {update_state}")
+
+        self.log_ok("Getting outputs from internal model.")
+        # Important to convert to float64.
+        # Otherwise COE will crash because the type of self.X is numpy.float64
+        self.X = float(self.bicycle_tracking.tracking.X())
+        self.Y = float(self.bicycle_tracking.tracking.Y())
+        self.error = float(self.bicycle_tracking.error())
+        self.Caf = float(self.bicycle_tracking.tracking.Caf())
 
         return Fmi2Status.ok
 
@@ -96,6 +136,9 @@ class BicycleTracking(Fmi2Slave):
         self.deltaf = 0.0
         self.X = 0.0
         self.Y = 0.0
+        self.tolerance = self.bicycle_tracking.tolerance
+        self.error = 0.0
+        self.Caf = 800.0
         return Fmi2Status.ok
 
     def enter_initialization_mode(self) -> Fmi2Status_T:
