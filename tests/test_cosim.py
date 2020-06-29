@@ -3,7 +3,8 @@ import logging
 from pathlib import Path
 from tempfile import mkdtemp
 import os
-import sys
+
+import pytest
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -62,6 +63,7 @@ def test_SumOfSines(caplog):
     assert execute_cosimulation("SumOfSines", 0.0, 10.0) == _maestroV1_OK
 
 
+@pytest.mark.slow
 def test_TrackingSimulator(caplog):
     caplog.set_level(logging.INFO)
     assert execute_cosimulation("TrackingSimulator", 0.0, 25.0) == _maestroV1_OK

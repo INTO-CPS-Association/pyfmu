@@ -104,27 +104,3 @@ class BicycleDynamic(Fmi2Slave):
         self, start_time: float, stop_time: float = None, tolerance: float = None
     ) -> Fmi2Status_T:
         return Fmi2Status.ok
-
-# Writing a small test program to test slave saves a lot of time.
-# Proper unit testing frameworks may be used as well.
-if __name__ == "__main__":
-
-    fmu = BicycleDynamic()
-
-    t_start = 0
-    t_end = 1
-    n_steps = 100
-
-    ts, t_step = np.linspace(start=t_start, stop=t_end, num=n_steps, retstep=True)
-
-    assert fmu.setup_experiment(t_start, t_end) == Fmi2Status.ok
-    assert fmu.enter_initialization_mode() == Fmi2Status.ok
-    assert fmu.exit_initialization_mode() == Fmi2Status.ok
-
-    for t in ts:
-        assert fmu.do_step(t, t + t_step, False) == Fmi2Status.ok
-        assert fmu.s == fmu.a + fmu.b
-
-    assert fmu.terminate() == Fmi2Status.ok
-    assert fmu.reset() == Fmi2Status.ok
-
