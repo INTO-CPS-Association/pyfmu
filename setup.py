@@ -30,7 +30,7 @@ _extras_require["dev"] = _extras_require["docs"] + _extras_require["tests"]
 
 setup(
     name="pyfmu",
-    version="0.0.3",
+    version="0.0.4",
     author="INTO-CPS Association",
     description="A set of tools for developing functional-mockup-units (FMUs) using the full capabilities of Python.",
     long_description=long_description,
