@@ -5,14 +5,18 @@
 
 use crate::common::SlaveHandle;
 use libc::c_ulonglong;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::CStr;
+use std::ffi::CString;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
+use std::sync::Mutex;
+use std::sync::RwLock;
 
 #[macro_use]
 extern crate lazy_static;
@@ -58,8 +62,10 @@ lazy_static! {
     static ref BACKEND: Box<dyn PyFmuBackend + Sync> = get_backend(BackendsType::CPythonEmbedded);
 }
 
-// ------------------------------------- LOGGING -------------------------------------
+// ------------------------------------- LOGGING (types) -------------------------------------
 
+/// Represents the function signature of the logging callback function passsed
+/// from the envrionment to the slave during instantiation.
 pub type Fmi2CallbackLogger = extern "C" fn(
     component_environment: *mut c_void,
     instance_name: *const c_char,
@@ -82,6 +88,46 @@ pub struct Fmi2CallbackFunctions {
     pub component_environment: Option<*mut c_void>,
 }
 
+lazy_static! {
+    /// In order to log messages from the Rust portion of the wrapper we store callback
+    /// This is useful in cases where the wrapper itself fails, and it needs to be conveyed to the
+    /// environment
+    static ref LOGGERS: Mutex<HashMap<SlaveHandle, Fmi2CallbackLogger>> = Mutex::new(HashMap::new());
+}
+
+lazy_static! {
+    static ref HANDLE_TO_NAMES: RwLock<HashMap<SlaveHandle, String>> = RwLock::new(HashMap::new());
+}
+
+/// Logs message using the callback the specified slave
+/// Note that the slave must already have been instantiated.
+fn log_slave(handle: &SlaveHandle, status: Fmi2Status, category: &str, message: &str) {
+    let instance_name: String = HANDLE_TO_NAMES
+        .read()
+        .unwrap()
+        .get(handle)
+        .expect("handle is not associated with an instance name, this is a bug")
+        .clone();
+
+    let instance_name = CString::new(instance_name.as_str()).unwrap();
+    let category = CString::new(category).unwrap();
+    let message = CString::new(message).unwrap();
+
+    let logger = LOGGERS
+        .lock()
+        .unwrap()
+        .get(handle)
+        .expect("unable to get logger associated with handle")(
+        std::ptr::null_mut(),
+        instance_name.as_ptr(),
+        status.into(),
+        category.as_ptr(),
+        message.as_ptr(),
+    );
+}
+
+// ------------------------------------- LOGGING (wrapper) -------------------------------------
+
 /// Thin wrapper around C callback
 struct LoggingWrapper {
     c_callback: Fmi2CallbackLogger,
@@ -103,6 +149,8 @@ impl FMI2Logger for LoggingWrapper {
         panic!("not implemented")
     }
 }
+
+unsafe impl Send for LoggingWrapper {}
 
 // ------------------------------------- FMI FUNCTIONS --------------------------------
 
@@ -137,18 +185,22 @@ pub extern "C" fn fmi2Instantiate(
         .to_str()
         .expect("Unable to convert instance name to a string");
 
+    let fmu_type = Fmi2Type::try_from(fmu_type).expect("Unrecognized FMU type code");
+
     let guid = unsafe { CStr::from_ptr(fmu_guid) }
         .to_str()
         .expect("Unable to convert guid to a string");
+
     let resource_location = unsafe { CStr::from_ptr(fmu_resource_location) }
         .to_str()
         .expect("Unable to convert resource location to a string");
-    let fmu_type = Fmi2Type::try_from(fmu_type).expect("Unrecognized FMU type code");
+
+    let logger = functions.logger.expect(
+        "logging function appears to be null, this is not permitted by the FMI specification.",
+    );
 
     let visible = visible != 0;
     let logging_on = logging_on != 0;
-
-    let logger = Box::new(LoggingWrapper::new(functions.logger));
 
     let handle = BACKEND.instantiate(
         instance_name,
@@ -164,7 +216,10 @@ pub extern "C" fn fmi2Instantiate(
     // otherwise null is returned. Note that the integer must explictly be deallocated, which
     // must happen in the fmi2FreeSlave function, to avoid memory leaks.
     match handle {
-        Ok(h) => Box::into_raw(Box::new(h)),
+        Ok(h) => {
+            LOGGERS.lock().unwrap().insert(h, logger);
+            Box::into_raw(Box::new(h))
+        }
         Err(e) => {
             eprintln!("Failed instantiating slave {}", e);
             null_mut()
@@ -185,7 +240,16 @@ pub extern "C" fn fmi2SetDebugLogging(
     n_categories: usize,
     categories: *const *const c_char,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let mut categories_vec: Vec<&str> = vec![];
+    let n_categories = n_categories as isize;
+    for i in 0..n_categories {
+        let cat = unsafe { CStr::from_ptr(*categories.offset(i)).to_str().unwrap() };
+        categories_vec.push(cat);
+    }
+    match BACKEND.set_debug_logging(unsafe { *c }, logging_on != 0, categories_vec) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
@@ -198,7 +262,10 @@ pub extern "C" fn fmi2SetupExperiment(
     stop_time_defined: c_int,
     stop_time: c_double,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    match BACKEND.set_debug_logging(unsafe { *c }, logging_on != 0, categories_vec) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
@@ -230,12 +297,25 @@ pub extern "C" fn fmi2Reset(c: *const SlaveHandle) -> c_int {
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2DoStep(
-    c: *const c_int,
+    c: *const SlaveHandle,
     current_communication_point: c_double,
     communication_step_size: c_double,
     no_set_fmu_state_prior_to_current_point: c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+
+    match BACKEND.do_step(
+        handle,
+        current_communication_point,
+        communication_step_size,
+        no_set_fmu_state_prior_to_current_point != 0,
+    ) {
+        Ok(status) => status.into(),
+        Err(e) => {
+            LOGGERS.lock().unwrap().get(&handle);
+            Fmi2Status::Fmi2Error.into()
+        }
+    }
 }
 
 // ------------------------------------- FMI FUNCTIONS (Getters) --------------------------------

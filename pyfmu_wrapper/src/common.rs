@@ -1,7 +1,9 @@
+use crate::Fmi2CallbackLogger;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
 
+/// Represents the possible status codes which are returned from the slave
 #[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, Eq)]
 #[repr(i32)]
 pub enum Fmi2Status {
@@ -22,7 +24,7 @@ pub enum Fmi2StatusKind {
     Fmi2Terminated = 3,
 }
 
-#[derive(Debug, TryFromPrimitive, PartialEq, Eq)]
+#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, Eq)]
 #[repr(i32)]
 pub enum Fmi2Type {
     Fmi2ModelExchange = 0,
@@ -46,11 +48,16 @@ pub trait PyFmuBackend {
         fmu_type: Fmi2Type,
         fmu_guid: &str,
         resource_location: &str,
-        callback_functions: Box<dyn FMI2Logger>,
+        callback_functions: Fmi2CallbackLogger,
         visible: bool,
         logging_on: bool,
     ) -> Result<SlaveHandle, Error>;
-    // fn fmi2SetDebugLogging(&self) -> Result<c_int, Error>;
+    fn set_debug_logging(
+        &self,
+        handle: SlaveHandle,
+        logging_on: bool,
+        categories: Vec<&str>,
+    ) -> Result<Fmi2Status, Error>;
     // fn fmi2SetupExperiment(&self) -> Result<c_int, Error>;
     // fn fmi2EnterInitializationMode(&self) -> Result<c_int, Error>;
     // fn fmi2ExitInitializationMode(&self) -> Result<c_int, Error>;
@@ -60,5 +67,11 @@ pub trait PyFmuBackend {
     // fn fmi2SetXXX(&self) -> Result<c_int, Error>;
     // fn fmi2SetRealInputDerivatives(&self) -> Result<c_int, Error>;
     // fn fmi2GetRealOutputDerivatives(&self) -> Result<c_int, Error>;
-    // fn fmi2DoStep(&self) -> Result<c_int, Error>;
+    fn do_step(
+        &self,
+        handle: SlaveHandle,
+        current_communication_point: f64,
+        communication_step: f64,
+        no_set_fmu_state_prior_to_current_point: bool,
+    ) -> Result<Fmi2Status, Error>;
 }
