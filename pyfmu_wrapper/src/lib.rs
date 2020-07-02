@@ -4,18 +4,22 @@ use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::os::raw::c_void;
+use std::ptr::null_mut;
 
 #[macro_use]
 extern crate lazy_static;
 
 mod common;
+mod cpython_backend;
 
 use crate::common::FMI2Logger;
 use crate::common::Fmi2Status;
 use crate::common::Fmi2Type;
 use crate::common::PyFmuBackend;
+use crate::cpython_backend::CPythonEmbedded;
+//use crate::backends::CPythonEmbedded;
 
-// ----------------------- Utility -------------------------------------
+// ------------------------------------- Utility -------------------------------------
 
 /// Capture Rust panics and return Fmi2Error instead
 #[allow(unused_macros)]
@@ -33,8 +37,9 @@ fn cstr_to_string(cstr: *const c_char) -> String {
     unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() }
 }
 
-// ----------------------- Backend -------------------------------------
+// ------------------------------------- Backend -------------------------------------
 
+#[allow(dead_code)]
 /// Defines available backend types.
 /// These determine how the Python code defining the slave gets executed.
 enum BackendsType {
@@ -47,8 +52,10 @@ enum BackendsType {
 /// Instantiates
 fn get_backend(backend: BackendsType) -> &'static (dyn PyFmuBackend + Sync) {
     match backend {
-        CPythonEmbedded => panic!("not implemented"),
-        InterpreterProcess => panic!("not implementated"),
+        BackendsType::CPythonEmbedded => {
+            CPythonEmbedded::new().expect("Unable to instantiate backend")
+        }
+        BackendsType::InterpreterProcess => panic!("not implementated"),
     }
 }
 
@@ -57,7 +64,7 @@ lazy_static! {
         get_backend(BackendsType::CPythonEmbedded);
 }
 
-// ----------------------- LOGGING -------------------------------------
+// ------------------------------------- LOGGING -------------------------------------
 
 pub type Fmi2CallbackLogger = extern "C" fn(
     component_environment: *mut c_void,
@@ -103,7 +110,7 @@ impl FMI2Logger for LoggingWrapper {
     }
 }
 
-// -----------------------FMI FUNCTIONS --------------------------------
+// ------------------------------------- FMI FUNCTIONS --------------------------------
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -129,9 +136,7 @@ pub extern "C" fn fmi2Instantiate(
     functions: Fmi2CallbackFunctions,
     visible: c_int,
     logging_on: c_int,
-)
-// -> *mut c_int
-{
+) -> *mut i32 {
     let instance_name = unsafe { CStr::from_ptr(instance_name) }
         .to_str()
         .expect("Unable to convert instance name to a string");
@@ -149,7 +154,7 @@ pub extern "C" fn fmi2Instantiate(
 
     let logger = Box::new(LoggingWrapper::new(functions.logger));
 
-    BACKEND.instantiate(
+    let handle = BACKEND.instantiate(
         instance_name,
         fmu_type,
         guid,
@@ -158,4 +163,15 @@ pub extern "C" fn fmi2Instantiate(
         visible,
         logging_on,
     );
+
+    // If slave was successfully instantiated a pointer to a heap allocated integer is returned
+    // otherwise null is returned. Note that the integer must explictly be deallocated, which
+    // must happen in the fmi2FreeSlave function, to avoid memory leaks.
+    match handle {
+        Ok(h) => Box::into_raw(Box::new(h)),
+        Err(e) => {
+            eprintln!("Failed instantiating slave {}", e);
+            null_mut()
+        }
+    }
 }

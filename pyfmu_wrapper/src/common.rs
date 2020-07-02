@@ -1,10 +1,4 @@
 use anyhow::Error;
-use std::marker::Sync;
-use std::os::raw::c_char;
-use std::os::raw::c_int;
-use std::os::raw::c_ulonglong;
-use std::os::raw::c_void;
-
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
 
@@ -41,7 +35,7 @@ pub trait FMI2Logger {
 }
 
 /// Represents an manager of multiple Python slave instances.
-/// Each instance is accessed using their *instance name* which is unique within the simulation context of a specific FMU.
+/// Each instance is assoicated with an integer handle returned by the function
 pub trait PyFmuBackend {
     fn instantiate(
         &self,
@@ -52,7 +46,7 @@ pub trait PyFmuBackend {
         callback_functions: Box<dyn FMI2Logger>,
         visible: bool,
         logging_on: bool,
-    ) -> Result<(), Error>;
+    ) -> Result<i32, Error>;
     // fn fmi2SetDebugLogging(&self) -> Result<c_int, Error>;
     // fn fmi2SetupExperiment(&self) -> Result<c_int, Error>;
     // fn fmi2EnterInitializationMode(&self) -> Result<c_int, Error>;
