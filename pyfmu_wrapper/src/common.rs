@@ -34,6 +34,9 @@ pub trait FMI2Logger {
     fn log(self, instance_name: &str, status: Fmi2Status, category: &str, message: &str);
 }
 
+/// An identifier that can be used to uniquely identify a slave within the context of a specific backend.
+pub type SlaveHandle = i32;
+
 /// Represents an manager of multiple Python slave instances.
 /// Each instance is assoicated with an integer handle returned by the function
 pub trait PyFmuBackend {
@@ -46,7 +49,7 @@ pub trait PyFmuBackend {
         callback_functions: Box<dyn FMI2Logger>,
         visible: bool,
         logging_on: bool,
-    ) -> Result<i32, Error>;
+    ) -> Result<SlaveHandle, Error>;
     // fn fmi2SetDebugLogging(&self) -> Result<c_int, Error>;
     // fn fmi2SetupExperiment(&self) -> Result<c_int, Error>;
     // fn fmi2EnterInitializationMode(&self) -> Result<c_int, Error>;

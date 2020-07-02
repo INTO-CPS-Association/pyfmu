@@ -7,6 +7,7 @@ use pyo3::Python;
 use crate::common::FMI2Logger;
 use crate::common::Fmi2Type;
 use crate::common::PyFmuBackend;
+use crate::common::SlaveHandle;
 
 // ------------------------------------- Error Handling -------------------------------------
 
@@ -62,7 +63,7 @@ impl PyFmuBackend for CPythonEmbedded {
         logger: std::boxed::Box<(dyn FMI2Logger + 'static)>,
         visible: bool,
         logging_on: bool,
-    ) -> Result<i32, anyhow::Error> {
+    ) -> Result<SlaveHandle, anyhow::Error> {
         Ok(0)
     }
 }
