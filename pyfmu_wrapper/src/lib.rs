@@ -17,33 +17,20 @@ use std::ptr::null_mut;
 #[macro_use]
 extern crate lazy_static;
 
-mod common;
+pub mod common;
 mod cpython_backend;
+pub mod utils;
 
 use crate::common::FMI2Logger;
 use crate::common::Fmi2Status;
 use crate::common::Fmi2Type;
 use crate::common::PyFmuBackend;
+use crate::utils::cstr_to_string;
+
 use crate::cpython_backend::CPythonEmbedded;
 //use crate::backends::CPythonEmbedded;
 
 // ------------------------------------- Utility -------------------------------------
-
-/// Capture Rust panics and return Fmi2Error instead
-#[allow(unused_macros)]
-macro_rules! ffi_panic_boundary {($($tt:tt)*) => (
-    match catch_unwind(|| {$($tt)*}) {
-        | Ok(ret) => ret,
-        | Err(_) => {
-            eprintln!("Rust panicked; return Fmi2Error");
-            Fmi2Status::Fmi2Error.into()
-        },
-    }
-)}
-
-fn cstr_to_string(cstr: *const c_char) -> String {
-    unsafe { CStr::from_ptr(cstr).to_string_lossy().into_owned() }
-}
 
 // ------------------------------------- Backend -------------------------------------
 
@@ -88,11 +75,11 @@ pub type Fmi2StepFinished = extern "C" fn(component_environment: *mut c_void, st
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Fmi2CallbackFunctions {
-    logger: Option<Fmi2CallbackLogger>,
-    allocate_memory: Option<Fmi2CallbackAllocateMemory>,
-    free_memory: Option<Fmi2CallbackFreeMemory>,
-    step_finished: Option<Fmi2StepFinished>,
-    component_environment: Option<*mut c_void>,
+    pub logger: Option<Fmi2CallbackLogger>,
+    pub allocate_memory: Option<Fmi2CallbackAllocateMemory>,
+    pub free_memory: Option<Fmi2CallbackFreeMemory>,
+    pub step_finished: Option<Fmi2StepFinished>,
+    pub component_environment: Option<*mut c_void>,
 }
 
 /// Thin wrapper around C callback
