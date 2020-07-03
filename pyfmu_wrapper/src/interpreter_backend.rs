@@ -134,7 +134,37 @@ impl PyFmuBackend for InterpreterBackend {
         let command_socket = CONTEXT.socket(zmq::REQ).unwrap();
         let logging_socket = CONTEXT.socket(zmq::PULL).unwrap();
 
+        // 2. bind socket, TODO create unique port for each slave
+        let handshake_port = "54200";
+        let command_port = "54201";
+        let logging_port = "54202";
+        command_socket.bind("tcp://*:54200").unwrap();
+        command_socket.bind("tcp://*:54201").unwrap();
+        logging_socket.bind("tcp://*:54202").unwrap();
+
+        // 3. start slave process
+
+        let args = [
+            "python",
+            "slave_process.py",
+            "--slave-script",
+            "TODO",
+            "--instance-name",
+            "TODO",
+            "--handshake-port",
+            handshake_port,
+            "--command-port",
+            command_port,
+            "--logging-port",
+            logging_port,
+        ];
+
+        let mut pid = Popen::create(&args, PopenConfig::default()).unwrap();
+
         self.handle_to_command_sockets
+            .insert(handle, Mutex::new(CONTEXT.socket(zmq::REQ).unwrap()));
+
+        self.handle_to_logging_sockets
             .insert(handle, Mutex::new(CONTEXT.socket(zmq::PULL).unwrap()));
 
         Ok(handle)
