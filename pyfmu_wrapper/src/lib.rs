@@ -229,7 +229,12 @@ pub extern "C" fn fmi2Instantiate(
 
 #[no_mangle]
 pub extern "C" fn fmi2FreeInstance(c: *mut c_int) {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+
+    match BACKEND.free_instance(handle) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]

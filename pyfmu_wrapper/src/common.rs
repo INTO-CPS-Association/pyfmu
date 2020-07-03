@@ -57,6 +57,9 @@ pub trait PyFmuBackend {
         visible: bool,
         logging_on: bool,
     ) -> Result<SlaveHandle, Error>;
+
+    fn free_instance(&self, handle: SlaveHandle) -> Result<(), Error>;
+
     fn set_debug_logging(
         &self,
         handle: SlaveHandle,

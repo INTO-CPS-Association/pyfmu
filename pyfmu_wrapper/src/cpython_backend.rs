@@ -227,6 +227,12 @@ impl PyFmuBackend for CPythonEmbedded {
             Ok(handle)
         }
     }
+
+    fn free_instance(&self, handle: SlaveHandle) -> Result<(), Error> {
+        self.call_manager_method("free_instance", (handle,), None)
+            .map(|obj| ())
+    }
+
     fn do_step(
         &self,
         handle: SlaveHandle,
