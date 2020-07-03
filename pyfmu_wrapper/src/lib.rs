@@ -1,7 +1,7 @@
 // TODO enable once functions are implemented
-#![allow(dead_code)]
-#![allow(unreachable_code)]
-#![allow(unused_variables)]
+// #![allow(dead_code)]
+// #![allow(unreachable_code)]
+// #![allow(unused_variables)]
 
 use crate::common::SlaveHandle;
 use libc::c_ulonglong;
@@ -10,7 +10,6 @@ use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem::forget;
-use std::mem::ManuallyDrop;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
@@ -27,11 +26,9 @@ pub mod common;
 mod cpython_backend;
 pub mod utils;
 
-use crate::common::FMI2Logger;
 use crate::common::Fmi2Status;
 use crate::common::Fmi2Type;
 use crate::common::PyFmuBackend;
-use crate::utils::cstr_to_string;
 
 use crate::cpython_backend::CPythonEmbedded;
 //use crate::backends::CPythonEmbedded;
@@ -115,7 +112,7 @@ fn log_slave(handle: &SlaveHandle, status: Fmi2Status, category: &str, message: 
     let category = CString::new(category).unwrap();
     let message = CString::new(message).unwrap();
 
-    let logger = LOGGERS
+    LOGGERS
         .lock()
         .unwrap()
         .get(handle)
@@ -130,29 +127,29 @@ fn log_slave(handle: &SlaveHandle, status: Fmi2Status, category: &str, message: 
 
 // ------------------------------------- LOGGING (wrapper) -------------------------------------
 
-/// Thin wrapper around C callback
-struct LoggingWrapper {
-    c_callback: Fmi2CallbackLogger,
-}
+// /// Thin wrapper around C callback
+// struct LoggingWrapper {
+//     c_callback: Fmi2CallbackLogger,
+// }
 
-impl LoggingWrapper {
-    fn new(callback: Option<Fmi2CallbackLogger>) -> Self {
-        match callback {
-            None => panic!("Logging callback function appears to be null, which is not allowed according to the specificiation"),
-            Some(c) => Self {
-                c_callback: c
-            }
-        }
-    }
-}
+// impl LoggingWrapper {
+//     fn new(callback: Option<Fmi2CallbackLogger>) -> Self {
+//         match callback {
+//             None => panic!("Logging callback function appears to be null, which is not allowed according to the specificiation"),
+//             Some(c) => Self {
+//                 c_callback: c
+//             }
+//         }
+//     }
+// }
 
-impl FMI2Logger for LoggingWrapper {
-    fn log(self, instance_name: &str, status: Fmi2Status, category: &str, message: &str) {
-        panic!("not implemented")
-    }
-}
+// impl FMI2Logger for LoggingWrapper {
+//     fn log(self, instance_name: &str, status: Fmi2Status, category: &str, message: &str) {
+//         panic!("not implemented")
+//     }
+// }
 
-unsafe impl Send for LoggingWrapper {}
+// unsafe impl Send for LoggingWrapper {}
 
 // ------------------------------------- FMI FUNCTIONS --------------------------------
 
@@ -235,7 +232,7 @@ pub extern "C" fn fmi2FreeInstance(c: *mut c_int) {
 
     match BACKEND.free_instance(handle) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -255,7 +252,7 @@ pub extern "C" fn fmi2SetDebugLogging(
     }
     match BACKEND.set_debug_logging(unsafe { *c }, logging_on != 0, categories_vec) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -289,7 +286,7 @@ pub extern "C" fn fmi2SetupExperiment(
 
     match BACKEND.setup_experiment(handle, start_time, tolerance, stop_time) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -300,7 +297,7 @@ pub extern "C" fn fmi2EnterInitializationMode(c: *const SlaveHandle) -> c_int {
 
     match BACKEND.enter_initialization_mode(handle) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -311,7 +308,7 @@ pub extern "C" fn fmi2ExitInitializationMode(c: *const SlaveHandle) -> c_int {
 
     match BACKEND.exit_initialization_mode(handle) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -322,7 +319,7 @@ pub extern "C" fn fmi2Terminate(c: *const SlaveHandle) -> c_int {
 
     match BACKEND.terminate(handle) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -333,7 +330,7 @@ pub extern "C" fn fmi2Reset(c: *const SlaveHandle) -> c_int {
 
     match BACKEND.reset(handle) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -356,10 +353,7 @@ pub extern "C" fn fmi2DoStep(
         no_set_fmu_state_prior_to_current_point != 0,
     ) {
         Ok(status) => status.into(),
-        Err(e) => {
-            LOGGERS.lock().unwrap().get(&handle);
-            Fmi2Status::Fmi2Error.into()
-        }
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -386,7 +380,7 @@ pub extern "C" fn fmi2GetReal(
             }
             status.into()
         }
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -412,7 +406,7 @@ pub extern "C" fn fmi2GetInteger(
             }
             status.into()
         }
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -438,7 +432,7 @@ pub extern "C" fn fmi2GetBoolean(
             }
             status.into()
         }
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -484,7 +478,7 @@ pub extern "C" fn fmi2GetString(
             }
             status.into()
         }
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -504,7 +498,7 @@ pub extern "C" fn fmi2SetReal(
 
     match BACKEND.set_real(h, references, values) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -522,7 +516,7 @@ pub extern "C" fn fmi2SetInteger(
 
     match BACKEND.set_integer(h, references, values) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -540,7 +534,7 @@ pub extern "C" fn fmi2SetBoolean(
 
     match BACKEND.set_boolean(h, references, values) {
         Ok(status) => status.into(),
-        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+        Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
 }
 
@@ -587,21 +581,18 @@ pub extern "C" fn fmi2GetDirectionalDerivative(
     values_unkown: *mut c_double,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2SetRealInputDerivatives(c: *const c_int, vr: *const c_uint) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2GetRealOutputDerivatives(c: *const c_int) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
 }
 
 // ------------------------------------- FMI FUNCTIONS (Serialization) --------------------------------
@@ -609,7 +600,6 @@ pub extern "C" fn fmi2GetRealOutputDerivatives(c: *const c_int) -> c_int {
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2SetFMUstate(c: *const c_int, state: *const c_void) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -621,7 +611,6 @@ pub extern "C" fn fmi2SerializeFMUstate(
     size: usize,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -633,14 +622,12 @@ pub extern "C" fn fmi2DeSerializeFMUstate(
     state: *mut c_void,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2SerializedFMUstateSize(c: *const c_int, state: *mut *mut c_void) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
 }
 
 // ------------------------------------- FMI FUNCTIONS (Status) --------------------------------
@@ -653,7 +640,6 @@ pub extern "C" fn fmi2GetRealStatus(
     value: *mut c_double,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Fatal.into()
 }
 
 #[no_mangle]
@@ -664,7 +650,6 @@ pub extern "C" fn fmi2GetStatus(
     Fmi2Status: *mut c_int,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Fatal.into()
 }
 
 #[no_mangle]
@@ -675,7 +660,6 @@ pub extern "C" fn fmi2GetIntegerStatus(
     value: *mut c_int,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Fatal.into()
 }
 
 #[no_mangle]
@@ -686,7 +670,6 @@ pub extern "C" fn fmi2GetBooleanStatus(
     value: *mut c_int,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2OK.into()
 }
 
 #[no_mangle]
@@ -697,5 +680,4 @@ pub extern "C" fn fmi2GetStringStatus(
     value: *mut c_char,
 ) -> c_int {
     panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2OK.into()
 }

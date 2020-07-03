@@ -2,7 +2,6 @@ use crate::Fmi2CallbackLogger;
 use crate::Fmi2Status;
 use anyhow::Error;
 use pyo3::prelude::*;
-use pyo3::types::PyAny;
 use pyo3::types::PyDict;
 use pyo3::types::PyTuple;
 use pyo3::PyCell;
@@ -230,7 +229,7 @@ impl PyFmuBackend for CPythonEmbedded {
 
     fn free_instance(&self, handle: SlaveHandle) -> Result<(), Error> {
         self.call_manager_method("free_instance", (handle,), None)
-            .map(|obj| ())
+            .map(|_obj| ()) // ignore any return
     }
 
     fn do_step(

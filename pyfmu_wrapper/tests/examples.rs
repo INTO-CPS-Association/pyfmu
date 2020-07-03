@@ -27,7 +27,7 @@ use pyfmu::Fmi2CallbackFunctions;
 use pyfmu::*;
 
 extern "C" fn logger(
-    component_environment: *mut c_void,
+    _component_environment: *mut c_void,
     instance_name: *const c_char,
     status: c_int,
     category: *const c_char,
