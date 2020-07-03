@@ -11,6 +11,9 @@ use crate::Fmi2CallbackLogger;
 use anyhow::Error;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::sync::Mutex;
+use std::sync::RwLock;
 
 use std::process::Command;
 use subprocess::Popen;
@@ -33,6 +36,8 @@ enum CommandIds {
     GetRealOutputDerivatives = 9,
     DoStep = 10,
 }
+
+// --------------------- Message Queue --------------------------
 
 lazy_static! {
     static ref CONTEXT: zmq::Context = zmq::Context::new();
@@ -74,25 +79,36 @@ where
 
 /// Spawns Python slaves as isolated processes by invoking the environments python-interpreter.
 ///
-/// This is equivalent to starting a script from the command line:
-/// ```
-/// python slave_process.py --instance_name="myfmu" ...
-/// ```
+/// This is equivalent to starting a script from the command line: python slave_process.py --instance_name="myfmu" ...
 ///
 /// Commands such as stepping, setting and reading variables are issues through a message queue.
-struct InterpreterBackend {
-    handle_to_command_sockets: HashMap<SlaveHandle, zmq::Socket>,
-    handle_to_logging_sockets: HashMap<SlaveHandle, zmq::Socket>,
+pub struct InterpreterBackend {
+    handle_to_command_sockets: HashMap<SlaveHandle, Mutex<zmq::Socket>>,
+    handle_to_logging_sockets: HashMap<SlaveHandle, Mutex<zmq::Socket>>,
+    active_handles: RwLock<HashSet<SlaveHandle>>,
     interpreter_name: String,
 }
 
 impl InterpreterBackend {
-    fn new(interpreter_name: &str) -> Result<Self, Error> {
+    pub fn new(interpreter_name: &str) -> Result<Self, Error> {
         Ok(Self {
             handle_to_command_sockets: HashMap::new(),
             handle_to_logging_sockets: HashMap::new(),
+            active_handles: RwLock::new(HashSet::new()),
             interpreter_name: interpreter_name.to_owned(),
         })
+    }
+
+    /// Returns a handle that is not associated with any existing process.
+    fn get_free_handle(&self) -> SlaveHandle {
+        let mut cnt: SlaveHandle = 0;
+        let handles = self.active_handles.read().unwrap();
+
+        while handles.contains(&cnt) {
+            cnt += 1;
+        }
+
+        cnt
     }
 }
 
@@ -102,7 +118,7 @@ impl PyFmuBackend for InterpreterBackend {
     // ------------ Lifecycle --------------
 
     fn instantiate(
-        &self,
+        &mut self,
         instance_name: &str,
         fmu_type: Fmi2Type,
         fmu_guid: &str,
@@ -111,7 +127,17 @@ impl PyFmuBackend for InterpreterBackend {
         visible: bool,
         logging_on: bool,
     ) -> Result<SlaveHandle, Error> {
-        todo!();
+        let handle = self.get_free_handle();
+
+        // 1. create sockets
+        let handshake_socket = CONTEXT.socket(zmq::PULL).unwrap();
+        let command_socket = CONTEXT.socket(zmq::REQ).unwrap();
+        let logging_socket = CONTEXT.socket(zmq::PULL).unwrap();
+
+        self.handle_to_command_sockets
+            .insert(handle, Mutex::new(CONTEXT.socket(zmq::PULL).unwrap()));
+
+        Ok(handle)
     }
 
     fn free_instance(&self, handle: SlaveHandle) -> Result<(), Error> {

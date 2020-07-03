@@ -179,7 +179,7 @@ impl CPythonEmbedded {
 
 impl PyFmuBackend for CPythonEmbedded {
     fn instantiate(
-        &self,
+        &mut self,
         instance_name: &str,
         fmu_type: Fmi2Type,
         fmu_guid: &str,

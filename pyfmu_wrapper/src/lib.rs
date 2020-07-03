@@ -10,6 +10,7 @@ use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem::forget;
+use std::ops::DerefMut;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
@@ -17,7 +18,6 @@ use std::os::raw::c_uint;
 use std::os::raw::c_void;
 use std::ptr::null_mut;
 use std::sync::Mutex;
-use std::sync::RwLock;
 
 #[macro_use]
 extern crate lazy_static;
@@ -32,7 +32,7 @@ use crate::common::Fmi2Type;
 use crate::common::PyFmuBackend;
 
 use crate::cpython_backend::CPythonEmbedded;
-//use crate::backends::CPythonEmbedded;
+use crate::interpreter_backend::InterpreterBackend;
 
 // ------------------------------------- Utility -------------------------------------
 
@@ -48,18 +48,23 @@ enum BackendsType {
     InterpreterProcess,
 }
 
+type BackendType = Box<dyn PyFmuBackend + Sync + Send>;
+
 /// Instantiates
-fn get_backend(backend: BackendsType) -> Box<dyn PyFmuBackend + Sync> {
+fn get_backend(backend: BackendsType) -> BackendType {
     match backend {
-        BackendsType::CPythonEmbedded => {
-            Box::new(CPythonEmbedded::new().expect("Unable to instantiate backend"))
-        }
-        BackendsType::InterpreterProcess => panic!("not implementated"),
+        BackendsType::CPythonEmbedded => Box::new(
+            CPythonEmbedded::new().expect("Unable to instantiate embedded CPython-backend"),
+        ),
+        BackendsType::InterpreterProcess => Box::new(
+            InterpreterBackend::new("python").expect("Unable to instantiate interpreter backend"),
+        ),
     }
 }
 
 lazy_static! {
-    static ref BACKEND: Box<dyn PyFmuBackend + Sync> = get_backend(BackendsType::CPythonEmbedded);
+    static ref BACKEND: Mutex<BackendType> =
+        Mutex::new(get_backend(BackendsType::InterpreterProcess));
 }
 
 // ------------------------------------- LOGGING (types) -------------------------------------
@@ -96,14 +101,14 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref HANDLE_TO_NAMES: RwLock<HashMap<SlaveHandle, String>> = RwLock::new(HashMap::new());
+    static ref HANDLE_TO_NAMES: Mutex<HashMap<SlaveHandle, String>> = Mutex::new(HashMap::new());
 }
 
 /// Logs message using the callback the specified slave
 /// Note that the slave must already have been instantiated.
 fn log_slave(handle: &SlaveHandle, status: Fmi2Status, category: &str, message: &str) {
     let instance_name: String = HANDLE_TO_NAMES
-        .read()
+        .lock()
         .unwrap()
         .get(handle)
         .expect("handle is not associated with an instance name, this is a bug")
@@ -176,7 +181,7 @@ pub extern "C" fn fmi2Instantiate(
     let visible = visible != 0;
     let logging_on = logging_on != 0;
 
-    let handle = BACKEND.instantiate(
+    let handle = BACKEND.lock().unwrap().instantiate(
         instance_name,
         fmu_type,
         guid,
@@ -205,7 +210,7 @@ pub extern "C" fn fmi2Instantiate(
 pub extern "C" fn fmi2FreeInstance(c: *mut c_int) {
     let handle = unsafe { *c };
 
-    match BACKEND.free_instance(handle) {
+    match BACKEND.lock().unwrap().free_instance(handle) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -225,7 +230,11 @@ pub extern "C" fn fmi2SetDebugLogging(
         let cat = unsafe { CStr::from_ptr(*categories.offset(i)).to_str().unwrap() };
         categories_vec.push(cat);
     }
-    match BACKEND.set_debug_logging(unsafe { *c }, logging_on != 0, categories_vec) {
+    match BACKEND
+        .lock()
+        .unwrap()
+        .set_debug_logging(unsafe { *c }, logging_on != 0, categories_vec)
+    {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -259,7 +268,11 @@ pub extern "C" fn fmi2SetupExperiment(
 
     let handle = unsafe { *c };
 
-    match BACKEND.setup_experiment(handle, start_time, tolerance, stop_time) {
+    match BACKEND
+        .lock()
+        .unwrap()
+        .setup_experiment(handle, start_time, tolerance, stop_time)
+    {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -270,7 +283,7 @@ pub extern "C" fn fmi2SetupExperiment(
 pub extern "C" fn fmi2EnterInitializationMode(c: *const SlaveHandle) -> c_int {
     let handle = unsafe { *c };
 
-    match BACKEND.enter_initialization_mode(handle) {
+    match BACKEND.lock().unwrap().enter_initialization_mode(handle) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -281,7 +294,7 @@ pub extern "C" fn fmi2EnterInitializationMode(c: *const SlaveHandle) -> c_int {
 pub extern "C" fn fmi2ExitInitializationMode(c: *const SlaveHandle) -> c_int {
     let handle = unsafe { *c };
 
-    match BACKEND.exit_initialization_mode(handle) {
+    match BACKEND.lock().unwrap().exit_initialization_mode(handle) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -292,7 +305,7 @@ pub extern "C" fn fmi2ExitInitializationMode(c: *const SlaveHandle) -> c_int {
 pub extern "C" fn fmi2Terminate(c: *const SlaveHandle) -> c_int {
     let handle = unsafe { *c };
 
-    match BACKEND.terminate(handle) {
+    match BACKEND.lock().unwrap().terminate(handle) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -303,7 +316,7 @@ pub extern "C" fn fmi2Terminate(c: *const SlaveHandle) -> c_int {
 pub extern "C" fn fmi2Reset(c: *const SlaveHandle) -> c_int {
     let handle = unsafe { *c };
 
-    match BACKEND.reset(handle) {
+    match BACKEND.lock().unwrap().reset(handle) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -321,7 +334,7 @@ pub extern "C" fn fmi2DoStep(
 ) -> c_int {
     let handle = unsafe { *c };
 
-    match BACKEND.do_step(
+    match BACKEND.lock().unwrap().do_step(
         handle,
         current_communication_point,
         communication_step_size,
@@ -351,7 +364,7 @@ pub extern "C" fn fmi2GetReal(
     let handle = unsafe { *c };
     let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
 
-    match BACKEND.get_real(handle, references) {
+    match BACKEND.lock().unwrap().get_real(handle, references) {
         Ok((status, values_slave)) => {
             // if severity of status is warning or lower, copy results to
             // environments values vector
@@ -377,7 +390,7 @@ pub extern "C" fn fmi2GetInteger(
     let handle = unsafe { *c };
     let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
 
-    match BACKEND.get_integer(handle, references) {
+    match BACKEND.lock().unwrap().get_integer(handle, references) {
         Ok((status, values_slave)) => {
             // if severity of status is warning or lower, copy results to
             // environments values vector
@@ -403,7 +416,7 @@ pub extern "C" fn fmi2GetBoolean(
     let handle = unsafe { *c };
     let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
 
-    match BACKEND.get_boolean(handle, references) {
+    match BACKEND.lock().unwrap().get_boolean(handle, references) {
         Ok((status, values_slave)) => {
             // if severity of status is warning or lower, copy results to
             // environments values vector
@@ -438,7 +451,7 @@ pub extern "C" fn fmi2GetString(
     let handle = unsafe { *c };
     let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
 
-    match BACKEND.get_string(handle, references) {
+    match BACKEND.lock().unwrap().get_string(handle, references) {
         Ok((status, values_slave)) => {
             if status <= Fmi2Status::Fmi2Warning {
                 // Convert vector of strings into c-string double pointer
@@ -478,7 +491,7 @@ pub extern "C" fn fmi2SetReal(
     let values = unsafe { std::slice::from_raw_parts(values, nvr) };
     let h = unsafe { *c };
 
-    match BACKEND.set_real(h, references, values) {
+    match BACKEND.lock().unwrap().set_real(h, references, values) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -496,7 +509,7 @@ pub extern "C" fn fmi2SetInteger(
     let values = unsafe { std::slice::from_raw_parts(values, nvr) };
     let h = unsafe { *c };
 
-    match BACKEND.set_integer(h, references, values) {
+    match BACKEND.lock().unwrap().set_integer(h, references, values) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -514,7 +527,7 @@ pub extern "C" fn fmi2SetBoolean(
     let values = unsafe { std::slice::from_raw_parts(values as *const bool, nvr) };
     let h = unsafe { *c };
 
-    match BACKEND.set_boolean(h, references, values) {
+    match BACKEND.lock().unwrap().set_boolean(h, references, values) {
         Ok(status) => status.into(),
         Err(_e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
@@ -543,7 +556,11 @@ pub extern "C" fn fmi2SetString(
         };
     }
 
-    match BACKEND.set_string(handle, references, vec.as_slice()) {
+    match BACKEND
+        .lock()
+        .unwrap()
+        .set_string(handle, references, vec.as_slice())
+    {
         Ok(status) => status.into(),
         Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
