@@ -331,6 +331,13 @@ pub extern "C" fn fmi2DoStep(
     }
 }
 
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2CancelStep(c: *const c_int) -> c_int {
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
 // ------------------------------------- FMI FUNCTIONS (Getters) --------------------------------
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -554,26 +561,30 @@ pub extern "C" fn fmi2GetDirectionalDerivative(
     values_known: *const c_double,
     values_unkown: *mut c_double,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2SetRealInputDerivatives(c: *const c_int, vr: *const c_uint) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2GetRealOutputDerivatives(c: *const c_int) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 // ------------------------------------- FMI FUNCTIONS (Serialization) --------------------------------
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2SetFMUstate(c: *const c_int, state: *const c_void) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -584,7 +595,8 @@ pub extern "C" fn fmi2SerializeFMUstate(
     data: *const c_char,
     size: usize,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -595,13 +607,29 @@ pub extern "C" fn fmi2DeSerializeFMUstate(
     size: usize,
     state: *mut c_void,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn fmi2SerializedFMUstateSize(c: *const c_int, state: *mut *mut c_void) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2GetFMUstate(c: *const c_int, state: *mut *mut c_void) -> c_int {
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
+}
+
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn fmi2FreeFMUstate(c: *const c_int) -> c_int {
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 // ------------------------------------- FMI FUNCTIONS (Status) --------------------------------
@@ -613,7 +641,8 @@ pub extern "C" fn fmi2GetRealStatus(
     status_kind: c_int,
     value: *mut c_double,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -623,7 +652,8 @@ pub extern "C" fn fmi2GetStatus(
     status_kind: c_int,
     Fmi2Status: *mut c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -633,7 +663,8 @@ pub extern "C" fn fmi2GetIntegerStatus(
     status_kind: c_int,
     value: *mut c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -643,7 +674,8 @@ pub extern "C" fn fmi2GetBooleanStatus(
     status_kind: c_int,
     value: *mut c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
 
 #[no_mangle]
@@ -653,5 +685,6 @@ pub extern "C" fn fmi2GetStringStatus(
     status_kind: c_int,
     value: *mut c_char,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    eprintln!("NOT IMPLEMENTED");
+    Fmi2Status::Fmi2Error.into()
 }
