@@ -8,6 +8,7 @@ use std::os::raw::c_void;
 use std::ptr::null_mut;
 use std::slice::from_raw_parts;
 use std::str::Utf8Error;
+use std::thread;
 
 use pyfmu;
 use pyfmu::common::Fmi2Status;
@@ -321,5 +322,263 @@ fn types_fmu() {
     assert_eq!(val_string_in_vec, val_string_out_vec);
     assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());
     assert_eq!(fmi2Reset(h1), Fmi2Status::Fmi2OK.into());
+    fmi2FreeInstance(h1);
+}
+
+#[test]
+fn bicycle_fmu() {
+    // see documentation of Cstring.as_ptr
+    let instance_name = CString::new("a").unwrap();
+    let instance_name_ptr = instance_name.as_ptr();
+
+    let fmu_type = 1;
+    let guid = CString::new("1234").unwrap();
+    let guid_ptr = guid.as_ptr();
+
+    let fmu_resources_path =
+        CString::new(utils::get_example_resources_uri("BicycleKinematic")).unwrap();
+    let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
+
+    let functions = Fmi2CallbackFunctions {
+        logger: Some(logger),
+        allocate_memory: None,
+        free_memory: None,
+        step_finished: None,
+        component_environment: None,
+    };
+    let visible: c_int = 0;
+    let logging_on: c_int = 0;
+
+    let h1 = fmi2Instantiate(
+        instance_name_ptr,
+        fmu_type,
+        guid_ptr,
+        fmu_resources_path_ptr,
+        functions,
+        visible,
+        logging_on,
+    );
+
+    assert_ne!(h1, null_mut());
+
+    let vr_accel = 0;
+    let val_accel: f64 = 1.0;
+    let references = &[vr_accel];
+    let mut values = [val_accel];
+
+    let references_ptr = references.as_ptr();
+    let values_ptr = values.as_mut_ptr();
+
+    assert_eq!(
+        fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
+        Fmi2Status::Fmi2OK.into()
+    );
+
+    assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+
+    assert_eq!(
+        fmi2SetReal(h1, references_ptr, values.len(), values_ptr),
+        Fmi2Status::Fmi2OK.into()
+    );
+
+    assert_eq!(
+        fmi2GetReal(h1, references_ptr, values.len(), values_ptr),
+        Fmi2Status::Fmi2OK.into()
+    );
+    assert_eq!(values, [val_accel]);
+
+    assert_eq!(fmi2DoStep(h1, 0.0, 10.0, 0), Fmi2Status::Fmi2OK.into());
+
+    let vr_pos_x = 2;
+    let references = &[vr_pos_x];
+
+    assert_eq!(
+        fmi2GetReal(h1, references.as_ptr(), references.len(), values_ptr),
+        Fmi2Status::Fmi2OK.into()
+    );
+
+    assert!(values[0] > 1.0); // should have moved more than 1 meter in 10 seconds with accel of 1
+
+    fmi2FreeInstance(h1);
+}
+
+#[test]
+fn multiple_instantiations_same_fmu() {
+    const N: usize = 10;
+
+    let fmu_type = 1; // cosim
+
+    let guid = CString::new("1234").unwrap();
+    let guid_ptr = guid.as_ptr();
+
+    let adder_resources_path = CString::new(utils::get_example_resources_uri("Adder")).unwrap();
+    let adder_resources_path_ptr = adder_resources_path.as_ptr();
+
+    let functions = Fmi2CallbackFunctions {
+        logger: Some(logger),
+        allocate_memory: None,
+        free_memory: None,
+        step_finished: None,
+        component_environment: None,
+    };
+    let visible: c_int = 0;
+    let logging_on: c_int = 0;
+
+    let mut handles: Vec<*mut c_int> = vec![];
+    for i in 0..N {
+        let instance_name = CString::new(i.to_string()).unwrap();
+        let instance_name_ptr = instance_name.as_ptr();
+
+        let h = fmi2Instantiate(
+            instance_name_ptr,
+            fmu_type,
+            guid_ptr,
+            adder_resources_path_ptr,
+            functions,
+            visible,
+            logging_on,
+        );
+
+        assert_ne!(h, null_mut());
+
+        assert_eq!(
+            fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0),
+            Fmi2Status::Fmi2OK.into()
+        );
+        assert_eq!(fmi2EnterInitializationMode(h), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2ExitInitializationMode(h), Fmi2Status::Fmi2OK.into());
+
+        handles.push(h);
+    }
+
+    for h in handles {
+        assert_eq!(fmi2Terminate(h), Fmi2Status::Fmi2OK.into());
+        fmi2FreeInstance(h)
+    }
+}
+
+#[test]
+fn multiple_instantiations_different_fmus() {
+    fn instantiate_fmu(resources_uri: &str) {
+        let functions = Fmi2CallbackFunctions {
+            logger: Some(logger),
+            allocate_memory: None,
+            free_memory: None,
+            step_finished: None,
+            component_environment: None,
+        };
+        let visible: c_int = 0;
+        let logging_on: c_int = 0;
+        let mut handles: Vec<*mut c_int> = vec![];
+
+        let fmu_type = 1; // cosim
+
+        let guid = CString::new("1234").unwrap();
+        let guid_ptr = guid.as_ptr();
+        let resources_path = CString::new(resources_uri).unwrap();
+        let resources_path_ptr = resources_path.as_ptr();
+
+        for i in 0..5 {
+            let instance_name = CString::new(i.to_string()).unwrap();
+            let instance_name_ptr = instance_name.as_ptr();
+
+            let h = fmi2Instantiate(
+                instance_name_ptr,
+                fmu_type,
+                guid_ptr,
+                resources_path_ptr,
+                functions,
+                visible,
+                logging_on,
+            );
+
+            assert_ne!(h, null_mut());
+
+            assert_eq!(
+                fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0),
+                Fmi2Status::Fmi2OK.into()
+            );
+            assert_eq!(fmi2EnterInitializationMode(h), Fmi2Status::Fmi2OK.into());
+            assert_eq!(fmi2ExitInitializationMode(h), Fmi2Status::Fmi2OK.into());
+
+            handles.push(h);
+        }
+
+        for h in handles {
+            assert_eq!(fmi2Terminate(h), Fmi2Status::Fmi2OK.into());
+            fmi2FreeInstance(h)
+        }
+    };
+
+    let add_thread = thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("Adder")));
+
+    let sine_thread =
+        thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("SineGenerator")));
+    let bicycle_thread =
+        thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("BicycleKinematic")));
+
+    let plotting_thread =
+        thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("LivePlotting")));
+
+    add_thread.join().unwrap();
+    sine_thread.join().unwrap();
+    bicycle_thread.join().unwrap();
+    plotting_thread.join().unwrap();
+}
+
+#[test]
+fn liveplotting_fmu() {
+    let instance_name = CString::new("live_logger").unwrap();
+    let instance_name_ptr = instance_name.as_ptr();
+
+    let fmu_type = 1;
+    let guid = CString::new("1234").unwrap();
+    let guid_ptr = guid.as_ptr();
+
+    let fmu_resources_path =
+        CString::new(utils::get_example_resources_uri("LivePlotting")).unwrap();
+    let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
+
+    let functions = Fmi2CallbackFunctions {
+        logger: Some(logger),
+        allocate_memory: None,
+        free_memory: None,
+        step_finished: None,
+        component_environment: None,
+    };
+    let visible: c_int = 0;
+    let logging_on: c_int = 0;
+
+    println!("{:?}", instance_name);
+
+    let h1 = fmi2Instantiate(
+        instance_name_ptr,
+        fmu_type,
+        guid_ptr,
+        fmu_resources_path_ptr,
+        functions,
+        visible,
+        logging_on,
+    );
+
+    assert_ne!(h1, null_mut());
+
+    assert_eq!(
+        fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
+        Fmi2Status::Fmi2OK.into()
+    );
+
+    assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+
+    for i in 0..1000 {
+        assert_eq!(
+            fmi2DoStep(h1, i as f64, i as f64 + 1.0, 0),
+            Fmi2Status::Fmi2OK.into()
+        );
+    }
+
+    assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());
     fmi2FreeInstance(h1);
 }
