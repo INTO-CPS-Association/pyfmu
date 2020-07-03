@@ -1,5 +1,5 @@
-use crate::common::Fmi2Status;
 use crate::Fmi2CallbackLogger;
+use crate::Fmi2Status;
 use anyhow::Error;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -83,12 +83,15 @@ impl CallbacksWrapper {
 
 // ------------------------------------- Backend -------------------------------------
 pub struct CPythonEmbedded {
+    /// Python object that manages multiple slave instances in the interpreter.
+    /// The object acts as a hub where methods of individual slave instances are
+    /// accessed by invoking the corresponding method on the manager:
+    /// manager.do_step(handle=0, ...) -> does step on slave with handle 0
     slave_manager: PyObject,
 }
 
 impl CPythonEmbedded {
-    // Instantiates the Embedded-CPython backend.
-
+    /// Instantiates the Embedded-CPython backend.
     pub fn new() -> Result<Self, Error> {
         let gil = Python::acquire_gil();
         let py = gil.python();
@@ -105,11 +108,7 @@ impl CPythonEmbedded {
 
         Ok(Self { slave_manager: ctx })
     }
-}
 
-// ------------------------------------- FMI functions -------------------------------------
-
-impl CPythonEmbedded {
     /// Utility method for calling python methods on the slave manager
     fn call_manager_method(
         &self,
@@ -143,7 +142,41 @@ impl CPythonEmbedded {
 
         Ok(Fmi2Status::try_from(status)?)
     }
+
+    /// Call method and parse results as a get_xxx return
+    /// If status is more severe than warning, none of the read values
+    /// are returned
+    fn call_manager_method_r<T>(
+        &self,
+        name: &str,
+        args: impl IntoPy<Py<PyTuple>>,
+        kwargs: Option<&PyDict>,
+    ) -> Result<(Fmi2Status, Option<Vec<T>>), Error>
+    where
+        T: for<'a> FromPyObject<'a>,
+    {
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+
+        let (values, status): (Vec<T>, i32) = self
+            .call_manager_method(name, args, kwargs)?
+            .extract(py)
+            .map_pyerr(py)?;
+
+        let status = Fmi2Status::try_from(status)?;
+        let values = {
+            if status <= Fmi2Status::Fmi2Warning {
+                Some(values)
+            } else {
+                None
+            }
+        };
+
+        Ok((status, values))
+    }
 }
+
+// ------------------------------------- FMI functions -------------------------------------
 
 impl PyFmuBackend for CPythonEmbedded {
     fn instantiate(
@@ -224,25 +257,105 @@ impl PyFmuBackend for CPythonEmbedded {
         &self,
         handle: SlaveHandle,
         start_time: f64,
-        tolarance: std::option::Option<f64>,
-        stop_time: std::option::Option<f64>,
-    ) -> Result<Fmi2Status, anyhow::Error> {
+        tolarance: Option<f64>,
+        stop_time: Option<f64>,
+    ) -> Result<Fmi2Status, Error> {
         self.call_manager_method_s(
             "setup_experiment",
             (handle, start_time, tolarance, stop_time),
             None,
         )
     }
-    fn enter_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+    fn enter_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
         self.call_manager_method_s("enter_initialization_mode", (handle,), None)
     }
-    fn exit_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+    fn exit_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
         self.call_manager_method_s("exit_initialization_mode", (handle,), None)
     }
-    fn terminate(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+    fn terminate(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
         self.call_manager_method_s("terminate", (handle,), None)
     }
-    fn reset(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+    fn reset(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
         self.call_manager_method_s("reset", (handle,), None)
+    }
+
+    // ------------------------------------ Getters ------------------------------------
+
+    fn get_real(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<f64>>), Error> {
+        self.call_manager_method_r("get_xxx", (handle, references.to_owned()), None)
+    }
+    fn get_integer(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<i32>>), Error> {
+        self.call_manager_method_r("get_xxx", (handle, references.to_owned()), None)
+    }
+    fn get_boolean(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<bool>>), Error> {
+        self.call_manager_method_r("get_xxx", (handle, references.to_owned()), None)
+    }
+    fn get_string(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<String>>), Error> {
+        self.call_manager_method_r("get_xxx", (handle, references.to_owned()), None)
+    }
+    // ------------------------------------ Setters ------------------------------------
+    fn set_real(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+        values: &[f64],
+    ) -> Result<Fmi2Status, Error> {
+        self.call_manager_method_s(
+            "set_xxx",
+            (handle, references.to_owned(), values.to_owned()),
+            None,
+        )
+    }
+    fn set_integer(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+        values: &[i32],
+    ) -> Result<Fmi2Status, Error> {
+        self.call_manager_method_s(
+            "set_xxx",
+            (handle, references.to_owned(), values.to_owned()),
+            None,
+        )
+    }
+    fn set_boolean(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+        values: &[bool],
+    ) -> Result<Fmi2Status, Error> {
+        self.call_manager_method_s(
+            "set_xxx",
+            (handle, references.to_owned(), values.to_owned()),
+            None,
+        )
+    }
+    fn set_string(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+        values: &[&str],
+    ) -> Result<Fmi2Status, Error> {
+        self.call_manager_method_s(
+            "set_xxx",
+            (handle, references.to_owned(), values.to_owned()),
+            None,
+        )
     }
 }

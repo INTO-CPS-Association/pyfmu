@@ -289,25 +289,45 @@ pub extern "C" fn fmi2SetupExperiment(
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2EnterInitializationMode(c: *const SlaveHandle) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+
+    match BACKEND.enter_initialization_mode(handle) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2ExitInitializationMode(c: *const SlaveHandle) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+
+    match BACKEND.exit_initialization_mode(handle) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2Terminate(c: *const SlaveHandle) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+
+    match BACKEND.terminate(handle) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2Reset(c: *const SlaveHandle) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+
+    match BACKEND.reset(handle) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 // ------------------------------------- FMI FUNCTIONS (Stepping) --------------------------------
@@ -337,7 +357,6 @@ pub extern "C" fn fmi2DoStep(
 }
 
 // ------------------------------------- FMI FUNCTIONS (Getters) --------------------------------
-
 #[no_mangle]
 #[allow(non_snake_case)]
 pub extern "C" fn fmi2GetReal(
@@ -346,7 +365,22 @@ pub extern "C" fn fmi2GetReal(
     nvr: usize,
     values: *mut c_double,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+
+    match BACKEND.get_real(handle, references) {
+        Ok((status, values_slave)) => {
+            // if severity of status is warning or lower, copy results to
+            // environments values vector
+            if status <= Fmi2Status::Fmi2Warning {
+                unsafe {
+                    std::ptr::copy(values_slave.unwrap().as_ptr(), values, nvr);
+                }
+            }
+            status.into()
+        }
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
@@ -392,8 +426,14 @@ pub extern "C" fn fmi2SetReal(
     nvr: usize,
     values: *const c_double,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+    let values = unsafe { std::slice::from_raw_parts(values, nvr) };
+    let h = unsafe { *c };
+
+    match BACKEND.set_real(h, references, values) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
@@ -404,8 +444,14 @@ pub extern "C" fn fmi2SetInteger(
     nvr: usize,
     values: *const c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+    let values = unsafe { std::slice::from_raw_parts(values, nvr) };
+    let h = unsafe { *c };
+
+    match BACKEND.set_integer(h, references, values) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
@@ -416,8 +462,14 @@ pub extern "C" fn fmi2SetBoolean(
     nvr: usize,
     values: *const c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+    let values = unsafe { std::slice::from_raw_parts(values as *const bool, nvr) };
+    let h = unsafe { *c };
+
+    match BACKEND.set_boolean(h, references, values) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]

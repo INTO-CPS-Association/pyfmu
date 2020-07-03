@@ -2,9 +2,12 @@ use crate::Fmi2CallbackLogger;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
+use std::os::raw::c_double;
+use std::os::raw::c_int;
+use std::os::raw::c_uint;
 
 /// Represents the possible status codes which are returned from the slave
-#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, Eq)]
+#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, PartialOrd, Eq)]
 #[repr(i32)]
 pub enum Fmi2Status {
     Fmi2OK,
@@ -42,6 +45,8 @@ pub type SlaveHandle = i32;
 /// Represents an manager of multiple Python slave instances.
 /// Each instance is assoicated with an integer handle returned by the function
 pub trait PyFmuBackend {
+    // ------------ Lifecycle --------------
+
     fn instantiate(
         &self,
         instance_name: &str,
@@ -69,8 +74,59 @@ pub trait PyFmuBackend {
     fn exit_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error>;
     fn terminate(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error>;
     fn reset(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error>;
-    // fn fmi2GetXXX(&self) -> Result<Fmi2Status, Error>;
-    // fn fmi2SetXXX(&self) -> Result<Fmi2Status, Error>;
+
+    // ------------ Getters --------------
+
+    fn get_real(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<f64>>), Error>;
+    fn get_integer(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<i32>>), Error>;
+    fn get_boolean(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<bool>>), Error>;
+    fn get_string(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+    ) -> Result<(Fmi2Status, Option<Vec<String>>), Error>;
+
+    // ------------ Setters --------------
+    fn set_real(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+        values: &[f64],
+    ) -> Result<Fmi2Status, Error>;
+
+    fn set_integer(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+        values: &[i32],
+    ) -> Result<Fmi2Status, Error>;
+
+    fn set_boolean(
+        &self,
+        handle: SlaveHandle,
+        references: &[u32],
+        values: &[bool],
+    ) -> Result<Fmi2Status, Error>;
+
+    fn set_string(
+        &self,
+        handle: SlaveHandle,
+        references: &[c_uint],
+        values: &[&str],
+    ) -> Result<Fmi2Status, Error>;
+
     // fn fmi2SetRealInputDerivatives(&self) -> Result<Fmi2Status, Error>;
     // fn fmi2GetRealOutputDerivatives(&self) -> Result<Fmi2Status, Error>;
     fn do_step(
