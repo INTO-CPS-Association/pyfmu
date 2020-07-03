@@ -3,8 +3,6 @@ use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
 
-use std::os::raw::c_uint;
-
 /// Represents the possible status codes which are returned from the slave
 #[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, PartialOrd, Eq)]
 #[repr(i32)]
@@ -125,7 +123,7 @@ pub trait PyFmuBackend {
     fn set_string(
         &self,
         handle: SlaveHandle,
-        references: &[c_uint],
+        references: &[u32],
         values: &[&str],
     ) -> Result<Fmi2Status, Error>;
 

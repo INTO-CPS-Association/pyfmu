@@ -10,10 +10,19 @@ crate-type = ["rlib","dylib"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+vendored-zmq = ['zmq/vendored']
+
+default=["vendored-zmq"]
+
 [dependencies]
 pyo3 = {git = "https://github.com/PyO3/pyo3.git"}
 lazy_static = "*"
 num_enum = "*"
 anyhow = "*"
+subprocess = "*"
 libc = "*"
+zmq = "*"
+serde = {version = "*", features = ["derive"]}
+serde-pickle = "*"
 byte-strings = "0.1.3"
