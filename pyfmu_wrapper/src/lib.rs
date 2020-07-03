@@ -125,32 +125,6 @@ fn log_slave(handle: &SlaveHandle, status: Fmi2Status, category: &str, message: 
     );
 }
 
-// ------------------------------------- LOGGING (wrapper) -------------------------------------
-
-// /// Thin wrapper around C callback
-// struct LoggingWrapper {
-//     c_callback: Fmi2CallbackLogger,
-// }
-
-// impl LoggingWrapper {
-//     fn new(callback: Option<Fmi2CallbackLogger>) -> Self {
-//         match callback {
-//             None => panic!("Logging callback function appears to be null, which is not allowed according to the specificiation"),
-//             Some(c) => Self {
-//                 c_callback: c
-//             }
-//         }
-//     }
-// }
-
-// impl FMI2Logger for LoggingWrapper {
-//     fn log(self, instance_name: &str, status: Fmi2Status, category: &str, message: &str) {
-//         panic!("not implemented")
-//     }
-// }
-
-// unsafe impl Send for LoggingWrapper {}
-
 // ------------------------------------- FMI FUNCTIONS --------------------------------
 
 #[no_mangle]
