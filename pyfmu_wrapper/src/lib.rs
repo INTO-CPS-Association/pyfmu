@@ -9,6 +9,8 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::mem::forget;
+use std::mem::ManuallyDrop;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
@@ -396,7 +398,22 @@ pub extern "C" fn fmi2GetInteger(
     nvr: usize,
     values: *mut c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+
+    match BACKEND.get_integer(handle, references) {
+        Ok((status, values_slave)) => {
+            // if severity of status is warning or lower, copy results to
+            // environments values vector
+            if status <= Fmi2Status::Fmi2Warning {
+                unsafe {
+                    std::ptr::copy(values_slave.unwrap().as_ptr(), values, nvr);
+                }
+            }
+            status.into()
+        }
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 #[no_mangle]
@@ -407,8 +424,32 @@ pub extern "C" fn fmi2GetBoolean(
     nvr: usize,
     values: *mut c_int,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
+    let handle = unsafe { *c };
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+
+    match BACKEND.get_boolean(handle, references) {
+        Ok((status, values_slave)) => {
+            // if severity of status is warning or lower, copy results to
+            // environments values vector
+            if status <= Fmi2Status::Fmi2Warning {
+                unsafe {
+                    std::ptr::copy(values_slave.unwrap().as_ptr() as *const c_int, values, nvr);
+                }
+            }
+            status.into()
+        }
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
+
+/* See https://github.com/rust-lang/rust/issues/21709
+lazy_static! {
+    /// To ensure that c-strings returned by fmi2GetString can be used by the envrionment,
+    /// they must remain valid until another FMI function is invoked. see 2.1.7 p.23.
+    /// We chose to do it on an instance basis, e.g. each instance has its own string buffer.
+    static ref HANDLE_TO_STR_BUFFER: Mutex<HashMap<SlaveHandle, >> = Mutex::new(HashMap::new());
+}
+*/
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -418,7 +459,33 @@ pub extern "C" fn fmi2GetString(
     nvr: usize,
     values: *mut *mut *mut c_char,
 ) -> c_int {
-    Fmi2Status::Fmi2Error.into()
+    let handle = unsafe { *c };
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+
+    match BACKEND.get_string(handle, references) {
+        Ok((status, values_slave)) => {
+            if status <= Fmi2Status::Fmi2Warning {
+                // Convert vector of strings into c-string double pointer
+                // Note that we intentionally omit dropping the memory
+                // This should be cleared by next call to a FMI function (currently is not the case)
+                let mut vec_cstr = values_slave
+                    .unwrap()
+                    .into_iter()
+                    .map(|s| CString::new(s).unwrap().into_raw())
+                    .collect::<Vec<_>>();
+
+                vec_cstr.shrink_to_fit();
+
+                assert!(vec_cstr.len() == vec_cstr.capacity());
+                let ptr = vec_cstr.as_mut_ptr();
+                forget(ptr); // TODO fix leak
+
+                unsafe { std::ptr::write(values, ptr) };
+            }
+            status.into()
+        }
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 // ------------------------------------- FMI FUNCTIONS (Setters) --------------------------------
@@ -486,8 +553,24 @@ pub extern "C" fn fmi2SetString(
     nvr: usize,
     values: *const *const c_char,
 ) -> c_int {
-    panic!("NOT IMPLEMENTED");
-    Fmi2Status::Fmi2Error.into()
+    let references = unsafe { std::slice::from_raw_parts(vr, nvr) };
+    let handle = unsafe { *c };
+
+    let mut vec: Vec<&str> = Vec::with_capacity(nvr);
+
+    for i in 0..nvr {
+        unsafe {
+            let cstr = CStr::from_ptr(*values.offset(i as isize))
+                .to_str()
+                .expect("Unable to convert C-string to Rust compatible string");
+            vec.insert(i, cstr);
+        };
+    }
+
+    match BACKEND.set_string(handle, references, vec.as_slice()) {
+        Ok(status) => status.into(),
+        Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
+    }
 }
 
 // ------------------------------------- FMI FUNCTIONS (Derivatives) --------------------------------
