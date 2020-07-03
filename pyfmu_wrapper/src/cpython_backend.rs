@@ -220,4 +220,29 @@ impl PyFmuBackend for CPythonEmbedded {
     ) -> Result<Fmi2Status, Error> {
         self.call_manager_method_s("set_debug_logging", (handle, categories, logging_on), None)
     }
+    fn setup_experiment(
+        &self,
+        handle: SlaveHandle,
+        start_time: f64,
+        tolarance: std::option::Option<f64>,
+        stop_time: std::option::Option<f64>,
+    ) -> Result<Fmi2Status, anyhow::Error> {
+        self.call_manager_method_s(
+            "setup_experiment",
+            (handle, start_time, tolarance, stop_time),
+            None,
+        )
+    }
+    fn enter_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+        self.call_manager_method_s("enter_initialization_mode", (handle,), None)
+    }
+    fn exit_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+        self.call_manager_method_s("exit_initialization_mode", (handle,), None)
+    }
+    fn terminate(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+        self.call_manager_method_s("terminate", (handle,), None)
+    }
+    fn reset(&self, handle: SlaveHandle) -> Result<Fmi2Status, anyhow::Error> {
+        self.call_manager_method_s("reset", (handle,), None)
+    }
 }

@@ -58,15 +58,21 @@ pub trait PyFmuBackend {
         logging_on: bool,
         categories: Vec<&str>,
     ) -> Result<Fmi2Status, Error>;
-    // fn fmi2SetupExperiment(&self) -> Result<c_int, Error>;
-    // fn fmi2EnterInitializationMode(&self) -> Result<c_int, Error>;
-    // fn fmi2ExitInitializationMode(&self) -> Result<c_int, Error>;
-    // fn fmi2Terminate(&self) -> Result<c_int, Error>;
-    // fn fmi2Reset(&self) -> Result<c_int, Error>;
-    // fn fmi2GetXXX(&self) -> Result<c_int, Error>;
-    // fn fmi2SetXXX(&self) -> Result<c_int, Error>;
-    // fn fmi2SetRealInputDerivatives(&self) -> Result<c_int, Error>;
-    // fn fmi2GetRealOutputDerivatives(&self) -> Result<c_int, Error>;
+    fn setup_experiment(
+        &self,
+        handle: SlaveHandle,
+        start_time: f64,
+        tolerance: Option<f64>,
+        stop_time: Option<f64>,
+    ) -> Result<Fmi2Status, Error>;
+    fn enter_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error>;
+    fn exit_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error>;
+    fn terminate(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error>;
+    fn reset(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error>;
+    // fn fmi2GetXXX(&self) -> Result<Fmi2Status, Error>;
+    // fn fmi2SetXXX(&self) -> Result<Fmi2Status, Error>;
+    // fn fmi2SetRealInputDerivatives(&self) -> Result<Fmi2Status, Error>;
+    // fn fmi2GetRealOutputDerivatives(&self) -> Result<Fmi2Status, Error>;
     fn do_step(
         &self,
         handle: SlaveHandle,

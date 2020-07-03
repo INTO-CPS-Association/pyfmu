@@ -262,7 +262,25 @@ pub extern "C" fn fmi2SetupExperiment(
     stop_time_defined: c_int,
     stop_time: c_double,
 ) -> c_int {
-    match BACKEND.set_debug_logging(unsafe { *c }, logging_on != 0, categories_vec) {
+    let tolerance = {
+        if tolerance_defined != 0 {
+            Some(tolerance)
+        } else {
+            None
+        }
+    };
+
+    let stop_time = {
+        if stop_time_defined != 0 {
+            Some(stop_time)
+        } else {
+            None
+        }
+    };
+
+    let handle = unsafe { *c };
+
+    match BACKEND.setup_experiment(handle, start_time, tolerance, stop_time) {
         Ok(status) => status.into(),
         Err(e) => panic!("ERROR HANDLING NOT IMPLEMENTED"),
     }
