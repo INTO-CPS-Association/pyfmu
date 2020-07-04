@@ -12,6 +12,7 @@ use anyhow::Error;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::convert::TryFrom;
 use std::sync::Mutex;
 use std::sync::RwLock;
 
@@ -19,10 +20,14 @@ use std::process::Command;
 use subprocess::Popen;
 use subprocess::PopenConfig;
 
+use num_enum::IntoPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_pickle;
 
 // see interpreter_backend.md for list of ids
+
+#[derive(Debug, IntoPrimitive)]
+#[repr(i32)]
 enum CommandIds {
     SetDebugLogging = 0,
     SetupExperiment = 1,
@@ -30,8 +35,8 @@ enum CommandIds {
     ExitInitializationMode = 3,
     Terminate = 4,
     Reset = 5,
-    GetXXX = 6,
-    SetXXX = 7,
+    GetValues = 6,
+    SetValues = 7,
     SetRealInputDerivatives = 8,
     GetRealOutputDerivatives = 9,
     DoStep = 10,
@@ -85,6 +90,7 @@ where
 pub struct InterpreterBackend {
     handle_to_command_sockets: HashMap<SlaveHandle, Mutex<zmq::Socket>>,
     handle_to_logging_sockets: HashMap<SlaveHandle, Mutex<zmq::Socket>>,
+    handle_to_pid: HashMap<SlaveHandle, Mutex<Popen>>,
     active_handles: RwLock<HashSet<SlaveHandle>>,
     interpreter_name: String,
 }
@@ -94,6 +100,7 @@ impl InterpreterBackend {
         Ok(Self {
             handle_to_command_sockets: HashMap::new(),
             handle_to_logging_sockets: HashMap::new(),
+            handle_to_pid: HashMap::new(),
             active_handles: RwLock::new(HashSet::new()),
             interpreter_name: interpreter_name.to_owned(),
         })
@@ -109,6 +116,26 @@ impl InterpreterBackend {
         }
 
         cnt
+    }
+
+    /// Execute command on specified slave and parse the response
+    fn invoke_command_on<'a, T, V>(&self, handle: SlaveHandle, args: T) -> V
+    where
+        T: serde::ser::Serialize,
+        V: serde::de::Deserialize<'a>,
+    {
+        let socket = self
+            .handle_to_command_sockets
+            .get(&handle)
+            .unwrap()
+            .lock()
+            .unwrap();
+
+        socket.send_as_pickle(args).unwrap();
+
+        socket
+            .recv_from_pickle()
+            .expect("Slave process responded with unexpected type to issued command")
     }
 }
 
@@ -138,7 +165,7 @@ impl PyFmuBackend for InterpreterBackend {
         let handshake_port = "54200";
         let command_port = "54201";
         let logging_port = "54202";
-        command_socket.bind("tcp://*:54200").unwrap();
+        handshake_socket.bind("tcp://*:54200").unwrap();
         command_socket.bind("tcp://*:54201").unwrap();
         logging_socket.bind("tcp://*:54202").unwrap();
 
@@ -159,13 +186,22 @@ impl PyFmuBackend for InterpreterBackend {
             logging_port,
         ];
 
-        let mut pid = Popen::create(&args, PopenConfig::default()).unwrap();
+        // Start process and store process ids for porential termination
+        let pid = Popen::create(&args, PopenConfig::default()).unwrap();
+        self.handle_to_pid.insert(handle, Mutex::new(pid));
+
+        //pid.terminate().expect("unable to terminate slave process");
+
+        // 4 wait for handshake
+        let msg: String = handshake_socket.recv_from_pickle().unwrap();
+
+        println!("Got handshake");
 
         self.handle_to_command_sockets
-            .insert(handle, Mutex::new(CONTEXT.socket(zmq::REQ).unwrap()));
+            .insert(handle, Mutex::new(command_socket));
 
         self.handle_to_logging_sockets
-            .insert(handle, Mutex::new(CONTEXT.socket(zmq::PULL).unwrap()));
+            .insert(handle, Mutex::new(logging_socket));
 
         Ok(handle)
     }
@@ -189,13 +225,18 @@ impl PyFmuBackend for InterpreterBackend {
         tolerance: Option<f64>,
         stop_time: Option<f64>,
     ) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 = self.invoke_command_on(handle, (0, start_time, tolerance, stop_time));
+        Ok(Fmi2Status::try_from(status)?)
     }
     fn enter_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 =
+            self.invoke_command_on(handle, (CommandIds::EnterInitializationMode as i32,));
+        Ok(Fmi2Status::try_from(status)?)
     }
     fn exit_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 =
+            self.invoke_command_on(handle, (CommandIds::ExitInitializationMode as i32,));
+        Ok(Fmi2Status::try_from(status)?)
     }
     fn terminate(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
         todo!();
@@ -242,7 +283,9 @@ impl PyFmuBackend for InterpreterBackend {
         references: &[u32],
         values: &[f64],
     ) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 =
+            self.invoke_command_on(handle, (CommandIds::SetValues as i32, references, values));
+        Ok(Fmi2Status::try_from(status)?)
     }
 
     fn set_integer(
@@ -251,7 +294,9 @@ impl PyFmuBackend for InterpreterBackend {
         references: &[u32],
         values: &[i32],
     ) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 =
+            self.invoke_command_on(handle, (CommandIds::SetValues as i32, references, values));
+        Ok(Fmi2Status::try_from(status)?)
     }
 
     fn set_boolean(
@@ -260,7 +305,9 @@ impl PyFmuBackend for InterpreterBackend {
         references: &[u32],
         values: &[bool],
     ) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 =
+            self.invoke_command_on(handle, (CommandIds::SetValues as i32, references, values));
+        Ok(Fmi2Status::try_from(status)?)
     }
 
     fn set_string(
@@ -269,7 +316,9 @@ impl PyFmuBackend for InterpreterBackend {
         references: &[u32],
         values: &[&str],
     ) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 =
+            self.invoke_command_on(handle, (CommandIds::SetValues as i32, references, values));
+        Ok(Fmi2Status::try_from(status)?)
     }
 
     // fn fmi2SetRealInputDerivatives(&self) -> Result<Fmi2Status, Error> {todo!();}
@@ -281,6 +330,26 @@ impl PyFmuBackend for InterpreterBackend {
         communication_step: f64,
         no_set_fmu_state_prior_to_current_point: bool,
     ) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 = self.invoke_command_on(
+            handle,
+            (
+                CommandIds::DoStep as i32,
+                current_communication_point,
+                communication_step,
+                no_set_fmu_state_prior_to_current_point,
+            ),
+        );
+        Ok(Fmi2Status::try_from(status)?)
     }
 }
+
+// impl Drop for InterpreterBackend {
+//     fn drop(&mut self) {
+//         for pid in self.handle_to_pid.values() {
+//             pid.lock()
+//                 .unwrap()
+//                 .terminate()
+//                 .expect("Unable to terminate slave process");
+//         }
+//     }
+// }

@@ -8,16 +8,37 @@ import scipy
 
 
 class MySlave:
-    def do_step(self, start_time: float, step_size: float, no_step_prior: bool):
+    def set_debug_logging(*args):
         return 0
 
-    def set_xxx(self, references: list[int], values):
+    def setup_experiment(*args):
+        return 0
+
+    def enter_initialization_mode(*args):
+        return 0
+
+    def exit_initialization_mode(*args):
+        return 0
+
+    def terminate(*args):
+        return 0
+
+    def reset(*args):
+        return 0
+
+    def get_values(*args):
+        raise NotImplementedError()
+
+    def set_values(*args):
+        return 0
+
+    def do_step(self, start_time: float, step_size: float, no_step_prior: bool):
         return 0
 
 
 if __name__ == "__main__":
 
-    logging.basicConfig(level=logging.CRITICAL)
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger("slave_process.py")
 
     logger.info("Slave process started")
@@ -90,7 +111,17 @@ if __name__ == "__main__":
 
     # 4. read and execute commands
 
-    command_to_methods = {0: slave.do_step, 1: slave.set_xxx}
+    command_to_methods = {
+        0: slave.set_debug_logging,
+        1: slave.setup_experiment,
+        2: slave.enter_initialization_mode,
+        3: slave.exit_initialization_mode,
+        4: slave.terminate,
+        5: slave.reset,
+        6: slave.set_values,
+        7: slave.get_values,
+        8: slave.do_step,
+    }
 
     while True:
 
@@ -100,7 +131,7 @@ if __name__ == "__main__":
         if kind in command_to_methods:
             command_socket.send_pyobj(command_to_methods[kind](*args))
 
-        elif kind == 2:
+        elif kind == 4:
             logging.info("Received terminate signal")
             # context.destroy()
             sys.exit(0)
