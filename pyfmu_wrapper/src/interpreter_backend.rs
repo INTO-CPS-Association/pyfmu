@@ -35,11 +35,11 @@ enum CommandIds {
     ExitInitializationMode = 3,
     Terminate = 4,
     Reset = 5,
-    GetValues = 6,
-    SetValues = 7,
-    SetRealInputDerivatives = 8,
-    GetRealOutputDerivatives = 9,
-    DoStep = 10,
+    SetValues = 6,
+    GetValues = 7,
+    // SetRealInputDerivatives = 8,
+    // GetRealOutputDerivatives = 9,
+    DoStep = 8,
 }
 
 // --------------------- Message Queue --------------------------
@@ -170,12 +170,32 @@ impl PyFmuBackend for InterpreterBackend {
         logging_socket.bind("tcp://*:54202").unwrap();
 
         // 3. start slave process
+        use crate::common::SlaveConfiguration;
+        use anyhow::anyhow;
+        use serde_json;
+        use std::fs::File;
+        use std::io::BufReader;
+        use url::Url;
+
+        let resources_dir = Url::parse(resource_location)?
+            .to_file_path()
+            .map_err(|e| anyhow::anyhow!("Unable to convert URI into path"))?;
+
+        let file = File::open(&resources_dir.join("slave_configuration.json"))?;
+        let reader = BufReader::new(file);
+
+        let config: SlaveConfiguration =
+            serde_json::from_reader(reader).expect("JSON was not well-formatted");
+        let script_path = resources_dir.join(&config.slave_script);
+        println!("Config is {:?}", &config);
 
         let args = [
             "python",
             "slave_process.py",
             "--slave-script",
-            "TODO",
+            &script_path.to_str().unwrap(),
+            "--slave-class",
+            &config.slave_class,
             "--instance-name",
             "TODO",
             "--handshake-port",
@@ -216,7 +236,11 @@ impl PyFmuBackend for InterpreterBackend {
         logging_on: bool,
         categories: Vec<&str>,
     ) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 = self.invoke_command_on(
+            handle,
+            (CommandIds::SetDebugLogging as i32, categories, logging_on),
+        );
+        Ok(Fmi2Status::try_from(status)?)
     }
     fn setup_experiment(
         &self,
@@ -225,7 +249,15 @@ impl PyFmuBackend for InterpreterBackend {
         tolerance: Option<f64>,
         stop_time: Option<f64>,
     ) -> Result<Fmi2Status, Error> {
-        let status: i32 = self.invoke_command_on(handle, (0, start_time, tolerance, stop_time));
+        let status: i32 = self.invoke_command_on(
+            handle,
+            (
+                CommandIds::SetupExperiment as i32,
+                start_time,
+                tolerance,
+                stop_time,
+            ),
+        );
         Ok(Fmi2Status::try_from(status)?)
     }
     fn enter_initialization_mode(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
@@ -252,28 +284,28 @@ impl PyFmuBackend for InterpreterBackend {
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<f64>>), Error> {
-        todo!();
+        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
     }
     fn get_integer(
         &self,
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<i32>>), Error> {
-        todo!();
+        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
     }
     fn get_boolean(
         &self,
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<bool>>), Error> {
-        todo!();
+        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
     }
     fn get_string(
         &self,
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<String>>), Error> {
-        todo!();
+        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
     }
 
     // ------------ Setters --------------

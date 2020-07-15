@@ -9,8 +9,10 @@ from pathlib import Path
 from shutil import make_archive, unpack_archive, move, rmtree
 from tempfile import mkdtemp
 from zipfile import is_zipfile, ZipFile, ZIP_DEFLATED
+from importlib.util import module_from_spec, spec_from_file_location
 
 from pyfmu.types import AnyPath
+from pyfmu.fmi2.types import Fmi2SlaveLike
 
 
 def zipdir(inDir: str, outDir: str):
@@ -383,6 +385,36 @@ class DisplayablePath(object):
             parent = parent.parent
 
         return "".join(reversed(parts))
+
+
+def instantiate_slave(
+    slave_class: str, slave_script_path: AnyPath, module_name: str
+) -> Fmi2SlaveLike:
+    """Create a new instance of the class defined in the specified script
+
+    Parameters
+    ----------
+    slave_class : str
+        name of the class defined in the script
+    
+    slave_script_path : AnyPath
+        path to the script which defines the class
+
+    module_name : str
+        fully-qualified name of the script when this is imported. e.g.
+        For example if module name is "adder" this would be equivalent of "import adder"
+
+    Returns
+    -------
+    Fmi2SlaveLike
+        an slave-like object
+    """
+
+    spec = spec_from_file_location(module_name, slave_script_path)
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    return getattr(module, slave_class)()
 
 
 if __name__ == "__main__":

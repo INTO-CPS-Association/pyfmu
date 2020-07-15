@@ -1,7 +1,11 @@
-use pyo3::types::PyModule;
-use pyo3::Python;
+use std::env::current_dir;
 use std::ffi::CStr;
 use std::os::raw::c_char;
+use std::path::Path;
+
+use anyhow::Error;
+use pyo3::types::PyModule;
+use pyo3::Python;
 
 /// Capture Rust panics and return Fmi2Error instead
 #[allow(unused_macros)]
@@ -20,6 +24,19 @@ pub unsafe fn cstr_to_string(cstr: *const c_char) -> String {
 }
 
 pub fn get_example_resources_uri(example_name: &str) -> String {
+    let path = current_dir()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("examples")
+        .join("exported")
+        .join(example_name)
+        .join("resources");
+
+    format!("file:\\{}", path.to_str().unwrap())
+}
+
+pub fn get_example_resources_uri_old(example_name: &str) -> String {
     let gil = Python::acquire_gil();
     let py = gil.python();
 

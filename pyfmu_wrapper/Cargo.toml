@@ -25,4 +25,6 @@ libc = "*"
 zmq = "*"
 serde = {version = "*", features = ["derive"]}
 serde-pickle = "*"
+serde_json = "*"
 byte-strings = "0.1.3"
+url = "*"

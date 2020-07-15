@@ -2,9 +2,13 @@ use crate::Fmi2CallbackLogger;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
+use serde::Deserialize;
+use serde::Serialize;
 
 /// Represents the possible status codes which are returned from the slave
-#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, PartialOrd, Eq)]
+#[derive(
+    Serialize, Deserialize, Debug, TryFromPrimitive, IntoPrimitive, PartialEq, PartialOrd, Eq,
+)]
 #[repr(i32)]
 pub enum Fmi2Status {
     Fmi2OK,
@@ -15,7 +19,7 @@ pub enum Fmi2Status {
     Fmi2Pending,
 }
 
-#[derive(Debug, TryFromPrimitive, PartialEq, Eq)]
+#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, PartialOrd, Eq)]
 #[repr(i32)]
 pub enum Fmi2StatusKind {
     Fmi2DoStepStatus = 0,
@@ -24,7 +28,7 @@ pub enum Fmi2StatusKind {
     Fmi2Terminated = 3,
 }
 
-#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, Eq)]
+#[derive(Debug, TryFromPrimitive, IntoPrimitive, PartialEq, PartialOrd, Eq)]
 #[repr(i32)]
 pub enum Fmi2Type {
     Fmi2ModelExchange = 0,
@@ -136,4 +140,10 @@ pub trait PyFmuBackend {
         communication_step: f64,
         no_set_fmu_state_prior_to_current_point: bool,
     ) -> Result<Fmi2Status, Error>;
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SlaveConfiguration {
+    pub slave_script: String,
+    pub slave_class: String,
 }

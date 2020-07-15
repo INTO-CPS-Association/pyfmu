@@ -201,7 +201,23 @@ class Fmi2Slave:
         raise NotImplementedError()
 
     def set_xxx(self, references: List[int], values: List[Fmi2Value_T]) -> Fmi2Status_T:
-        raise NotImplementedError()
+
+        try:
+            # variables are stored in order of their value reference
+            attributes = [self.variables[i].name for i in references]
+
+            for a, v in zip(attributes, values):
+                setattr(self, a, v)
+
+            return Fmi2Status.ok
+
+        except Exception:
+
+            self._loggers[handle].error(
+                msg=f"Failed setting variable: {a} to the value: {v}. Ensure that the slave defines a attribute a matching name.",
+                exc_info=True,
+            )
+            return Fmi2Status.error
 
     def setup_experiment(
         self, start_time: float, stop_time: float = None, tolerance: float = None

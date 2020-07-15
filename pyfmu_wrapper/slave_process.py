@@ -6,6 +6,9 @@ import sys
 import numpy
 import scipy
 
+from pyfmu.fmi2 import Fmi2Status
+from pyfmu.builder.utils import instantiate_slave
+
 
 class MySlave:
     def set_debug_logging(*args):
@@ -26,10 +29,10 @@ class MySlave:
     def reset(*args):
         return 0
 
-    def get_values(*args):
+    def get_xxx(*args):
         raise NotImplementedError()
 
-    def set_values(*args):
+    def set_xxx(*args):
         return 0
 
     def do_step(self, start_time: float, step_size: float, no_step_prior: bool):
@@ -76,6 +79,14 @@ if __name__ == "__main__":
         help="absolute path to the slave script",
     )
     parser.add_argument(
+        "--slave-class",
+        required=True,
+        dest="slave_class",
+        type=str,
+        help="class which is used to create an instance of the slave",
+    )
+
+    parser.add_argument(
         "--instance-name",
         required=True,
         dest="instance_name",
@@ -107,7 +118,7 @@ if __name__ == "__main__":
     # 3. instantiate slave
 
     logger.info(f"Creating slave")
-    slave = MySlave()
+    slave = instantiate_slave(args.slave_class, args.slave_script, args.slave_class)
 
     # 4. read and execute commands
 
@@ -118,21 +129,33 @@ if __name__ == "__main__":
         3: slave.exit_initialization_mode,
         4: slave.terminate,
         5: slave.reset,
-        6: slave.set_values,
-        7: slave.get_values,
+        6: slave.set_xxx,
+        7: slave.get_xxx,
         8: slave.do_step,
     }
 
     while True:
 
-        kind, *args = command_socket.recv_pyobj()
-        logger.info(f"Received command of kind: {kind}, with arguments {args}")
+        try:
+            kind, *args = command_socket.recv_pyobj()
+            logger.info(f"Received command of kind: {kind}, with arguments {args}")
 
-        if kind in command_to_methods:
-            command_socket.send_pyobj(command_to_methods[kind](*args))
+            if kind in command_to_methods:
+                command_socket.send_pyobj(command_to_methods[kind](*args))
 
-        elif kind == 4:
-            logging.info("Received terminate signal")
-            # context.destroy()
-            sys.exit(0)
+            elif kind == 4:
+                logging.info("Received terminate signal")
+                # context.destroy()
+                sys.exit(0)
+
+            else:
+                logger.info(f"Received unrecognized command code {kind}")
+                command_socket.send_pyobj(Fmi2Status.error)
+        except Exception:
+            logging.error(
+                "An exception was raised by the slave and was not caught.",
+                exc_info=True,
+            )
+            command_socket.send_pyobj(Fmi2Status.error)
+            sys.exit(1)
 

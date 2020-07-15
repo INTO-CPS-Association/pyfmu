@@ -80,7 +80,7 @@ fn adder_fmu() {
 
     assert_ne!(h1, null_mut());
 
-    let status = fmi2DoStep(h1, 0.0, 10.0, 0);
+    let status = 0;
 
     let references = &[0, 1];
     let mut values: [f64; 2] = [10.0, 20.0];
@@ -92,30 +92,18 @@ fn adder_fmu() {
     let categories = [log_all.as_ptr()];
     let categories_ptr = categories.as_ptr();
 
-    assert_eq!(
-        fmi2SetDebugLogging(h1, 0, 1, categories_ptr),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2SetDebugLogging(h1, 0, 1, categories_ptr), 0);
 
-    assert_eq!(
-        fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0), 0);
 
-    assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
-    assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2EnterInitializationMode(h1), 0);
+    assert_eq!(fmi2ExitInitializationMode(h1), 0);
 
-    assert_eq!(
-        fmi2SetReal(h1, references_ptr, 2, values_ptr),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2SetReal(h1, references_ptr, 2, values_ptr), 0);
 
-    assert_eq!(fmi2DoStep(h1, 0.0, 1.0, 0), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2DoStep(h1, 0.0, 1.0, 0), 0);
 
-    assert_eq!(
-        fmi2GetReal(h1, references_ptr, 2, values_ptr),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2GetReal(h1, references_ptr, 2, values_ptr), 0);
     assert_eq!(values, [10.0, 20.0]);
 
     let references = &[2];
@@ -130,7 +118,7 @@ fn adder_fmu() {
 
     fmi2FreeInstance(h1);
 
-    assert_eq!(status, Fmi2Status::Fmi2OK.into())
+    assert_eq!(status, 0)
 }
 
 #[test]
@@ -196,13 +184,10 @@ fn types_fmu() {
     let val_string_in_vec: Vec<String> = vec!["a", "b"].iter().map(|e| e.to_string()).collect(); // TODO convert this to val_string_in
     let val_string_in: [*const c_char; 2] = [val_str_in_str_a.as_ptr(), val_str_in_str_b.as_ptr()];
 
-    assert_eq!(
-        fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0), 0);
 
-    assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
-    assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2EnterInitializationMode(h1), 0);
+    assert_eq!(fmi2ExitInitializationMode(h1), 0);
 
     // Real
 
@@ -213,10 +198,10 @@ fn types_fmu() {
             val_real_in.len(),
             val_real_in.as_ptr()
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
 
-    assert_eq!(fmi2DoStep(h1, 0.0, 1.0, 0), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2DoStep(h1, 0.0, 1.0, 0), 0);
 
     assert_eq!(
         fmi2GetReal(
@@ -225,7 +210,7 @@ fn types_fmu() {
             val_real_out.len(),
             val_real_out.as_mut_ptr()
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
     assert_eq!(val_real_out, val_real_in);
 
@@ -238,10 +223,10 @@ fn types_fmu() {
             val_integer_in.len(),
             val_integer_in.as_ptr()
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
 
-    assert_eq!(fmi2DoStep(h1, 1.0, 2.0, 0), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2DoStep(h1, 1.0, 2.0, 0), 0);
 
     assert_eq!(
         fmi2GetInteger(
@@ -250,7 +235,7 @@ fn types_fmu() {
             val_integer_out.len(),
             val_integer_out.as_mut_ptr()
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
     assert_eq!(val_integer_out, val_integer_in);
 
@@ -263,10 +248,10 @@ fn types_fmu() {
             val_boolean_in.len(),
             val_boolean_in.as_ptr()
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
 
-    assert_eq!(fmi2DoStep(h1, 2.0, 3.0, 0), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2DoStep(h1, 2.0, 3.0, 0), 0);
 
     assert_eq!(
         fmi2GetBoolean(
@@ -275,7 +260,7 @@ fn types_fmu() {
             val_boolean_out.len(),
             val_boolean_out.as_mut_ptr()
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
     assert_eq!(val_integer_out, val_integer_out);
 
@@ -288,10 +273,10 @@ fn types_fmu() {
             val_string_in.len(),
             val_string_in.as_ptr()
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
 
-    assert_eq!(fmi2DoStep(h1, 2.0, 3.0, 0), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2DoStep(h1, 2.0, 3.0, 0), 0);
 
     assert_eq!(
         fmi2GetString(
@@ -300,7 +285,7 @@ fn types_fmu() {
             val_string_in.len(),
             val_str_out_cstr
         ),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
     // panic!("TODO check string return is correct");
 
@@ -320,8 +305,8 @@ fn types_fmu() {
     .unwrap();
 
     assert_eq!(val_string_in_vec, val_string_out_vec);
-    assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());
-    assert_eq!(fmi2Reset(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2Terminate(h1), 0);
+    assert_eq!(fmi2Reset(h1), 0);
     fmi2FreeInstance(h1);
 }
 
@@ -369,33 +354,24 @@ fn bicycle_fmu() {
     let references_ptr = references.as_ptr();
     let values_ptr = values.as_mut_ptr();
 
-    assert_eq!(
-        fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0), 0);
 
-    assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
-    assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2EnterInitializationMode(h1), 0);
+    assert_eq!(fmi2ExitInitializationMode(h1), 0);
 
-    assert_eq!(
-        fmi2SetReal(h1, references_ptr, values.len(), values_ptr),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2SetReal(h1, references_ptr, values.len(), values_ptr), 0);
 
-    assert_eq!(
-        fmi2GetReal(h1, references_ptr, values.len(), values_ptr),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2GetReal(h1, references_ptr, values.len(), values_ptr), 0);
     assert_eq!(values, [val_accel]);
 
-    assert_eq!(fmi2DoStep(h1, 0.0, 10.0, 0), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2DoStep(h1, 0.0, 10.0, 0), 0);
 
     let vr_pos_x = 2;
     let references = &[vr_pos_x];
 
     assert_eq!(
         fmi2GetReal(h1, references.as_ptr(), references.len(), values_ptr),
-        Fmi2Status::Fmi2OK.into()
+        0
     );
 
     assert!(values[0] > 1.0); // should have moved more than 1 meter in 10 seconds with accel of 1
@@ -442,18 +418,15 @@ fn multiple_instantiations_same_fmu() {
 
         assert_ne!(h, null_mut());
 
-        assert_eq!(
-            fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0),
-            Fmi2Status::Fmi2OK.into()
-        );
-        assert_eq!(fmi2EnterInitializationMode(h), Fmi2Status::Fmi2OK.into());
-        assert_eq!(fmi2ExitInitializationMode(h), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0), 0);
+        assert_eq!(fmi2EnterInitializationMode(h), 0);
+        assert_eq!(fmi2ExitInitializationMode(h), 0);
 
         handles.push(h);
     }
 
     for h in handles {
-        assert_eq!(fmi2Terminate(h), Fmi2Status::Fmi2OK.into());
+        assert_eq!(fmi2Terminate(h), 0);
         fmi2FreeInstance(h)
     }
 }
@@ -495,18 +468,15 @@ fn multiple_instantiations_different_fmus() {
 
             assert_ne!(h, null_mut());
 
-            assert_eq!(
-                fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0),
-                Fmi2Status::Fmi2OK.into()
-            );
-            assert_eq!(fmi2EnterInitializationMode(h), Fmi2Status::Fmi2OK.into());
-            assert_eq!(fmi2ExitInitializationMode(h), Fmi2Status::Fmi2OK.into());
+            assert_eq!(fmi2SetupExperiment(h, 0, 0.0, 0.0, 0, 0.0), 0);
+            assert_eq!(fmi2EnterInitializationMode(h), 0);
+            assert_eq!(fmi2ExitInitializationMode(h), 0);
 
             handles.push(h);
         }
 
         for h in handles {
-            assert_eq!(fmi2Terminate(h), Fmi2Status::Fmi2OK.into());
+            assert_eq!(fmi2Terminate(h), 0);
             fmi2FreeInstance(h)
         }
     };
@@ -564,21 +534,15 @@ fn liveplotting_fmu() {
 
     assert_ne!(h1, null_mut());
 
-    assert_eq!(
-        fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0),
-        Fmi2Status::Fmi2OK.into()
-    );
+    assert_eq!(fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0), 0);
 
-    assert_eq!(fmi2EnterInitializationMode(h1), Fmi2Status::Fmi2OK.into());
-    assert_eq!(fmi2ExitInitializationMode(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2EnterInitializationMode(h1), 0);
+    assert_eq!(fmi2ExitInitializationMode(h1), 0);
 
     for i in 0..1000 {
-        assert_eq!(
-            fmi2DoStep(h1, i as f64, i as f64 + 1.0, 0),
-            Fmi2Status::Fmi2OK.into()
-        );
+        assert_eq!(fmi2DoStep(h1, i as f64, i as f64 + 1.0, 0), 0);
     }
 
-    assert_eq!(fmi2Terminate(h1), Fmi2Status::Fmi2OK.into());
+    assert_eq!(fmi2Terminate(h1), 0);
     fmi2FreeInstance(h1);
 }
