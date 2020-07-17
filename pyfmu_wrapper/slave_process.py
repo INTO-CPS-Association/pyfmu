@@ -16,9 +16,6 @@ from pyfmu.builder.utils import instantiate_slave
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger("slave_process.py")
-
-    logger.info("Slave process started")
 
     parser = ArgumentParser()
 
@@ -70,6 +67,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    logger = logging.getLogger(f"slave_process.py:{args.instance_name}")
+
+    logger.info("Slave process started")
+
     context = zmq.Context()
 
     # 1. create sockets
@@ -80,7 +81,7 @@ if __name__ == "__main__":
     # 2. bind to master
 
     logger.info(
-        f"binding to master, command_port: {args.command_port}, logging_port: {args.logging_port}"
+        f"binding to master, handshake_port: {args.handshake_port}, command_port: {args.command_port}, logging_port: {args.logging_port}"
     )
     handshake_socket.connect(f"tcp://localhost:{args.handshake_port}")
     command_socket.connect(f"tcp://localhost:{args.command_port}")
@@ -102,6 +103,8 @@ if __name__ == "__main__":
     module_name = slave_script.stem
     slave = instantiate_slave(args.slave_class, slave_script, module_name)
 
+    logger.info(f"Slave instantiated")
+
     # 4. read and execute commands
 
     command_to_methods = {
@@ -114,6 +117,7 @@ if __name__ == "__main__":
         6: slave.set_xxx,
         7: slave.get_xxx,
         8: slave.do_step,
+        # 9 reserved for free_instance
     }
 
     while True:
@@ -126,7 +130,12 @@ if __name__ == "__main__":
                 res = command_to_methods[kind](*args)
                 logger.info(f"Command executed with result: {res}")
                 command_socket.send_pyobj(res)
-
+            elif kind == 9:
+                logger.info(
+                    f"Slave process shutting down gracefully due to request from backend"
+                )
+                command_socket.send_pyobj(Fmi2Status.ok)
+                sys.exit(0)
             else:
                 logger.info(f"Received unrecognized command code {kind}")
                 command_socket.send_pyobj(Fmi2Status.error)

@@ -539,7 +539,7 @@ fn liveplotting_fmu() {
     assert_eq!(fmi2EnterInitializationMode(h1), 0);
     assert_eq!(fmi2ExitInitializationMode(h1), 0);
 
-    for i in 0..1000 {
+    for i in 0..100 {
         assert_eq!(fmi2DoStep(h1, i as f64, i as f64 + 1.0, 0), 0);
     }
 

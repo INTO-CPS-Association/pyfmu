@@ -6,15 +6,21 @@
 use crate::common::Fmi2Status;
 use crate::common::Fmi2Type;
 use crate::common::PyFmuBackend;
+use crate::common::SlaveConfiguration;
 use crate::common::SlaveHandle;
 use crate::Fmi2CallbackLogger;
+use anyhow::anyhow;
 use anyhow::Error;
 use lazy_static::lazy_static;
+use serde_json;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::TryFrom;
+use std::fs::File;
+use std::io::BufReader;
 use std::sync::Mutex;
 use std::sync::RwLock;
+use url::Url;
 
 use std::process::Command;
 use subprocess::Popen;
@@ -40,6 +46,7 @@ enum CommandIds {
     // SetRealInputDerivatives = 8,
     // GetRealOutputDerivatives = 9,
     DoStep = 8,
+    FreeInstance = 9,
 }
 
 // --------------------- Message Queue --------------------------
@@ -56,17 +63,40 @@ trait BindToRandom {
 
 impl BindToRandom for zmq::Socket {
     fn bind_to_random_port(&self, addr: &str) -> Result<i32, Error> {
-        for port in 1025..65535 {
-            let connection_str = format!("tcp://{}:{}", addr, port);
-            match self.bind(&connection_str) {
-                Ok(_) => return Ok(port),
-                _ => {}
-            }
-        }
+        let connection_str = format!("tcp://{}:*", addr);
+        self.bind(&connection_str).unwrap();
 
-        Err(anyhow::anyhow!("unable to bind to random socket"))
+        let endpoint = self.get_last_endpoint().unwrap().unwrap();
+        let port: &str = endpoint.split(":").collect::<Vec<&str>>()[2];
+        let port: i32 = port.parse().unwrap();
+        return Ok(port);
     }
 }
+
+// impl BindToRandom for zmq::Socket {
+//     fn bind_to_random_port(&self, addr: &str) -> Result<i32, Error> {
+//         for port in 1025..65535 {
+//             let connection_str = format!("tcp://{}:{}", addr, port);
+//             match self.bind(&connection_str) {
+//                 Ok(_) => {
+//                     let port: Vec<&str> = self
+//                         .get_last_endpoint()
+//                         .unwrap()
+//                         .unwrap()
+//                         .split(":")
+//                         .collect();
+//                     assert_eq!(&port.len(), 2);
+
+//                     let port: i32 = port[1].parse().unwrap();
+//                     return Ok(port);
+//                 }
+//                 _ => {}
+//             }
+//         }
+
+//         Err(anyhow::anyhow!("unable to bind to random socket"))
+//     }
+// }
 
 // --------------------- Pickling Traits --------------------------
 
@@ -129,12 +159,13 @@ impl InterpreterBackend {
     /// Returns a handle that is not associated with any existing process.
     fn get_free_handle(&self) -> SlaveHandle {
         let mut cnt: SlaveHandle = 0;
-        let handles = self.active_handles.lock().unwrap();
+        let mut handles = self.active_handles.lock().unwrap();
 
         while handles.contains(&cnt) {
             cnt += 1;
         }
-
+        assert!(!handles.contains(&cnt));
+        handles.insert(cnt);
         cnt
     }
 
@@ -194,12 +225,6 @@ impl PyFmuBackend for InterpreterBackend {
         let logging_port = logging_socket.bind_to_random_port("*").unwrap();
 
         // 3. start slave process
-        use crate::common::SlaveConfiguration;
-        use anyhow::anyhow;
-        use serde_json;
-        use std::fs::File;
-        use std::io::BufReader;
-        use url::Url;
 
         let resources_dir = Url::parse(resource_location)?
             .to_file_path()
@@ -221,7 +246,7 @@ impl PyFmuBackend for InterpreterBackend {
             "--slave-class",
             &config.slave_class,
             "--instance-name",
-            "TODO",
+            instance_name,
             "--handshake-port",
             &handshake_port.to_string(),
             "--command-port",
@@ -235,6 +260,8 @@ impl PyFmuBackend for InterpreterBackend {
         self.handle_to_pid.insert(handle, Mutex::new(pid));
 
         //pid.terminate().expect("unable to terminate slave process");
+
+        println!("Waiting for handshake from slave");
 
         // 4 wait for handshake
         let msg: String = handshake_socket.recv_from_pickle().unwrap();
@@ -251,13 +278,8 @@ impl PyFmuBackend for InterpreterBackend {
     }
 
     fn free_instance(&mut self, handle: SlaveHandle) -> Result<(), Error> {
+        let status: i32 = self.invoke_command_on(handle, (CommandIds::FreeInstance as i32,));
         self.active_handles.lock().unwrap().remove(&handle);
-        self.handle_to_pid
-            .get(&handle)
-            .unwrap()
-            .lock()
-            .unwrap()
-            .terminate()?;
         self.handle_to_command_sockets.remove(&handle);
         self.handle_to_logging_sockets.remove(&handle);
 
