@@ -48,6 +48,26 @@ lazy_static! {
     static ref CONTEXT: zmq::Context = zmq::Context::new();
 }
 
+trait BindToRandom {
+    /// Quality of life function inspired by
+    /// https://pyzmq.readthedocs.io/en/latest/api/zmq.html?highlight=bind_random#zmq.Socket.bind_to_random_port
+    fn bind_to_random_port(&self, addr: &str) -> Result<i32, Error>;
+}
+
+impl BindToRandom for zmq::Socket {
+    fn bind_to_random_port(&self, addr: &str) -> Result<i32, Error> {
+        for port in 1025..65535 {
+            let connection_str = format!("tcp://{}:{}", addr, port);
+            match self.bind(&connection_str) {
+                Ok(_) => return Ok(port),
+                _ => {}
+            }
+        }
+
+        Err(anyhow::anyhow!("unable to bind to random socket"))
+    }
+}
+
 // --------------------- Pickling Traits --------------------------
 
 trait PickleSender<T> {
@@ -162,12 +182,16 @@ impl PyFmuBackend for InterpreterBackend {
         let logging_socket = CONTEXT.socket(zmq::PULL).unwrap();
 
         // 2. bind socket, TODO create unique port for each slave
-        let handshake_port = "54200";
-        let command_port = "54201";
-        let logging_port = "54202";
-        handshake_socket.bind("tcp://*:54200").unwrap();
-        command_socket.bind("tcp://*:54201").unwrap();
-        logging_socket.bind("tcp://*:54202").unwrap();
+        //let handshake_port = "54200";
+        //let command_port = "54201";
+        //let logging_port = "54202";
+        //handshake_socket.bind("tcp://*:54200").unwrap();
+        //command_socket.bind("tcp://*:54201").unwrap();
+        //logging_socket.bind("tcp://*:54202").unwrap();
+
+        let handshake_port = handshake_socket.bind_to_random_port("*").unwrap();
+        let command_port = command_socket.bind_to_random_port("*").unwrap();
+        let logging_port = logging_socket.bind_to_random_port("*").unwrap();
 
         // 3. start slave process
         use crate::common::SlaveConfiguration;
@@ -199,11 +223,11 @@ impl PyFmuBackend for InterpreterBackend {
             "--instance-name",
             "TODO",
             "--handshake-port",
-            handshake_port,
+            &handshake_port.to_string(),
             "--command-port",
-            command_port,
+            &command_port.to_string(),
             "--logging-port",
-            logging_port,
+            &logging_port.to_string(),
         ];
 
         // Start process and store process ids for porential termination
@@ -281,10 +305,12 @@ impl PyFmuBackend for InterpreterBackend {
         Ok(Fmi2Status::try_from(status)?)
     }
     fn terminate(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 = self.invoke_command_on(handle, (CommandIds::Terminate as i32,));
+        Ok(Fmi2Status::try_from(status)?)
     }
     fn reset(&self, handle: SlaveHandle) -> Result<Fmi2Status, Error> {
-        todo!();
+        let status: i32 = self.invoke_command_on(handle, (CommandIds::Reset as i32,));
+        Ok(Fmi2Status::try_from(status)?)
     }
 
     // ------------ Getters --------------

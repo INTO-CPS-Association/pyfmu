@@ -6,6 +6,9 @@ import sys
 import numpy
 import scipy
 
+import sys
+from pathlib import Path
+
 from pyfmu.fmi2 import Fmi2Status
 from pyfmu.builder.utils import instantiate_slave
 
@@ -89,7 +92,15 @@ if __name__ == "__main__":
     # 3. instantiate slave
 
     logger.info(f"Creating slave")
-    slave = instantiate_slave(args.slave_class, args.slave_script, args.slave_class)
+
+    # append resources directory to path such that local modules can
+    # be imported seamlessly
+    slave_script = Path(args.slave_script)
+    sys.path.append(str(slave_script.parent))
+
+    #
+    module_name = slave_script.stem
+    slave = instantiate_slave(args.slave_class, slave_script, module_name)
 
     # 4. read and execute commands
 

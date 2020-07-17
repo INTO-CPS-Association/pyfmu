@@ -10,6 +10,7 @@ from shutil import make_archive, unpack_archive, move, rmtree
 from tempfile import mkdtemp
 from zipfile import is_zipfile, ZipFile, ZIP_DEFLATED
 from importlib.util import module_from_spec, spec_from_file_location
+import sys
 
 from pyfmu.types import AnyPath
 from pyfmu.fmi2.types import Fmi2SlaveLike
@@ -409,9 +410,9 @@ def instantiate_slave(
     Fmi2SlaveLike
         an slave-like object
     """
-
     spec = spec_from_file_location(module_name, slave_script_path)
     module = module_from_spec(spec)
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
 
     return getattr(module, slave_class)()
