@@ -10,35 +10,6 @@ from pyfmu.fmi2 import Fmi2Status
 from pyfmu.builder.utils import instantiate_slave
 
 
-class MySlave:
-    def set_debug_logging(*args):
-        return 0
-
-    def setup_experiment(*args):
-        return 0
-
-    def enter_initialization_mode(*args):
-        return 0
-
-    def exit_initialization_mode(*args):
-        return 0
-
-    def terminate(*args):
-        return 0
-
-    def reset(*args):
-        return 0
-
-    def get_xxx(*args):
-        raise NotImplementedError()
-
-    def set_xxx(*args):
-        return 0
-
-    def do_step(self, start_time: float, step_size: float, no_step_prior: bool):
-        return 0
-
-
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
@@ -141,12 +112,9 @@ if __name__ == "__main__":
             logger.info(f"Received command of kind: {kind}, with arguments {args}")
 
             if kind in command_to_methods:
-                command_socket.send_pyobj(command_to_methods[kind](*args))
-
-            elif kind == 4:
-                logging.info("Received terminate signal")
-                # context.destroy()
-                sys.exit(0)
+                res = command_to_methods[kind](*args)
+                logger.info(f"Command executed with result: {res}")
+                command_socket.send_pyobj(res)
 
             else:
                 logger.info(f"Received unrecognized command code {kind}")

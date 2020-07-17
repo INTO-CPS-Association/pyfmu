@@ -91,7 +91,7 @@ pub struct InterpreterBackend {
     handle_to_command_sockets: HashMap<SlaveHandle, Mutex<zmq::Socket>>,
     handle_to_logging_sockets: HashMap<SlaveHandle, Mutex<zmq::Socket>>,
     handle_to_pid: HashMap<SlaveHandle, Mutex<Popen>>,
-    active_handles: RwLock<HashSet<SlaveHandle>>,
+    active_handles: Mutex<HashSet<SlaveHandle>>,
     interpreter_name: String,
 }
 
@@ -101,7 +101,7 @@ impl InterpreterBackend {
             handle_to_command_sockets: HashMap::new(),
             handle_to_logging_sockets: HashMap::new(),
             handle_to_pid: HashMap::new(),
-            active_handles: RwLock::new(HashSet::new()),
+            active_handles: Mutex::new(HashSet::new()),
             interpreter_name: interpreter_name.to_owned(),
         })
     }
@@ -109,7 +109,7 @@ impl InterpreterBackend {
     /// Returns a handle that is not associated with any existing process.
     fn get_free_handle(&self) -> SlaveHandle {
         let mut cnt: SlaveHandle = 0;
-        let handles = self.active_handles.read().unwrap();
+        let handles = self.active_handles.lock().unwrap();
 
         while handles.contains(&cnt) {
             cnt += 1;
@@ -226,8 +226,18 @@ impl PyFmuBackend for InterpreterBackend {
         Ok(handle)
     }
 
-    fn free_instance(&self, handle: SlaveHandle) -> Result<(), Error> {
-        todo!();
+    fn free_instance(&mut self, handle: SlaveHandle) -> Result<(), Error> {
+        self.active_handles.lock().unwrap().remove(&handle);
+        self.handle_to_pid
+            .get(&handle)
+            .unwrap()
+            .lock()
+            .unwrap()
+            .terminate()?;
+        self.handle_to_command_sockets.remove(&handle);
+        self.handle_to_logging_sockets.remove(&handle);
+
+        Ok(())
     }
 
     fn set_debug_logging(
@@ -284,28 +294,41 @@ impl PyFmuBackend for InterpreterBackend {
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<f64>>), Error> {
-        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
+        let (status, values): (i32, Option<Vec<f64>>) =
+            self.invoke_command_on(handle, (CommandIds::GetValues as i32, references));
+
+        println!("Got these values: {:?}", values);
+        Ok((Fmi2Status::try_from(status)?, values))
     }
     fn get_integer(
         &self,
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<i32>>), Error> {
-        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
+        let (status, values): (i32, Option<Vec<i32>>) =
+            self.invoke_command_on(handle, (CommandIds::GetValues as i32, references));
+
+        Ok((Fmi2Status::try_from(status)?, values))
     }
     fn get_boolean(
         &self,
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<bool>>), Error> {
-        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
+        let (status, values): (i32, Option<Vec<bool>>) =
+            self.invoke_command_on(handle, (CommandIds::GetValues as i32, references));
+
+        Ok((Fmi2Status::try_from(status)?, values))
     }
     fn get_string(
         &self,
         handle: SlaveHandle,
         references: &[u32],
     ) -> Result<(Fmi2Status, Option<Vec<String>>), Error> {
-        Ok(self.invoke_command_on(handle, (CommandIds::GetValues as i32, references)))
+        let (status, values): (i32, Option<Vec<String>>) =
+            self.invoke_command_on(handle, (CommandIds::GetValues as i32, references));
+
+        Ok((Fmi2Status::try_from(status)?, values))
     }
 
     // ------------ Setters --------------
@@ -375,13 +398,13 @@ impl PyFmuBackend for InterpreterBackend {
     }
 }
 
-// impl Drop for InterpreterBackend {
-//     fn drop(&mut self) {
-//         for pid in self.handle_to_pid.values() {
-//             pid.lock()
-//                 .unwrap()
-//                 .terminate()
-//                 .expect("Unable to terminate slave process");
-//         }
-//     }
-// }
+impl Drop for InterpreterBackend {
+    fn drop(&mut self) {
+        for pid in self.handle_to_pid.values() {
+            pid.lock()
+                .unwrap()
+                .terminate()
+                .expect("Unable to terminate slave process");
+        }
+    }
+}

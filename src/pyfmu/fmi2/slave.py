@@ -198,10 +198,22 @@ class Fmi2Slave:
         return Fmi2Status.ok
 
     def get_xxx(self, references: List[int]) -> Tuple[List[Fmi2Value_T], Fmi2Status_T]:
-        raise NotImplementedError()
+        try:
+            # variables are stored in order of their value reference
+            attributes = [self.variables[i].name for i in references]
+
+            values = [getattr(self, a) for a in attributes]
+
+            return (Fmi2Status.ok, values)
+
+        except Exception:
+            self.log_err(
+                "An exception was raised when reading variables from slave",
+                exc_info=True,
+            )
+            return (Fmi2Status.error, None)
 
     def set_xxx(self, references: List[int], values: List[Fmi2Value_T]) -> Fmi2Status_T:
-
         try:
             # variables are stored in order of their value reference
             attributes = [self.variables[i].name for i in references]

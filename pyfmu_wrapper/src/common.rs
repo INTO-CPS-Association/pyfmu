@@ -59,7 +59,7 @@ pub trait PyFmuBackend {
         logging_on: bool,
     ) -> Result<SlaveHandle, Error>;
 
-    fn free_instance(&self, handle: SlaveHandle) -> Result<(), Error>;
+    fn free_instance(&mut self, handle: SlaveHandle) -> Result<(), Error>;
 
     fn set_debug_logging(
         &self,
