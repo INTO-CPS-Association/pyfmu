@@ -1,10 +1,7 @@
-use std::env::consts::OS;
 use std::env::current_dir;
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use std::path::Path;
 
-use anyhow::Error;
 use pyo3::types::PyModule;
 use pyo3::Python;
 use url::Url;
