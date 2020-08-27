@@ -4,6 +4,7 @@
 // #![allow(unused_variables)]
 
 use crate::common::SlaveHandle;
+use anyhow::Error;
 use libc::c_ulonglong;
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -16,6 +17,7 @@ use std::os::raw::c_double;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_void;
+use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::Mutex;
 
@@ -57,7 +59,7 @@ fn get_backend(backend: BackendsType) -> BackendType {
             CPythonEmbedded::new().expect("Unable to instantiate embedded CPython-backend"),
         ),
         BackendsType::InterpreterProcess => Box::new(
-            InterpreterBackend::new("python").expect("Unable to instantiate interpreter backend"),
+            InterpreterBackend::new("python3").expect("Unable to instantiate interpreter backend."),
         ),
     }
 }
