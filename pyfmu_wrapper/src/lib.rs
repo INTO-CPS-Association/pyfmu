@@ -4,20 +4,17 @@
 // #![allow(unused_variables)]
 
 use crate::common::SlaveHandle;
-use anyhow::Error;
 use libc::c_ulonglong;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::mem::forget;
-use std::ops::DerefMut;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_void;
-use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::Mutex;
 
@@ -424,7 +421,13 @@ pub extern "C" fn fmi2GetBoolean(
             // environments values vector
             if status <= Fmi2Status::Fmi2Warning {
                 unsafe {
-                    std::ptr::copy(values_slave.unwrap().as_ptr() as *const c_int, values, nvr);
+                    let values_slave = values_slave
+                        .unwrap()
+                        .into_iter()
+                        .map(|s| s as i32)
+                        .collect::<Vec<_>>();
+
+                    std::ptr::copy(values_slave.as_ptr(), values, nvr);
                 }
             }
             status.into()
@@ -466,12 +469,11 @@ pub extern "C" fn fmi2GetString(
                     .collect::<Vec<_>>();
 
                 vec_cstr.shrink_to_fit();
-
                 assert!(vec_cstr.len() == vec_cstr.capacity());
-                let ptr = vec_cstr.as_mut_ptr();
-                forget(ptr); // TODO fix leak
 
-                unsafe { std::ptr::write(values, ptr) };
+                let vec_cstr = Box::leak(Box::new(vec_cstr)); // TODO fix leak
+
+                unsafe { std::ptr::write(values, vec_cstr.as_mut_ptr()) };
             }
             status.into()
         }
