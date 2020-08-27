@@ -262,7 +262,7 @@ fn types_fmu() {
         ),
         0
     );
-    assert_eq!(val_integer_out, val_integer_out);
+    assert_eq!(val_boolean_in, val_boolean_out);
 
     // string
 
