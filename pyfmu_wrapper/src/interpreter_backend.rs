@@ -23,6 +23,7 @@ use std::sync::RwLock;
 use url::Url;
 
 use std::process::Command;
+use subprocess::Exec;
 use subprocess::Popen;
 use subprocess::PopenConfig;
 
@@ -147,6 +148,8 @@ pub struct InterpreterBackend {
 
 impl InterpreterBackend {
     pub fn new(interpreter_name: &str) -> Result<Self, Error> {
+        // test that interpreter exists
+        Popen::create(&[interpreter_name, "--version"], PopenConfig::default())?.wait()?;
         Ok(Self {
             handle_to_command_sockets: HashMap::new(),
             handle_to_logging_sockets: HashMap::new(),
@@ -188,6 +191,10 @@ impl InterpreterBackend {
             .recv_from_pickle()
             .expect("Slave process responded with unexpected type to issued command")
     }
+
+    fn log(&self, log_level: i32, category: &str, message: &str) {
+        println!("{}", message);
+    }
 }
 
 // --------------------------- FMI Functions -----------------------------------
@@ -225,10 +232,10 @@ impl PyFmuBackend for InterpreterBackend {
         let logging_port = logging_socket.bind_to_random_port("*").unwrap();
 
         // 3. start slave process
-
+        println!("resource uri {:?}", resource_location);
         let resources_dir = Url::parse(resource_location)?
             .to_file_path()
-            .map_err(|e| anyhow::anyhow!("Unable to convert URI into path"))?;
+            .map_err(|e| anyhow::anyhow!("Unable to convert URI into path {:?}", e))?;
 
         let file = File::open(&resources_dir.join("slave_configuration.json"))?;
         let reader = BufReader::new(file);
@@ -239,7 +246,7 @@ impl PyFmuBackend for InterpreterBackend {
         println!("Config is {:?}", &config);
 
         let args = [
-            "python",
+            &self.interpreter_name,
             "slave_process.py",
             "--slave-script",
             &script_path.to_str().unwrap(),
@@ -256,7 +263,8 @@ impl PyFmuBackend for InterpreterBackend {
         ];
 
         // Start process and store process ids for porential termination
-        let pid = Popen::create(&args, PopenConfig::default()).unwrap();
+        let pid = Popen::create(&args, PopenConfig::default())
+            .expect("Failed instantiating FMU, unable to start a new Python process");
         self.handle_to_pid.insert(handle, Mutex::new(pid));
 
         //pid.terminate().expect("unable to terminate slave process");
