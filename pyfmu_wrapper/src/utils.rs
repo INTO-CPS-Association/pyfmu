@@ -1,3 +1,4 @@
+use std::env::consts::OS;
 use std::env::current_dir;
 use std::ffi::CStr;
 use std::os::raw::c_char;
@@ -6,6 +7,7 @@ use std::path::Path;
 use anyhow::Error;
 use pyo3::types::PyModule;
 use pyo3::Python;
+use url::Url;
 
 /// Capture Rust panics and return Fmi2Error instead
 #[allow(unused_macros)]
@@ -33,7 +35,14 @@ pub fn get_example_resources_uri(example_name: &str) -> String {
         .join(example_name)
         .join("resources");
 
-    format!("file:\\{}", path.to_str().unwrap())
+    assert!(
+        path.is_dir(),
+        "Examples directory does not exist, ensure that examples have already been exported"
+    );
+
+    Url::from_file_path(path)
+        .expect("unable to convert path to file URI")
+        .to_string()
 }
 
 pub fn get_example_resources_uri_old(example_name: &str) -> String {
