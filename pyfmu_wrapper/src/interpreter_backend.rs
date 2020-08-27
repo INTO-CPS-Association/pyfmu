@@ -353,7 +353,6 @@ impl PyFmuBackend for InterpreterBackend {
         let (status, values): (i32, Option<Vec<f64>>) =
             self.invoke_command_on(handle, (CommandIds::GetValues as i32, references));
 
-        println!("Got these values: {:?}", values);
         Ok((Fmi2Status::try_from(status)?, values))
     }
     fn get_integer(
@@ -363,7 +362,6 @@ impl PyFmuBackend for InterpreterBackend {
     ) -> Result<(Fmi2Status, Option<Vec<i32>>), Error> {
         let (status, values): (i32, Option<Vec<i32>>) =
             self.invoke_command_on(handle, (CommandIds::GetValues as i32, references));
-
         Ok((Fmi2Status::try_from(status)?, values))
     }
     fn get_boolean(
@@ -373,7 +371,6 @@ impl PyFmuBackend for InterpreterBackend {
     ) -> Result<(Fmi2Status, Option<Vec<bool>>), Error> {
         let (status, values): (i32, Option<Vec<bool>>) =
             self.invoke_command_on(handle, (CommandIds::GetValues as i32, references));
-
         Ok((Fmi2Status::try_from(status)?, values))
     }
     fn get_string(
