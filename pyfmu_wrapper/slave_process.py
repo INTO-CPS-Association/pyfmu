@@ -107,6 +107,9 @@ if __name__ == "__main__":
 
     # 4. read and execute commands
 
+    def free_instance():
+        return Fmi2Status.ok
+
     command_to_methods = {
         0: slave.set_debug_logging,
         1: slave.setup_experiment,
@@ -117,25 +120,25 @@ if __name__ == "__main__":
         6: slave.set_xxx,
         7: slave.get_xxx,
         8: slave.do_step,
-        # 9 reserved for free_instance
+        9: free_instance
     }
 
     while True:
 
         try:
             kind, *args = command_socket.recv_pyobj()
-            logger.info(f"Received command of kind: {kind}, with arguments {args}")
+            logger.info(
+                f"Received command of kind: {command_to_methods[kind].__name__}, with arguments {args}")
 
             if kind in command_to_methods:
                 res = command_to_methods[kind](*args)
                 logger.info(f"Command executed with result: {res}")
                 command_socket.send_pyobj(res)
-            elif kind == 9:
-                logger.info(
-                    f"Slave process shutting down gracefully due to request from backend"
-                )
-                command_socket.send_pyobj(Fmi2Status.ok)
-                sys.exit(0)
+
+                if kind == 9:
+                    logger.info(
+                        f"Slave process shutting down gracefully due to request from backend")
+                    sys.exit(0)
             else:
                 logger.info(f"Received unrecognized command code {kind}")
                 command_socket.send_pyobj(Fmi2Status.error)
@@ -146,4 +149,3 @@ if __name__ == "__main__":
             )
             command_socket.send_pyobj(Fmi2Status.error)
             sys.exit(1)
-
