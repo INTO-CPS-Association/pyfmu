@@ -43,7 +43,7 @@ setup(
         "Documentation": "https://into-cps-application.readthedocs.io/en/latest/submodules/pyfmu/docs/index.html",
         "Source Code": "https://github.com/INTO-CPS-Association/pyfmu",
     },
-    install_requires=["Jinja2", "lxml", "tqdm","zmq"],
+    install_requires=["Jinja2", "lxml", "tqdm", "zmq"],
     extras_require=_extras_require,
     # resources needed by the CLI to generate and export
     package_data={
@@ -51,6 +51,7 @@ setup(
             "resources/templates/*.j2",
             "resources/wrapper/binaries/*/*[.so|.dll]",
             "resources/validation/*",
+            "resources/config.json",
         ]
     },
     include_package_data=True,

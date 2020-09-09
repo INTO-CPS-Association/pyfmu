@@ -1,0 +1,7 @@
+{
+    "backend.active": "interpreter_msgqueue",
+    "backend.embedded_cpython.libpython": "C:\\ProgramData\\Miniconda3\\python3.dll",
+    "backend.interpreter_msgqueue.executable": "C:\\ProgramData\\Miniconda3\\envs\\py38\\python.exe",
+    "backend.interpreter_msgqueue.protocol": "tcp",
+    "log_stdout": false
+}

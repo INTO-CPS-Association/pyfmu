@@ -1,6 +1,9 @@
 import argparse
 import sys
 from os.path import join, dirname, realpath, normpath
+from pathlib import Path
+import json
+
 import logging
 
 logger = logging.getLogger(__file__)
@@ -9,9 +12,89 @@ from pyfmu.builder.generate import generate_project
 from pyfmu.builder.export import export_project
 from pyfmu.builder.validate import validate_fmu
 
+from pkg_resources import resource_filename, resource_filename
 
-def config_generate_subprogram(subparsers: argparse.ArgumentParser) -> None:
-    parser_gen = subparsers.add_parser("generate", help="Generate a new project.",)
+# ==================== utility ========================================
+
+# credits https://stackoverflow.com/questions/3041986/apt-command-line-interface-like-yes-no-input
+def query_yes_no(question, default="yes"):
+    """Ask a yes/no question via raw_input() and return their answer.
+
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    The "answer" return value is True for "yes" or False for "no".
+    """
+    valid = {"yes": True, "y": True, "ye": True, "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = input().lower()
+        if default is not None and choice == "":
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
+
+
+# ==================== setup argparse subcommands ====================
+
+
+def config_config_subprogram(subparsers, parents) -> None:
+
+    config_parser = subparsers.add_parser(
+        "config",
+        help="Modify settings used by the FMUs during execution",
+        parents=parents,
+    )
+
+    config_exclusive = config_parser.add_mutually_exclusive_group(required=True)
+
+    config_exclusive.add_argument(
+        "--set",
+        metavar=("key", "value"),
+        dest="key_val",
+        type=str,
+        nargs=2,
+        help="sets the key to specified value, within the configuration file",
+    )
+
+    config_exclusive.add_argument(
+        "-l",
+        "--list",
+        action="store_true",
+        help="lists the current key value pairs of the configuration",
+    )
+
+    config_exclusive.add_argument(
+        "--auto-detect",
+        help="attempt to detect the appropriate settings for the host system, such as the path to the Python executable",
+        action="store_true",
+    )
+
+    config_exclusive.add_argument(
+        "-r",
+        "--reset",
+        help="resets configuration using a combination of default values and auto-detected settings",
+        action="store_true",
+    )
+
+
+def config_generate_subprogram(subparsers, parents) -> None:
+    parser_gen = subparsers.add_parser(
+        "generate", help="Generate a new project.", parents=parents,
+    )
 
     parser_gen.add_argument(
         "--name",
@@ -29,8 +112,10 @@ def config_generate_subprogram(subparsers: argparse.ArgumentParser) -> None:
     )
 
 
-def config_export_subprogram(subparsers: argparse.ArgumentParser) -> None:
-    parser_export = subparsers.add_parser("export", help="Export project as FMU.",)
+def config_export_subprogram(subparsers, parents) -> None:
+    parser_export = subparsers.add_parser(
+        "export", help="Export project as FMU.", parents=parents,
+    )
 
     parser_export.add_argument(
         "--project", "-p", required=True, help="path to Python project"
@@ -51,10 +136,10 @@ def config_export_subprogram(subparsers: argparse.ArgumentParser) -> None:
     )
 
 
-def config_validate_subprogram(subparsers: argparse.ArgumentParser) -> None:
+def config_validate_subprogram(subparsers, parents) -> None:
 
     parser_validate = subparsers.add_parser(
-        "validate", help="Static and functional verification of FMU."
+        "validate", help="Static and functional verification of FMU.", parents=parents,
     )
     parser_validate.add_argument(
         "fmu",
@@ -66,6 +151,111 @@ def config_validate_subprogram(subparsers: argparse.ArgumentParser) -> None:
     parser_validate.add_argument(
         "--vdmcheck", action="store_true", help="validate the fmu using vdmcheck"
     )
+
+
+# ==================== handlers called for each subprogram ====================
+
+
+def handle_config(args):
+    def config_get_defaults():
+
+        return {
+            "backend.active": "interpreter_msgqueue",
+            "log_stdout": False,
+        }
+
+    def config_get_guesses():
+
+        from platform import system
+
+        # for the embedded_cpython backend we need to explictly dlopen the python shared library,
+        # otherwise extension modules such as numpy, tensorflow and similar will fail
+        #
+        # in the configuration we store the path to the stable abi version of the shared library.
+        # On Windows the python3.dll acts as a redirect to the python3y.dll
+        # On Linux it should be installed as both libpython3.so, and libpython3.y.so
+        # https://www.python.org/dev/peps/pep-0384/
+        #
+        # Runtime issues will occur if the pyfmu wrapper (Rust code) is compiled against a different version
+        # This can be fixed if pyo3 (Rust Rython bindings) start supporting the stable ABI
+        # this appears to not be far off, see: https://github.com/PyO3/pyo3/pull/1152
+
+        s = system()
+        libname = {"Windows": "python3.dll", "Linux": "libpython3.so"}[s]
+        libpython = (Path(sys.prefix) / libname).__fspath__()
+
+        # we need interprocess communication. Windows do not support ipc
+        protocol = {"Windows": "tcp", "Linux": "ipc"}[s]
+
+        return {
+            "backend.interpreter_msgqueue.executable": sys.executable,
+            "backend.interpreter_msgqueue.protocol": protocol,
+            "backend.embedded_cpython.libpython": libpython,
+        }
+
+    config = None
+    config_path = Path(resource_filename("pyfmu", "resources/config.json"))
+
+    if not args.reset:
+
+        assert (
+            config_path.is_file()
+        ), "config file must exist for all commands other than 'reset'"
+        with open(config_path, "r") as f:
+            logger.debug(f"attempting to read configuration from file: '{config_path}'")
+            config = json.load(f)
+
+    # ------------------- reset configuration -------------
+    if args.reset:
+
+        if config_path.is_file and query_yes_no(
+            "A configuration file already exists, a reset will cause the existing infromation to be cleared, are you sure you want to continue?",
+            default="no",
+        ):
+            defaults = config_get_defaults()
+            guesses = config_get_guesses()
+            assert not any(
+                [k in guesses for k in defaults]
+            ), "defaults should not contain deduced information"
+
+            config = {**defaults, **guesses}
+
+        else:
+            logger.info("exiting, no changes was made to the configuration")
+            sys.exit(0)
+
+    # ----------------- set keys --------------------
+    if args.key_val:
+
+        key, val = args.key_val
+        config[key] = val
+
+    # ---------------- list keys ---------------------
+    if args.list:
+
+        # make git "config --list"-style string
+        l = [f"{k}={v}" for k, v in config.items()]
+
+        logger.info("\n".join(l))
+
+    # -------------- auto detect ---------------------
+
+    if args.auto_detect:
+
+        # https://docs.python.org/3/library/sys.html#sys.base_exec_prefix
+        logger.info(f"sys.executable : {sys.executable}, sys.lib: {sys.exec_prefix}")
+
+        guesses = config_get_guesses()
+
+        if query_yes_no(
+            "Do you want to overwrite the existing configuration with the results from the auto-detection?"
+        ):
+            config = {**config, **guesses}
+
+    # ------------ update config (if necessary) -----------
+    with open(config_path, "w") as f:
+        logger.debug(f"saving configuration to: '{config_path}'")
+        json.dump(config, f, sort_keys=True, indent=4)
 
 
 def handle_generate(args):
@@ -97,6 +287,9 @@ def handle_validate(args):
     validate_fmu(fmu)
 
 
+# ==================== main program invoked as CLI ====================
+
+
 def main():
 
     try:
@@ -106,32 +299,39 @@ The program provides several commands, each related to a specific part of the wo
 Use the '--help' argument to see the uses of each command.
         """
 
-        parser = argparse.ArgumentParser(
+        # trick to sharing common arguments
+        # https://stackoverflow.com/questions/33645859/how-to-add-common-arguments-to-argparse-subcommands
+        parent_parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description=description_text,
+            add_help=False,
         )
 
         # general arguments
-        parser.add_argument(
+        parent_parser.add_argument(
             "--log-level",
             dest="log_level",
             default="info",
-            choices=["trace", "debug", "info", "warning", "error", "critical"],
+            choices=["debug", "info", "warning", "error", "critical"],
             help="defines the verbosity of the output",
         )
 
         # subcommands
+        parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers(dest="subprogram", required=True)
 
-        config_generate_subprogram(subparsers)
-        config_export_subprogram(subparsers)
-        config_validate_subprogram(subparsers)
+        config_config_subprogram(subparsers, [parent_parser])
+        config_generate_subprogram(subparsers, [parent_parser])
+        config_export_subprogram(subparsers, [parent_parser])
+        config_validate_subprogram(subparsers, [parent_parser])
 
         args = parser.parse_args()
 
-        logging.basicConfig(level=args.log_level.upper())
+        logging.basicConfig(level=args.log_level.upper(), format="%(message)s")
 
-        if args.subprogram == "generate":
+        if args.subprogram == "config":
+            handle_config(args)
+        elif args.subprogram == "generate":
             handle_generate(args)
         elif args.subprogram == "export":
             handle_export(args)
