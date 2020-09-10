@@ -1,5 +1,50 @@
+import json
+import logging
 import pathlib
 import urllib
+from pathlib import Path
+
+from pkg_resources import resource_filename
+
+logger = logging.getLogger(__file__)
+
+
+def get_configuration(verify=True):
+    """Returns configuration that controls the behavior of PyFMU such as the backends used to execute FMUs during runtime.
+
+    The configuration is stored in a file named 'config.json' which is distributed by 'pkg_resources', and can be written to using
+    the command
+
+    ```
+    pyfmu config
+    ```
+
+    """
+
+    if verify:
+        verify_configuration()
+
+    config_path = Path(resource_filename("pyfmu", "resources/config.json"))
+
+    with open(config_path, "r") as f:
+        logger.debug(f"attempting to read configuration from file: '{config_path}'")
+        return json.load(f)
+
+
+def verify_configuration():
+    """Asserts that PyFMU's global configuration file exists and is a consistent state
+
+    In case the file is missing or damaged it can be restored using 'pyfmu config --reset'
+
+    Raises:
+        Exception: raised if the file is missing or in an inconsistent state
+    """
+    config_path = Path(resource_filename("pyfmu", "resources/config.json"))
+
+    if not config_path.is_file():
+        raise Exception(
+            f"unable to locate PyFMU's configuration expected to be located at: '{config_path}'"
+        )
 
 
 def file_uri_to_path(file_uri: str, path_class=pathlib.PurePath) -> pathlib.Path:

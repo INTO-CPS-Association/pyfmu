@@ -11,6 +11,7 @@ logger = logging.getLogger(__file__)
 from pyfmu.builder.generate import generate_project
 from pyfmu.builder.export import export_project
 from pyfmu.builder.validate import validate_fmu
+from pyfmu.utils import get_configuration, verify_configuration
 
 from pkg_resources import resource_filename, resource_filename
 
@@ -153,6 +154,44 @@ def config_validate_subprogram(subparsers, parents) -> None:
     )
 
 
+def config_launch_subprogram(subparsers, parents) -> None:
+    parser = subparsers.add_parser(
+        "launch",
+        help="launch proxy of a specified FMU (mainly for internal use)",
+        parents=parents,
+    )
+
+    parser.add_argument(
+        "fmu", help="path to a FMU created by PyFMU", type=str,
+    )
+
+    parser.add_argument(
+        "name",
+        help="instance name used to distinguish multiple instances of the same FMU",
+    )
+
+    parser.add_argument(
+        "handshake-port",
+        metavar="handshake-port",
+        type=int,
+        help="port used by the slave to confirm that the slave is instantiated",
+    )
+
+    parser.add_argument(
+        "command_port",
+        metavar="command-port",
+        type=int,
+        help="port used by the master to publish commands to slave",
+    )
+
+    parser.add_argument(
+        "logging_port",
+        metavar="logging-port",
+        type=int,
+        help="port used by the slave to publish log messages to master",
+    )
+
+
 # ==================== handlers called for each subprogram ====================
 
 
@@ -198,12 +237,7 @@ def handle_config(args):
 
     if not args.reset:
 
-        assert (
-            config_path.is_file()
-        ), "config file must exist for all commands other than 'reset'"
-        with open(config_path, "r") as f:
-            logger.debug(f"attempting to read configuration from file: '{config_path}'")
-            config = json.load(f)
+        config = get_configuration()
 
     # ------------------- reset configuration -------------
     if args.reset:
@@ -258,6 +292,15 @@ def handle_config(args):
         json.dump(config, f, sort_keys=True, indent=4)
 
 
+def handle_export(args):
+
+    project_path = args.project
+
+    archive_path = args.output
+
+    export_project(project_path, archive_path, compress=False)
+
+
 def handle_generate(args):
 
     from os.path import join, curdir, basename, normpath
@@ -271,13 +314,12 @@ def handle_generate(args):
     generate_project(project_path, main_class_name)
 
 
-def handle_export(args):
+def handle_launch(args):
 
-    project_path = args.project
+    config = get_configuration()
+    active_backend = config["backend.active"]
 
-    archive_path = args.output
-
-    export_project(project_path, archive_path, compress=False)
+    logger.info(f"launching FMU: {args.fmu} using backend: '{active_backend}'")
 
 
 def handle_validate(args):
@@ -321,8 +363,10 @@ Use the '--help' argument to see the uses of each command.
         subparsers = parser.add_subparsers(dest="subprogram", required=True)
 
         config_config_subprogram(subparsers, [parent_parser])
-        config_generate_subprogram(subparsers, [parent_parser])
         config_export_subprogram(subparsers, [parent_parser])
+        config_launch_subprogram(subparsers, [parent_parser])
+        config_generate_subprogram(subparsers, [parent_parser])
+
         config_validate_subprogram(subparsers, [parent_parser])
 
         args = parser.parse_args()
@@ -331,10 +375,12 @@ Use the '--help' argument to see the uses of each command.
 
         if args.subprogram == "config":
             handle_config(args)
-        elif args.subprogram == "generate":
-            handle_generate(args)
         elif args.subprogram == "export":
             handle_export(args)
+        elif args.subprogram == "generate":
+            handle_generate(args)
+        elif args.subprogram == "launch":
+            handle_launch(args)
         elif args.subprogram == "validate":
             handle_validate(args)
         else:
