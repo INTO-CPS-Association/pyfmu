@@ -10,11 +10,20 @@ Overview
 PyFMU is a set of tools for developing *functional mock-up units* (FMUs) using Python.
 The goal is to leverage Python's vast ecosystem of scientific packages to rapidly prototype FMUs, for use in FMI-based co-simulation.
 
-:cite:`widl2017`
+PyFMU's main highlights are:
 
-.. image::
-   images/workflow.drawio.svg
+   * Implement models in *pure* Python with access to a vast amount of packages.
+   * No need for compilation; OS specific issues are taken care of by framework.
+   * Rapid iterations to models; modify and test code in Python using test suite and debugger.
+   * Limited knowledge of FMI required; *model description* and packaging is automated.
 
+An obvious question is how the tool works?  Explaining this involves many technical details, but the gist of it is shown in :numref:`fig-workflow` 
+
+.. _fig-workflow:
+.. figure:: images/workflow.drawio.svg
+
+   Depiction of how a Python class definition is transformed into an ready-to-use FMU.
+   
 
 .. toctree::
    :maxdepth: 2

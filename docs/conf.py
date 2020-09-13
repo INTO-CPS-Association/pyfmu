@@ -35,6 +35,9 @@ extensions = [
     "sphinxcontrib.programoutput",
 ]
 
+# enumerate figures by number
+numfig = True
+
 # -- API documentation ------------------------------------------------------
 autoapi_type = "python"
 autoapi_dirs = ["../src/"]
