@@ -274,7 +274,7 @@ def handle_config(args):
 
     # --------------- config location -----------
     if args.get_path:
-        stdout.write(config_path.__fspath__())
+        print((config_path.__fspath__()))
 
     # ----------------- set keys --------------------
     if args.key_val:
@@ -288,7 +288,7 @@ def handle_config(args):
         # make git "config --list"-style string
         l = [f"{k}={v}" for k, v in config.items()]
 
-        logger.info("\n".join(l))
+        print("\n".join(l))
 
     # -------------- auto detect ---------------------
 
