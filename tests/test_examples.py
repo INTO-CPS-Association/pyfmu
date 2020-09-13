@@ -23,7 +23,7 @@ def fmi_logger(m):
 _validate_with = [
     "fmpy",
     "vdmcheck",
-    "fmucheck",
+    # "fmucheck", # freezing (or very extreme duration) on windows (possible other OS as well)
     "maestro_v1",
 ]
 
