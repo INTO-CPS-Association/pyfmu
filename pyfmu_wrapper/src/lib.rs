@@ -63,7 +63,7 @@ type BackendType = Box<dyn PyFmuBackend + Sync + Send>;
 
 /// Create an instance of backend marked as 'active' by the 'backend.active' key in PyFMUs configuration
 ///
-/// @preconditions: pyfmu is in path, pyfmu config file exists and is in consistent state.
+/// @preconditions: pyfmu is in path, pyfmu config file exists and is inin consistent state.
 fn get_backend() -> BackendType {
     Exec::cmd("pyfmu").capture().expect("unable to locate 'pyfmu' program, ensure that the program is installed and accessible in the system path").stdout_str();
     let config_path = Exec::cmd("pyfmu")

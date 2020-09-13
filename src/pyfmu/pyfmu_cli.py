@@ -1,21 +1,27 @@
-import argparse
-from argparse import Action
-import sys
-from os.path import join, dirname, realpath, normpath
-from pathlib import Path
-import json
+from __future__ import annotations
 
+import argparse
+import json
 import logging
-from sys import stdout
+import sys
+from argparse import Action
+from os.path import dirname, join, normpath, realpath
+from pathlib import Path
+from sys import meta_path, path, stdout
+
+import zmq
+from pkg_resources import resource_filename
+
+from pyfmu.builder.export import export_project
+from pyfmu.builder.generate import generate_project
+from pyfmu.builder.validate import validate_fmu
+from pyfmu.utils import get_configuration
+from pyfmu.fmi2.types import Fmi2Status
+from pyfmu.builder.utils import instantiate_slave
+
 
 logger = logging.getLogger(__file__)
 
-from pyfmu.builder.generate import generate_project
-from pyfmu.builder.export import export_project
-from pyfmu.builder.validate import validate_fmu
-from pyfmu.utils import get_configuration, verify_configuration
-
-from pkg_resources import resource_filename, resource_filename
 
 # ==================== utility ========================================
 
@@ -175,12 +181,13 @@ def config_launch_subprogram(subparsers, parents) -> None:
     )
 
     parser.add_argument(
-        "name",
+        "instance_name",
+        metavar="instance-name",
         help="instance name used to distinguish multiple instances of the same FMU",
     )
 
     parser.add_argument(
-        "handshake-port",
+        "handshake_port",
         metavar="handshake-port",
         type=int,
         help="port used by the slave to confirm that the slave is instantiated",
@@ -329,10 +336,107 @@ def handle_generate(args):
 
 def handle_launch(args):
 
+    global logger
+
     config = get_configuration()
     active_backend = config["backend.active"]
 
     logger.info(f"launching FMU: {args.fmu} using backend: '{active_backend}'")
+
+    logger = logging.getLogger(f"slave_process.py:{args.instance_name}")
+
+    logger.info("Slave process started")
+
+    context = zmq.Context()
+
+    # 1. create sockets
+    handshake_socket = context.socket(zmq.PUSH)
+    command_socket = context.socket(zmq.REP)
+    logging_socket = context.socket(zmq.PUSH)
+
+    print(args)
+
+    # 2. bind to master
+
+    logger.info(
+        f"binding to master, handshake_port: {args.handshake_port}, command_port: {args.command_port}, logging_port: {args.logging_port}"
+    )
+    handshake_socket.connect(f"tcp://localhost:{args.handshake_port}")
+    command_socket.connect(f"tcp://localhost:{args.command_port}")
+    logging_socket.connect(f"tcp://localhost:{args.logging_port}")
+
+    logger.info("Connected to master, performing handshake!")
+    handshake_socket.send_pyobj("heres a string for you")
+
+    # 3. instantiate slave
+
+    logger.info(f"Creating slave")
+
+    # append resources directory to path such that local modules can
+    # be imported seamlessly
+    fmu_path = Path(args.fmu)
+
+    slave_config = None
+    with open(fmu_path / "resources" / "slave_configuration.json", "r") as f:
+        slave_config = json.load(f)
+
+    resources_dir = fmu_path / "resources"
+
+    slave_script_path = resources_dir / slave_config["slave_script"]
+    slave_class = slave_config["slave_class"]
+
+    sys.path.append(resources_dir.__fspath__())
+
+    slave = instantiate_slave(slave_class, slave_script_path, slave_script_path.stem)
+
+    logger.info(f"Slave instantiated")
+
+    # 4. read and execute commands
+
+    def free_instance():
+        return Fmi2Status.ok
+
+    command_to_methods = {
+        0: slave.set_debug_logging,
+        1: slave.setup_experiment,
+        2: slave.enter_initialization_mode,
+        3: slave.exit_initialization_mode,
+        4: slave.terminate,
+        5: slave.reset,
+        6: slave.set_xxx,
+        7: slave.get_xxx,
+        8: slave.do_step,
+        9: free_instance,
+    }
+
+    while True:
+
+        try:
+            kind, *args = command_socket.recv_pyobj()
+            logger.info(
+                f"Received command of kind: {command_to_methods[kind].__name__}, with arguments {args}"
+            )
+
+            if kind in command_to_methods:
+                res = command_to_methods[kind](*args)
+                logger.info(f"Command executed with result: {res}")
+                command_socket.send_pyobj(res)
+
+                if kind == 9:
+                    logger.info(
+                        f"Slave process shutting down gracefully due to request from backend"
+                    )
+                    sys.exit(0)
+            else:
+                logger.info(f"Received unrecognized command code {kind}")
+                command_socket.send_pyobj(Fmi2Status.error)
+        except Exception:
+            logging.error(
+                "An exception was raised by the slave and was not caught.",
+                exc_info=True,
+            )
+            command_socket.send_pyobj(Fmi2Status.error)
+            sys.exit(1)
 
 
 def handle_validate(args):
@@ -402,4 +506,3 @@ Use the '--help' argument to see the uses of each command.
     except Exception:
         logger.critical("Program failed due to an unhandled exception", exc_info=True)
         exit(1)
-

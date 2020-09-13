@@ -219,14 +219,7 @@ impl PyFmuBackend for InterpreterBackend {
         let command_socket = CONTEXT.socket(zmq::REQ).unwrap();
         let logging_socket = CONTEXT.socket(zmq::PULL).unwrap();
 
-        // 2. bind socket, TODO create unique port for each slave
-        //let handshake_port = "54200";
-        //let command_port = "54201";
-        //let logging_port = "54202";
-        //handshake_socket.bind("tcp://*:54200").unwrap();
-        //command_socket.bind("tcp://*:54201").unwrap();
-        //logging_socket.bind("tcp://*:54202").unwrap();
-
+        // 2. bind socket
         let handshake_port = handshake_socket.bind_to_random_port("*").unwrap();
         let command_port = command_socket.bind_to_random_port("*").unwrap();
         let logging_port = logging_socket.bind_to_random_port("*").unwrap();
@@ -245,26 +238,20 @@ impl PyFmuBackend for InterpreterBackend {
         let script_path = resources_dir.join(&config.slave_script);
         println!("Config is {:?}", &config);
 
-        let args = [
-            &self.interpreter_name,
-            "slave_process.py",
-            "--slave-script",
-            &script_path.to_str().unwrap(),
-            "--slave-class",
-            &config.slave_class,
-            "--instance-name",
-            instance_name,
-            "--handshake-port",
-            &handshake_port.to_string(),
-            "--command-port",
-            &command_port.to_string(),
-            "--logging-port",
-            &logging_port.to_string(),
-        ];
-
         // Start process and store process ids for porential termination
-        let pid = Popen::create(&args, PopenConfig::default())
-            .expect("Failed instantiating FMU, unable to start a new Python process");
+        let pid = Popen::create(
+            &[
+                "pyfmu",
+                "launch",
+                resources_dir.parent().unwrap().to_str().unwrap(),
+                &instance_name,
+                &handshake_port.to_string(),
+                &command_port.to_string(),
+                &logging_port.to_string(),
+            ],
+            PopenConfig::default(),
+        )
+        .expect("Failed instantiating FMU, unable to start a new Python process");
         self.handle_to_pid.insert(handle, Mutex::new(pid));
 
         //pid.terminate().expect("unable to terminate slave process");
