@@ -4,10 +4,8 @@ import argparse
 import json
 import logging
 import sys
-from argparse import Action
-from os.path import dirname, join, normpath, realpath
 from pathlib import Path
-from sys import meta_path, path, stdout
+from sys import stdout
 
 import zmq
 from pkg_resources import resource_filename
@@ -441,9 +439,7 @@ def handle_launch(args):
 
 def handle_validate(args):
 
-    fmu = args.fmu
     raise NotImplementedError("TODO Parse arguments related to validation tools")
-    validate_fmu(fmu)
 
 
 # ==================== main program invoked as CLI ====================
@@ -470,7 +466,7 @@ Use the '--help' argument to see the uses of each command.
         parent_parser.add_argument(
             "--log-level",
             dest="log_level",
-            default="info",
+            default="critical",
             choices=["debug", "info", "warning", "error", "critical"],
             help="defines the verbosity of the output",
         )
