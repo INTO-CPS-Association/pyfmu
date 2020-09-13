@@ -3,27 +3,39 @@
 // #![allow(unreachable_code)]
 // #![allow(unused_variables)]
 
+use crate::common::PyfmuConfig;
 use crate::common::SlaveHandle;
 use libc::c_ulonglong;
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::error::Error;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::fs::File;
+use std::io::BufReader;
 use std::mem::forget;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_void;
+use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::Mutex;
+use subprocess::Exec;
+use subprocess::Popen;
+use subprocess::PopenConfig;
 
 #[macro_use]
 extern crate lazy_static;
 
+use anyhow::Result;
+
 pub mod common;
 mod cpython_backend;
 mod interpreter_backend;
+use serde_json;
+
 pub mod utils;
 
 use crate::common::Fmi2Status;
@@ -49,21 +61,38 @@ enum BackendsType {
 
 type BackendType = Box<dyn PyFmuBackend + Sync + Send>;
 
-/// Instantiates
-fn get_backend(backend: BackendsType) -> BackendType {
-    match backend {
-        BackendsType::CPythonEmbedded => Box::new(
+/// Create an instance of backend marked as 'active' by the 'backend.active' key in PyFMUs configuration
+///
+/// @preconditions: pyfmu is in path, pyfmu config file exists and is in consistent state.
+fn get_backend() -> BackendType {
+    Exec::cmd("pyfmu").capture().expect("unable to locate 'pyfmu' program, ensure that the program is installed and accessible in the system path").stdout_str();
+    let config_path = Exec::cmd("pyfmu")
+        .args(&["config", "--get-path"])
+        .capture()
+        .expect("unable to locate pyfmu's configuration file")
+        .stdout_str();
+
+    let file = File::open(config_path).expect("unable to open configuration file");
+    let reader = BufReader::new(file);
+
+    let config: PyfmuConfig =
+        serde_json::from_reader(reader).expect("unable to parse configuration file");
+
+    // add new backends below
+    match config.backend_active.as_str() {
+        "embedded_cpython" => Box::new(
             CPythonEmbedded::new().expect("Unable to instantiate embedded CPython-backend"),
         ),
-        BackendsType::InterpreterProcess => Box::new(
-            InterpreterBackend::new("python3").expect("Unable to instantiate interpreter backend."),
+        "interpreter_msgqueue" => Box::new(
+            InterpreterBackend::new(&config.backend_interpreter_msgqueue_executable)
+                .expect("Unable to instantiate interpreter backend."),
         ),
+        _ => panic!("unrecognized backend"),
     }
 }
 
 lazy_static! {
-    static ref BACKEND: Mutex<BackendType> =
-        Mutex::new(get_backend(BackendsType::InterpreterProcess));
+    static ref BACKEND: Mutex<BackendType> = Mutex::new(get_backend());
 }
 
 // ------------------------------------- LOGGING (types) -------------------------------------

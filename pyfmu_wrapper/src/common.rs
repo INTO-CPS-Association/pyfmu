@@ -2,8 +2,28 @@ use crate::Fmi2CallbackLogger;
 use anyhow::Error;
 use num_enum::IntoPrimitive;
 use num_enum::TryFromPrimitive;
+use serde;
 use serde::Deserialize;
 use serde::Serialize;
+
+// ====================== config =======================
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PyfmuConfig {
+    #[serde(rename = "backend.active")]
+    pub backend_active: String,
+    #[serde(rename = "backend.embedded_cpython.libpython")]
+    pub backend_embedded_cpython_libpython: String,
+    #[serde(rename = "backend.interpreter_msgqueue.executable")]
+    pub backend_interpreter_msgqueue_executable: String,
+    #[serde(rename = "backend.interpreter_msgqueue.protocol")]
+    pub backend_interpreter_msgqueue_protocol: String,
+    #[serde(rename = "log_stdout")]
+    pub log_stdout: bool,
+}
+
+// ==================== status codes =====================
 
 /// Represents the possible status codes which are returned from the slave
 #[derive(

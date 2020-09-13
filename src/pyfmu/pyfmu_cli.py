@@ -1,10 +1,12 @@
 import argparse
+from argparse import Action
 import sys
 from os.path import join, dirname, realpath, normpath
 from pathlib import Path
 import json
 
 import logging
+from sys import stdout
 
 logger = logging.getLogger(__file__)
 
@@ -69,6 +71,13 @@ def config_config_subprogram(subparsers, parents) -> None:
         type=str,
         nargs=2,
         help="sets the key to specified value, within the configuration file",
+    )
+
+    config_exclusive.add_argument(
+        "--get-path",
+        dest="get_path",
+        action="store_true",
+        help="get path to configuration file",
     )
 
     config_exclusive.add_argument(
@@ -257,6 +266,10 @@ def handle_config(args):
         else:
             logger.info("exiting, no changes was made to the configuration")
             sys.exit(0)
+
+    # --------------- config location -----------
+    if args.get_path:
+        stdout.write(config_path.__fspath__())
 
     # ----------------- set keys --------------------
     if args.key_val:
