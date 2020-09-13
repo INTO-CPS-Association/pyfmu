@@ -186,7 +186,10 @@ class ExampleArchive:
         return self.archive
 
     def __exit__(self, exception_type, exception_value, traceback):
-        rm(self.tmpdir)
+        try:
+            rm(self.tmpdir)
+        except Exception:
+            pass
 
 
 class ExampleSystem:
