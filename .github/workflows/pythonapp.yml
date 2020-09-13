@@ -5,9 +5,9 @@ name: Build and update wrappers
 
 on:
   push:
-    branches: "master"
+    branches: "feature-interpreter-backend"
   pull_request:
-    branches: "master"
+    branches: "feature-interpreter-backend"
 
 jobs:
   build-wrapper-windows:
@@ -15,66 +15,67 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
+      - name: Set up Python 3.8
         uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: 3.8
 
-      - name: install conan
+      - name: Install package
         run: |
-          pip install conan
-
-      - name: Build using CMAKE
+          pip install -e.[dev]
+      - name: Build wrapper and export examples
         run: |
-          python build.py -u
-
-      - name: setup and test
+          python build.py -ue
+      - name: Execute Rust tests
         run: |
-          pip install .[tests]
-          pytest
-
+          python build.py --rust-tests
+      - name: Execute Python tests
+        run: |
+          python build.py --python-tests
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
         with:
           name: windows-wrapper
-          path: build/pyfmu.dll
+          path: src/pyfmu/resources/wrapper/binaries/win64/pyfmu.dll
 
   build-wrapper-linux:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
+
+      # pyo3 requires development headers on ubuntu
+      - uses: deadsnakes/action@v1.0.0
         with:
-          python-version: 3.7
+          python-version: 3.8-dev
+      - run: python --version --version && which python
 
-      - name: install conan
+      # - name: Set up Python 3.8
+      #   run: |
+      #     sudo apt install python3.8-dev
+
+      - name: Install package
         run: |
-          pip install conan
-
-      - name: check compiler versions
+          pip install -e.[dev]
+      # some dependencies are missing for Ubuntu
+      # see "known issues" in readme.md
+      - name: Missing dependencies
         run: |
-          cmake --version
-          g++ --version
-          g++-9 --version
-
-      - name: Build using CMAKE
+          sudo apt-get install --reinstall libxcb-xinerama0
+      - name: Build wrapper and export examples
         run: |
-          export CXX=g++-9
-          export C=gcc-9
-          python build.py -u
-
-      - name: setup and test
+          python build.py -ue
+      - name: Execute Rust tests
         run: |
-          pip install .[tests]
-          pytest
-
+          python build.py --rust-tests
+      - name: Execute Python tests
+        run: |
+          python build.py --python-tests
       - name: Upload wrapper
         uses: actions/upload-artifact@v1
         with:
-          name: linux-wrapper
-          path: build/pyfmu.so
+          name: windows-wrapper
+          path: src/pyfmu/resources/wrapper/binaries/linux64/pyfmu.so
 
   update-wrappers:
     needs: [build-wrapper-windows, build-wrapper-linux]
