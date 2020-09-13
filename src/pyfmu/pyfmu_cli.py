@@ -8,15 +8,18 @@ from pathlib import Path
 from sys import stdout
 
 import zmq
-from pkg_resources import resource_filename
 
 from pyfmu.builder.export import export_project
 from pyfmu.builder.generate import generate_project
-from pyfmu.builder.validate import validate_fmu
-from pyfmu.utils import get_configuration
-from pyfmu.fmi2.types import Fmi2Status
 from pyfmu.builder.utils import instantiate_slave
-
+from pyfmu.config import (
+    auto_configure,
+    get_config_path,
+    reset_config,
+    config_set_val,
+    get_configuration,
+)
+from pyfmu.fmi2.types import Fmi2Status
 
 logger = logging.getLogger(__file__)
 
@@ -210,44 +213,6 @@ def config_launch_subprogram(subparsers, parents) -> None:
 
 
 def handle_config(args):
-    def config_get_defaults():
-
-        return {
-            "backend.active": "interpreter_msgqueue",
-            "log_stdout": False,
-        }
-
-    def config_get_guesses():
-
-        from platform import system
-
-        # for the embedded_cpython backend we need to explictly dlopen the python shared library,
-        # otherwise extension modules such as numpy, tensorflow and similar will fail
-        #
-        # in the configuration we store the path to the stable abi version of the shared library.
-        # On Windows the python3.dll acts as a redirect to the python3y.dll
-        # On Linux it should be installed as both libpython3.so, and libpython3.y.so
-        # https://www.python.org/dev/peps/pep-0384/
-        #
-        # Runtime issues will occur if the pyfmu wrapper (Rust code) is compiled against a different version
-        # This can be fixed if pyo3 (Rust Rython bindings) start supporting the stable ABI
-        # this appears to not be far off, see: https://github.com/PyO3/pyo3/pull/1152
-
-        s = system()
-        libname = {"Windows": "python3.dll", "Linux": "libpython3.so"}[s]
-        libpython = (Path(sys.prefix) / libname).__fspath__()
-
-        # we need interprocess communication. Windows do not support ipc
-        protocol = {"Windows": "tcp", "Linux": "ipc"}[s]
-
-        return {
-            "backend.interpreter_msgqueue.executable": sys.executable,
-            "backend.interpreter_msgqueue.protocol": protocol,
-            "backend.embedded_cpython.libpython": libpython,
-        }
-
-    config = None
-    config_path = Path(resource_filename("pyfmu", "resources/config.json"))
 
     if not args.reset:
 
@@ -255,38 +220,23 @@ def handle_config(args):
 
     # ------------------- reset configuration -------------
     if args.reset:
-
-        if config_path.is_file and query_yes_no(
-            "A configuration file already exists, a reset will cause the existing infromation to be cleared, are you sure you want to continue?",
-            default="no",
-        ):
-            defaults = config_get_defaults()
-            guesses = config_get_guesses()
-            assert not any(
-                [k in guesses for k in defaults]
-            ), "defaults should not contain deduced information"
-
-            config = {**defaults, **guesses}
-
-        else:
-            logger.info("exiting, no changes was made to the configuration")
-            sys.exit(0)
+        reset_config()
 
     # --------------- config location -----------
     if args.get_path:
-        stdout.write((config_path.__fspath__()))
+        stdout.write((get_config_path().__fspath__()))
 
     # ----------------- set keys --------------------
     if args.key_val:
 
         key, val = args.key_val
-        config[key] = val
+        config_set_val(key=key, val=val)
 
     # ---------------- list keys ---------------------
     if args.list:
 
         # make git "config --list"-style string
-        l = [f"{k}={v}" for k, v in config.items()]
+        l = [f"{k}={v}" for k, v in get_configuration().items()]
 
         stdout.write("\n".join(l))
 
@@ -294,20 +244,10 @@ def handle_config(args):
 
     if args.auto_detect:
 
-        # https://docs.python.org/3/library/sys.html#sys.base_exec_prefix
-        logger.info(f"sys.executable : {sys.executable}, sys.lib: {sys.exec_prefix}")
-
-        guesses = config_get_guesses()
-
         if query_yes_no(
             "Do you want to overwrite the existing configuration with the results from the auto-detection?"
         ):
-            config = {**config, **guesses}
-
-    # ------------ update config (if necessary) -----------
-    with open(config_path, "w") as f:
-        logger.debug(f"saving configuration to: '{config_path}'")
-        json.dump(config, f, sort_keys=True, indent=4)
+            auto_configure()
 
 
 def handle_export(args):
