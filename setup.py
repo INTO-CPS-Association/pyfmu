@@ -12,7 +12,13 @@ https://into-cps-application.readthedocs.io
 """
 
 _extras_require = {
-    "docs": ["Sphinx", "recommonmark", "sphinx_rtd_theme", "sphinx-autoapi"],
+    "docs": [
+        "Sphinx",
+        "sphinx_rtd_theme",
+        "sphinx-autoapi",
+        "sphinxcontrib-bibtex",
+        "sphinxcontrib-programoutput",
+    ],
     "tests": [
         "numpy",
         "pandas",

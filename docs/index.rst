@@ -3,54 +3,41 @@
 ..    You can adapt this file completely to your liking, but it should at least
 ..    contain the root `toctree` directive.
 
-PyFMU documentation
-===================
-PyFMU is a tool for developing *functional mock-up units* (FMUs) using Python.
-The goal is to provide rapid prototyping capabilities to a wide range of applications.
+########
+Overview
+########
 
-First Steps
------------
+PyFMU is a set of tools for developing *functional mock-up units* (FMUs) using Python.
+The goal is to leverage Python's vast ecosystem of scientific packages to rapidly prototype FMUs, for use in FMI-based co-simulation.
 
-* **Installing**: :doc:`Installing <installing>`
+:cite:`widl2017`
 
-* **Getting Started**: :doc:`Getting started <getting_started>`
+.. image::
+   images/workflow.drawio.svg
 
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
-   :caption: Getting Started:
+   :hidden: 
+   :caption: First Steps
 
    installing
-   getting_started
+   usage
 
-
-Examples
---------
-To find examples of other fmus, look at the following sections:
-
-* **Sine Generator**: :doc:`Sine Generator <examples/sineGenerator>` 
-* **Live Plotting**:  :doc:`Live Plotting <examples/livePlotting>`
-
-.. toctree::
-    :maxdepth: 2
-    :caption: Examples:
-    :glob:  
-   
-    examples/sineGenerator
-    examples/livePlotting
-
-
-
-API Reference
--------------
 
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: API Reference:
+   :caption: Advanced Topics
+
+   configuration
+
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Technical Information
 
    autoapi/index
 
-
-
+.. bibliography:: refs.bib
