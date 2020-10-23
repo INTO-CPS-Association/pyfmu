@@ -6,3 +6,5 @@ Configuration
 #############
 
 
+.. command-output:: pyfmu config --list
+

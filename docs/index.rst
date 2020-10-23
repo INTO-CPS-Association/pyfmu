@@ -43,6 +43,7 @@ An obvious question is how the tool works?  Explaining this involves many techni
    :caption: Advanced Topics
 
    configuration
+   backends
 
 
 .. toctree::
@@ -50,6 +51,7 @@ An obvious question is how the tool works?  Explaining this involves many techni
    :hidden:
    :caption: Technical Information
 
+   developer
    autoapi/index
 
 .. bibliography:: refs.bib

@@ -13,7 +13,7 @@ Below is a short description of each example:
 Adder
 =====
 
-Calculates the sum of it's two inputs.
+Calculates the sum of its two inputs.
 
 
 =============
@@ -21,4 +21,11 @@ SineGenerator
 =============
 
 Generates a sine-wave at a with a specific amplitude, frequency, and phase.
+
+
+.. _example_liveplotting:
+
+============
+LivePlotting
+============
 
