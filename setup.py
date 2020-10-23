@@ -22,7 +22,6 @@ _extras_require = {
     "tests": [
         "numpy",
         "pandas",
-        "OOModellingPython",
         "pytest",
         "tox",
         "fmpy",
@@ -64,7 +63,3 @@ setup(
     python_requires=">=3.8",
     entry_points={"console_scripts": ["pyfmu=pyfmu.pyfmu_cli:main"]},
 )
-
-
-def test():
-    import baz
