@@ -1,4 +1,0 @@
-{
-    "slave_class": "Bicycle_Kinematic",
-    "slave_script": "bicycle_kinematic.py"
-}

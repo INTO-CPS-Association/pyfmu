@@ -5,5 +5,4 @@ from .example_finder import (
     get_all_examples,
     get_example_project,
     get_correct_examples,
-    MaestroExample,
 )  # noqa: f401
