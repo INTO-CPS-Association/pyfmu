@@ -311,75 +311,6 @@ fn types_fmu() {
 }
 
 #[test]
-fn bicycle_fmu() {
-    // see documentation of Cstring.as_ptr
-    let instance_name = CString::new("a").unwrap();
-    let instance_name_ptr = instance_name.as_ptr();
-
-    let fmu_type = 1;
-    let guid = CString::new("1234").unwrap();
-    let guid_ptr = guid.as_ptr();
-
-    let fmu_resources_path =
-        CString::new(utils::get_example_resources_uri("BicycleKinematic")).unwrap();
-    let fmu_resources_path_ptr = fmu_resources_path.as_ptr();
-
-    let functions = Fmi2CallbackFunctions {
-        logger: Some(logger),
-        allocate_memory: None,
-        free_memory: None,
-        step_finished: None,
-        component_environment: None,
-    };
-    let visible: c_int = 0;
-    let logging_on: c_int = 0;
-
-    let h1 = fmi2Instantiate(
-        instance_name_ptr,
-        fmu_type,
-        guid_ptr,
-        fmu_resources_path_ptr,
-        functions,
-        visible,
-        logging_on,
-    );
-
-    assert_ne!(h1, null_mut());
-
-    let vr_accel = 0;
-    let val_accel: f64 = 1.0;
-    let references = &[vr_accel];
-    let mut values = [val_accel];
-
-    let references_ptr = references.as_ptr();
-    let values_ptr = values.as_mut_ptr();
-
-    assert_eq!(fmi2SetupExperiment(h1, 0, 0.0, 0.0, 0, 0.0), 0);
-
-    assert_eq!(fmi2EnterInitializationMode(h1), 0);
-    assert_eq!(fmi2ExitInitializationMode(h1), 0);
-
-    assert_eq!(fmi2SetReal(h1, references_ptr, values.len(), values_ptr), 0);
-
-    assert_eq!(fmi2GetReal(h1, references_ptr, values.len(), values_ptr), 0);
-    assert_eq!(values, [val_accel]);
-
-    assert_eq!(fmi2DoStep(h1, 0.0, 10.0, 0), 0);
-
-    let vr_pos_x = 2;
-    let references = &[vr_pos_x];
-
-    assert_eq!(
-        fmi2GetReal(h1, references.as_ptr(), references.len(), values_ptr),
-        0
-    );
-
-    assert!(values[0] > 1.0); // should have moved more than 1 meter in 10 seconds with accel of 1
-
-    fmi2FreeInstance(h1);
-}
-
-#[test]
 fn multiple_instantiations_same_fmu() {
     const N: usize = 10;
 
@@ -485,15 +416,12 @@ fn multiple_instantiations_different_fmus() {
 
     let sine_thread =
         thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("SineGenerator")));
-    let bicycle_thread =
-        thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("BicycleKinematic")));
 
     let plotting_thread =
         thread::spawn(|| instantiate_fmu(&utils::get_example_resources_uri("LivePlotting")));
 
     add_thread.join().unwrap();
     sine_thread.join().unwrap();
-    bicycle_thread.join().unwrap();
     plotting_thread.join().unwrap();
 }
 
