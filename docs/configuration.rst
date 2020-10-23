@@ -1,5 +1,5 @@
 
-.. _config:
+.. _sec_config:
 
 #############
 Configuration

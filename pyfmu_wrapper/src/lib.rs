@@ -8,28 +8,21 @@ use crate::common::SlaveHandle;
 use libc::c_ulonglong;
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::error::Error;
 use std::ffi::CStr;
 use std::ffi::CString;
 use std::fs::File;
 use std::io::BufReader;
-use std::mem::forget;
 use std::os::raw::c_char;
 use std::os::raw::c_double;
 use std::os::raw::c_int;
 use std::os::raw::c_uint;
 use std::os::raw::c_void;
-use std::path::Path;
 use std::ptr::null_mut;
 use std::sync::Mutex;
 use subprocess::Exec;
-use subprocess::Popen;
-use subprocess::PopenConfig;
 
 #[macro_use]
 extern crate lazy_static;
-
-use anyhow::Result;
 
 pub mod common;
 mod cpython_backend;
