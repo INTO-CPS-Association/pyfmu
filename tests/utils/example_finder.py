@@ -17,12 +17,8 @@ _correct_example = {
     "Adder",
     "ConstantSignalGenerator",
     "SineGenerator",
-    "BicycleKinematic",
     "LivePlotting",
     "FmiTypes",
-    "BicycleDynamic",
-    "Bicycle",
-    "BicycleTracking",
 }
 
 _incorrect_examples = set()
