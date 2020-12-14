@@ -3,6 +3,12 @@
 [![Documentation Status](https://readthedocs.org/projects/pyfmu/badge/?version=latest)](https://pyfmu.readthedocs.io/en/latest/?badge=latest)
 [![Gitter](https://badges.gitter.im/INTO-CPS/PyFMU.svg)](https://gitter.im/INTO-CPS/PyFMU?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
+# Deprecation Warning
+PyFMU is no longer actively supported, instead its functionality is integrated into a new tool [UniFMU](https://github.com/INTO-CPS-Association/unifmu) which supports multiple implementation languages including Python.
+
+
+
+
 # PyFMU
 
 PyFMU is a library that allows FMUs to be implemented using in Python 3. Its goal is to enable rapid prototyping of a wide of FMUs for a wide range of use cases.
